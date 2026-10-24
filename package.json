@@ -117,7 +117,7 @@
     "runtime:2.1.151-test": "node scripts/v2.1.151-public-release-regression.test.mjs",
     "ios:prepare": "bash scripts/prepare-ios.sh",
     "eas-build-pre-install": "if [ \"$EAS_BUILD_PLATFORM\" = \"ios\" ]; then bash scripts/download-vosk-command-models.sh && node scripts/stage-ios-vosk-models.cjs; fi",
-    "ios:check": "tsc --noEmit && node scripts/native-capture-profile.test.mjs && node scripts/vosk-emergency-stop-behavior.test.mjs && node scripts/ios-runtime-behavior.test.mjs",
+    "ios:check": "tsc --noEmit && node scripts/native-capture-profile.test.mjs && node scripts/vosk-emergency-stop-behavior.test.mjs && node scripts/ios-runtime-behavior.test.mjs && node scripts/realtime-session-isolation.test.mjs",
     "ios:build-simulator": "bash scripts/build-ios-simulator.sh"
   },
   "private": true,
