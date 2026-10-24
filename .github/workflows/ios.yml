@@ -1,0 +1,30 @@
+name: iOS native build
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'src/**'
+      - 'modules/**'
+      - 'plugins/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'app.json'
+      - '.github/workflows/ios.yml'
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm run ios:check
+      - name: Compile without signing
+        run: corepack pnpm run ios:build-simulator

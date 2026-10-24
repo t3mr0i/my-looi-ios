@@ -1,11 +1,17 @@
 {
   "platforms": [
-    "android"
+    "android",
+    "apple"
   ],
   "android": {
     "modules": [
       "com.superlooi.localrealtimecapture.LocalRealtimeAudioCaptureModule",
       "com.superlooi.localrealtimecapture.RealtimePcmAudioModule"
+    ]
+  },
+  "apple": {
+    "modules": [
+      "RealtimePcmAudioModule"
     ]
   }
 }

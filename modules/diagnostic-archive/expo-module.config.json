@@ -1,4 +1,16 @@
 {
-  "platforms": ["android"],
-  "android": { "modules": ["com.superlooi.diagnosticarchive.DiagnosticArchiveModule"] }
+  "platforms": [
+    "android",
+    "apple"
+  ],
+  "android": {
+    "modules": [
+      "com.superlooi.diagnosticarchive.DiagnosticArchiveModule"
+    ]
+  },
+  "apple": {
+    "modules": [
+      "DiagnosticArchiveModule"
+    ]
+  }
 }

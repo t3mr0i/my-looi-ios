@@ -9,6 +9,7 @@ web-build/
 expo-env.d.ts
 /ios/
 /android/
+/modules/vosk-command-recognizer/ios/Models/
 .kotlin/
 .metro-health-check*
 

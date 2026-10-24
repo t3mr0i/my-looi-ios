@@ -1,5 +1,7 @@
 import { NativeModule, requireNativeModule } from "expo";
 import { Platform } from "react-native";
+import { createCaptureController } from "../../src/voice/capture-owner";
+import { deactivateRealtimeSpeakerRoute } from "../realtime-audio-route";
 
 export type RealtimePcmAudioDataEvent = {
   pcm16Base64: string;
@@ -33,6 +35,7 @@ export type RealtimePcmAudioStatus = {
   aecEnabled: boolean;
   noiseSuppressorExplicit: boolean;
   captureChunks: number;
+  captureFrames?: number;
   playbackRunning: boolean;
   playbackSampleRate: number;
   playedDurationMs: number;
@@ -60,7 +63,28 @@ declare class RealtimePcmAudioNativeModule extends NativeModule<Events> {
 let cached: RealtimePcmAudioNativeModule | null = null;
 
 export function getRealtimePcmAudioModule(): RealtimePcmAudioNativeModule {
-  if (Platform.OS !== "android") throw new Error("Realtime PCM experiment is available on Android only");
+  if (Platform.OS === "web") throw new Error("Realtime PCM requires a native runtime");
   cached ??= requireNativeModule<RealtimePcmAudioNativeModule>("RealtimePcmAudio");
   return cached;
 }
+
+const captureController = createCaptureController({
+  async start() {
+    try { return await getRealtimePcmAudioModule().startCapture(); }
+    catch (error) {
+      if (Platform.OS === "ios") await deactivateRealtimeSpeakerRoute().catch(() => undefined);
+      throw error;
+    }
+  },
+  async stop() {
+    const status = await getRealtimePcmAudioModule().stopCapture();
+    // Include route teardown in the ownership queue: the next adapter must not
+    // activate its session until the previous one has finished releasing it.
+    if (Platform.OS === "ios") await deactivateRealtimeSpeakerRoute();
+    return status;
+  },
+  status: () => getRealtimePcmAudioModule().getStatus(),
+});
+export const startPcmCapture = captureController.start;
+export const stopPcmCapture = captureController.stop;
+export const reservePcmCapture = captureController.reserve;

@@ -59,7 +59,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    void consumePreviousBackgroundProcessExit()
+    if (Platform.OS === 'android') void consumePreviousBackgroundProcessExit()
       .then((previous) => {
         if (!previous) return;
         recordDiagnosticEvent('app', 'previous-background-process-exit', {
@@ -77,7 +77,7 @@ export default function RootLayout() {
       .then(async ({ bootstrapApp, pauseAppRuntime }) => {
         await bootstrapApp();
         if (AppState.currentState !== 'active') {
-          if (AppState.currentState === 'background') {
+          if (Platform.OS === 'android' && AppState.currentState === 'background') {
             const status = await scheduleBackgroundHardExit();
             recordDiagnosticEvent('app', 'background-process-exit-scheduled', {
               pid: status.pid,
@@ -102,12 +102,14 @@ export default function RootLayout() {
           // Near the 5 s boundary this ordering prevents a pending background
           // exit from racing a legitimate foreground resume.
           try {
-            const status = await cancelBackgroundHardExit();
-            recordDiagnosticEvent('app', 'background-process-exit-cancelled', {
-              pid: status.pid,
-              scheduled: status.scheduled,
-              source: 'foreground',
-            });
+            if (Platform.OS === 'android') {
+              const status = await cancelBackgroundHardExit();
+              recordDiagnosticEvent('app', 'background-process-exit-cancelled', {
+                pid: status.pid,
+                scheduled: status.scheduled,
+                source: 'foreground',
+              });
+            }
           } catch (error) {
             recordDiagnosticEvent('app', 'background-process-exit-cancel-failed', {
               error: error instanceof Error ? error.message : String(error),
@@ -119,7 +121,7 @@ export default function RootLayout() {
           return;
         }
 
-        if (state === 'background') {
+        if (Platform.OS === 'android' && state === 'background') {
           // Arm the kill in native code before starting JS cleanup. The native
           // Handler keeps counting even if Android suspends the JS thread. Five
           // seconds gives normal Realtime/mic/BLE/session cleanup time to finish.

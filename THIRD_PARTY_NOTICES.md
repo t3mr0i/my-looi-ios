@@ -8,7 +8,7 @@ Portions of My LOOI originated from the MIT-licensed `GrinZero/super-looi` proje
 
 ## Vosk command models
 
-Android release builds download and bundle selected Vosk command models from the official Vosk model catalog. The selected models used by the build script are listed by Vosk as Apache License 2.0 models. A copy of Apache License 2.0 is included in `licenses/APACHE-2.0.txt`.
+Android and iOS builds download and bundle selected Vosk command models from the official Vosk model catalog. The selected models used by the build script are listed by Vosk as Apache License 2.0 models. A copy of Apache License 2.0 is included in `licenses/APACHE-2.0.txt`.
 
 Source: https://alphacephei.com/vosk/models
 
@@ -29,6 +29,18 @@ Some optional speech/speaker model files are downloaded from upstream model rele
 ## OpenAI
 
 OpenAI model weights are not distributed with My LOOI. Realtime models and voices are accessed through the OpenAI API using the user's own API key and are subject to OpenAI's applicable terms and pricing.
+
+## Apple platform components
+
+The iOS command bridge links the Vosk XCFramework distributed by the MIT-licensed
+react-native-vosk package (https://github.com/riderodd/react-native-vosk).
+The Vosk runtime retains Alpha Cephei's Apache-2.0 license. The application uses
+its existing microphone pipeline rather than react-native-vosk's recording API.
+
+Diagnostic ZIP export uses ZIPFoundation 0.9.20 under the MIT License
+(https://github.com/weichsel/ZIPFoundation). Expo development builds also use the
+MIT-licensed expo-dev-client package. Preserve their upstream notices in binary
+distribution and include them in the final Apple application license inventory.
 
 ## JavaScript and Android dependencies
 

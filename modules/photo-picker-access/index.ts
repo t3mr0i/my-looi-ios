@@ -27,7 +27,7 @@ declare class PhotoPickerAccessNativeModule extends NativeModule {
 let cached: PhotoPickerAccessNativeModule | null | undefined;
 
 function getModule(): PhotoPickerAccessNativeModule | null {
-  if (Platform.OS !== "android") return null;
+  if (Platform.OS === "web") return null;
   if (cached !== undefined) return cached;
   try {
     cached = requireNativeModule<PhotoPickerAccessNativeModule>("PhotoPickerAccess");

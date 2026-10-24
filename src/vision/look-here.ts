@@ -1,4 +1,5 @@
-import { PermissionsAndroid, Platform } from "react-native";
+import { Platform } from "react-native";
+import { requestCameraAccess } from "../permissions/camera";
 
 import { getLocalFaceAttentionModule, type LocalCameraFacing, type LocalStillCapture } from "../../modules/local-face-attention";
 import { holdAmbientMotionFor } from "../core/ambient-motion";
@@ -12,13 +13,7 @@ function waitMs(delayMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
-async function ensureCameraPermission(): Promise<boolean> {
-  if (Platform.OS !== "android") return false;
-  const permission = PermissionsAndroid.PERMISSIONS.CAMERA;
-  if (await PermissionsAndroid.check(permission)) return true;
-  const result = await PermissionsAndroid.request(permission);
-  return result === PermissionsAndroid.RESULTS.GRANTED;
-}
+export const ensureCameraPermission = requestCameraAccess;
 
 /**
  * Capture one explicit user-requested still from the requested camera in memory. No raw
@@ -26,7 +21,7 @@ async function ensureCameraPermission(): Promise<boolean> {
  * enough to send it to the active Realtime conversation.
  */
 export async function captureExplicitLookHereStill(cameraFacing: LocalCameraFacing = "front"): Promise<LocalStillCapture> {
-  if (Platform.OS !== "android") throw new Error("Visual look is Android-only");
+  if (Platform.OS === "web") throw new Error("Visual look requires a native runtime");
   if (!await ensureCameraPermission()) throw new Error("Camera permission was not granted");
 
   const module = getLocalFaceAttentionModule();

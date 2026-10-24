@@ -10,6 +10,7 @@ import {
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { recordPerformanceSnapshot } from "../diagnostics/performance-monitor";
 import { setIsAudioActiveAsync } from "expo-audio";
+import { AppState } from "react-native";
 import { isMainScreenFocused } from "./main-screen-presence";
 import {
   resumeLooiRobotAutoConnection,
@@ -25,6 +26,7 @@ let paused = false;
 let desiredForegroundActive = true;
 let runtimeLifecycleQueue: Promise<void> = Promise.resolve();
 let ownerEnrollmentPromise: Promise<void> | null = null;
+let bootstrapPromise: Promise<void> | null = null;
 
 const VOICE_PCM_STARTUP_TIMEOUT_MS = 1200;
 const VOICE_PCM_RETRY_TIMEOUT_MS = 800;
@@ -33,7 +35,17 @@ const VOICE_PCM_RETRY_TIMEOUT_MS = 800;
  * Initialize all perceivers and wire observation events.
  * Called once at app startup.
  */
-export async function bootstrapApp(): Promise<void> {
+export function bootstrapApp(): Promise<void> {
+  bootstrapPromise ??= enqueueRuntimeLifecycle(performBootstrapApp);
+  return bootstrapPromise;
+}
+
+function runtimeShouldBeActive(): boolean {
+  return desiredForegroundActive && AppState.currentState === "active"
+    && !useUserStore.getState().robotSleeping;
+}
+
+async function performBootstrapApp(): Promise<void> {
   if (bootstrapped) return;
   bootstrapped = true;
   const bootstrapStartedAt = Date.now();
@@ -60,11 +72,11 @@ export async function bootstrapApp(): Promise<void> {
   });
 
   const bootSleeping = useUserStore.getState().robotSleeping;
-  if (bootSleeping) {
+  if (bootSleeping || !runtimeShouldBeActive()) {
     paused = true;
     desiredForegroundActive = false;
     useUserStore.getState().setVoiceState("sleeping");
-    recordDiagnosticEvent("app", "sleep-mode-restored-on-boot");
+    recordDiagnosticEvent("app", bootSleeping ? "sleep-mode-restored-on-boot" : "bootstrap-deferred-until-foreground");
   } else {
     try {
       await setIsAudioActiveAsync(true);
@@ -76,8 +88,14 @@ export async function bootstrapApp(): Promise<void> {
       });
     }
 
+    if (!runtimeShouldBeActive()) {
+      await setIsAudioActiveAsync(false).catch(() => undefined);
+      paused = true;
+      return;
+    }
     const voiceStartupStartedAt = Date.now();
     await startRuntimePerceivers();
+    if (!runtimeShouldBeActive()) return;
     recordDiagnosticEvent("performance", "voice-runtime-startup-finished", {
       durationMs: Date.now() - voiceStartupStartedAt,
     });
@@ -101,8 +119,8 @@ export async function bootstrapApp(): Promise<void> {
 }
 
 export async function pauseAppRuntime(reason: "background" | "sleep" = "background"): Promise<void> {
-  if (!bootstrapped) return;
   desiredForegroundActive = false;
+  if (!bootstrapped) return;
 
   return enqueueRuntimeLifecycle(async () => {
     if (desiredForegroundActive || paused) return;
@@ -152,7 +170,9 @@ export async function pauseAppRuntime(reason: "background" | "sleep" = "backgrou
 }
 
 export async function resumeAppRuntime(): Promise<void> {
+  desiredForegroundActive = AppState.currentState === "active" && !useUserStore.getState().robotSleeping;
   if (!bootstrapped) return;
+  if (AppState.currentState !== "active") return;
   if (useUserStore.getState().robotSleeping) {
     desiredForegroundActive = false;
     recordDiagnosticEvent("app", "runtime-resume-blocked-by-sleep");
@@ -232,16 +252,19 @@ export async function syncVoiceRuntime(): Promise<void> {
 }
 
 async function startRuntimePerceivers(): Promise<void> {
+  if (!runtimeShouldBeActive()) return;
   const startedAt = Date.now();
   try {
     const perceiverStartAt = Date.now();
     await perceiverManager.start("voice");
+    if (!runtimeShouldBeActive()) return;
     recordDiagnosticEvent("performance", "voice-perceiver-start-stage", { durationMs: Date.now() - perceiverStartAt });
     // A foreground resume must restore the actual wakeword pipeline, not only
     // mark the facade active. sync() is idempotent and repairs a stopped native
     // feeder/wakeword service after lifecycle races.
     const voiceSyncAt = Date.now();
     await voiceRuntime.sync();
+    if (!runtimeShouldBeActive()) return;
     recordDiagnosticEvent("performance", "voice-runtime-sync-stage", { durationMs: Date.now() - voiceSyncAt });
 
     const profile = getRuntimeProfile();

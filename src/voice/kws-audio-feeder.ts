@@ -264,6 +264,8 @@ export class KwsAudioFeeder {
         sampleRate: KWS_SAMPLE_RATE,
         wakewordFeedingEnabled: this.wakewordFeedingEnabled,
         audioFocusStrategy: recordingConfig.android.audioFocusStrategy,
+        iosAudioSessionCategory: recordingConfig.ios.audioSession.category,
+        iosAudioSessionMode: recordingConfig.ios.audioSession.mode,
         startLatencyMs: this.recordingStartedAt - startRequestedAt,
       });
 

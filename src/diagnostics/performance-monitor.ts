@@ -16,6 +16,7 @@ let eventLoopTimer: ReturnType<typeof setInterval> | null = null;
 let previousProbeAt = 0;
 let lastEventLoopLogAt = 0;
 let started = false;
+let lifecycleSubscription: { remove(): void } | null = null;
 
 function mb(bytes: number | null | undefined): number | null {
   if (bytes == null || !Number.isFinite(bytes)) return null;
@@ -25,7 +26,8 @@ function mb(bytes: number | null | undefined): number | null {
 function snapshotDetails(snapshot: DiagnosticPerformanceSnapshot) {
   return {
     pid: snapshot.pid,
-    pssMb: Math.round((snapshot.pssKb / 1024) * 10) / 10,
+    platform: snapshot.platform ?? Platform.OS,
+    pssMb: snapshot.pssKb == null ? null : Math.round((snapshot.pssKb / 1024) * 10) / 10,
     rssMb: snapshot.rssKb == null ? null : Math.round((snapshot.rssKb / 1024) * 10) / 10,
     javaHeapUsedMb: mb(snapshot.javaHeapUsedBytes),
     javaHeapTotalMb: mb(snapshot.javaHeapTotalBytes),
@@ -35,11 +37,12 @@ function snapshotDetails(snapshot: DiagnosticPerformanceSnapshot) {
     systemTotalMb: mb(snapshot.systemTotalMemBytes),
     systemLowMemory: snapshot.systemLowMemory,
     systemLowMemoryThresholdMb: mb(snapshot.systemLowMemoryThresholdBytes),
+    thermalState: snapshot.thermalState ?? null,
   };
 }
 
 export async function recordPerformanceSnapshot(reason: string): Promise<void> {
-  if (Platform.OS !== "android") return;
+  if (Platform.OS === "web") return;
   try {
     const snapshot = await getDiagnosticPerformanceSnapshot();
     if (!snapshot) return;
@@ -81,9 +84,14 @@ async function recordPreviousExitReasons(): Promise<void> {
 }
 
 export function startPerformanceMonitor(): void {
-  if (started || Platform.OS !== "android") return;
+  if (started || Platform.OS === "web") return;
   started = true;
   previousProbeAt = Date.now();
+  lifecycleSubscription = AppState.addEventListener("change", () => {
+    // A suspended JS thread is not an event-loop stall. Start a fresh timing
+    // window after permission sheets, interruptions or a foreground transition.
+    previousProbeAt = Date.now();
+  });
 
   void recordPreviousExitReasons();
   void recordPerformanceSnapshot("monitor-start");
@@ -95,6 +103,7 @@ export function startPerformanceMonitor(): void {
 
   eventLoopTimer = setInterval(() => {
     const now = Date.now();
+    if (AppState.currentState !== "active") { previousProbeAt = now; return; }
     const expected = previousProbeAt + EVENT_LOOP_PROBE_MS;
     const lagMs = Math.max(0, now - expected);
     previousProbeAt = now;
@@ -116,4 +125,6 @@ export function stopPerformanceMonitor(): void {
   if (eventLoopTimer) clearInterval(eventLoopTimer);
   snapshotTimer = null;
   eventLoopTimer = null;
+  lifecycleSubscription?.remove();
+  lifecycleSubscription = null;
 }

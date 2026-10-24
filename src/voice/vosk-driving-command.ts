@@ -23,7 +23,7 @@ import {
   isDrivingControlSessionActive,
   refreshDrivingControlSession,
 } from "./driving-control-session";
-import { getLooiRobotRuntimeState } from "../device-tools/looi-robot";
+import { getLooiRobotRuntimeState, stopLooiMotion } from "../device-tools/looi-robot";
 
 type CommandHandler = (command: DrivingCommand, transcript: string) => void;
 
@@ -78,7 +78,7 @@ class VoskDrivingCommandRecognizer {
   }
 
   async prewarm(language: ListeningLanguage): Promise<boolean> {
-    if (Platform.OS !== "android") return false;
+    if (Platform.OS === "web") return false;
     // A transient model-copy/load error must not permanently disable physical
     // control for the lifetime of the process. Retry after a short cooldown.
     if (this.failed && Date.now() - this.failedAt < 5_000) return false;
@@ -139,7 +139,7 @@ class VoskDrivingCommandRecognizer {
   }
 
   acceptSamples(samples: number[], sampleRate: number): boolean {
-    if (sampleRate !== 16000 || samples.length === 0 || Platform.OS !== "android") return false;
+    if (sampleRate !== 16000 || samples.length === 0 || Platform.OS === "web") return false;
     const language = useUserStore.getState().preferences.listeningLanguage;
     if (this.readyLanguage !== language || this.failed) {
       void this.prewarm(language);
@@ -166,7 +166,7 @@ class VoskDrivingCommandRecognizer {
   }
 
   async armEmergencyForMotion(reason: string, autoDisarmMs = 8_000): Promise<boolean> {
-    if (Platform.OS !== "android") return false;
+    if (Platform.OS === "web") return false;
     const language = useUserStore.getState().preferences.listeningLanguage;
     if (!(await this.prewarm(language))) return false;
     this.clearEmergencyAutoDisarmTimer();
@@ -204,7 +204,7 @@ class VoskDrivingCommandRecognizer {
     this.clearEmergencyAutoDisarmTimer();
     this.emergencyArmSerial += 1;
     this.emergencyArmedAt = 0;
-    if (Platform.OS !== "android") return;
+    if (Platform.OS === "web") return;
     try {
       await VoskCommandRecognizer.disarmEmergency(reason);
       recordDiagnosticEvent("runtime", "vosk-emergency-disarmed", { reason });
@@ -270,7 +270,7 @@ class VoskDrivingCommandRecognizer {
   }
 
   private installListeners(): void {
-    if (this.listenersInstalled || Platform.OS !== "android") return;
+    if (this.listenersInstalled || Platform.OS === "web") return;
     this.listenersInstalled = true;
 
     VoskCommandRecognizer.addListener("onModelReady", (event: VoskModelReadyEvent) => {
@@ -292,6 +292,13 @@ class VoskDrivingCommandRecognizer {
         stage: event.stage,
         error: event.message,
       });
+      if (Platform.OS === "ios" && (event.stage === "backlog" || event.stage === "feed")) {
+        this.failed = true;
+        this.failedAt = Date.now();
+        this.readyLanguage = null;
+        void this.disarmEmergency("native-recognizer-failed");
+        void stopLooiMotion("native-recognizer-failed").catch(() => undefined);
+      }
     });
 
     VoskCommandRecognizer.addListener("onRecognizerState", (event: VoskRecognizerStateEvent) => {

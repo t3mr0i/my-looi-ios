@@ -101,11 +101,11 @@ export async function listOpenAiRealtimeModels(): Promise<OpenAiRealtimeModel[]>
 }
 
 /**
- * BYOK Realtime bootstrap for the owner-controlled Android device.
+ * BYOK Realtime bootstrap for the owner-controlled device.
  *
  * OpenAI's normal browser/mobile recommendation is to mint this secret on a
  * developer backend. My LOOI intentionally has no Realtime backend: the
- * user's own standard key stays in Android SecureStore and is used only for
+ * user's own standard key stays in SecureStore (Keychain on iOS) and is used only for
  * this short REST request. The returned ephemeral secret authenticates the
  * WebRTC SDP exchange and is never persisted.
  */

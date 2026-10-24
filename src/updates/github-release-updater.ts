@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import {
@@ -108,6 +109,7 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 }
 
 export async function checkForMyLooiUpdate(): Promise<UpdateRelease> {
+  if (Platform.OS !== "android") throw new Error("Install iOS updates through TestFlight or the App Store");
   const response = await fetchWithTimeout(LATEST_RELEASE_API);
   if (response.status === 404) throw new Error("В GitHub пока нет опубликованного My LOOI release");
   if (!response.ok) throw new Error(`GitHub update check failed: HTTP ${response.status}`);
@@ -166,6 +168,7 @@ async function resolveReleaseSha256(release: UpdateRelease): Promise<string> {
 }
 
 export async function downloadAndVerifyMyLooiUpdate(release: UpdateRelease): Promise<DownloadedUpdate> {
+  if (Platform.OS !== "android") throw new Error("Install iOS updates through TestFlight or the App Store");
   if (!release.updateAvailable) throw new Error("Новая версия My LOOI не найдена");
   const cacheRoot = FileSystem.cacheDirectory;
   if (!cacheRoot) throw new Error("Android update cache is unavailable");

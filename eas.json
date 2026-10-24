@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "extends": "base"
+    },
+    "simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "extends": "base"
+    },
+    "preview": {
+      "distribution": "internal",
+      "extends": "base"
+    },
+    "production": {
+      "distribution": "store",
+      "extends": "base"
+    },
+    "base": {
+      "node": "22.23.4",
+      "prebuildCommand": "prebuild --template expo-template-bare-minimum@56.0.38"
+    }
+  }
+}

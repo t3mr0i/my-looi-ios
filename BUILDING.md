@@ -1,5 +1,8 @@
 # Building My LOOI
 
+For the Expo/React Native iOS port, use [docs/ios.md](docs/ios.md). The Android
+release instructions below continue to apply to Android builds.
+
 ## Toolchain
 
 - Node.js 22

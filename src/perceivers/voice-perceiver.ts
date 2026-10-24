@@ -2023,7 +2023,9 @@ export class VoicePerceiver extends BasePerceiver {
       if (command.kind === "dance") {
         triggerCharacterReaction("victory", { durationMs: 5_000, source: "explicit-voice-dance" });
         await wakewordService.prepareDrivingControl().catch(() => false);
-        await voskDrivingCommandRecognizer.armEmergencyForMotion("addressed-dance", 10_000);
+        if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion("addressed-dance", 10_000))) {
+          throw new Error("Local emergency STOP recognition is not ready");
+        }
         try {
           await performLooiDance("random");
           return { ok: true, message: "Танцую!" };
@@ -2037,7 +2039,9 @@ export class VoicePerceiver extends BasePerceiver {
         // before any bounded wheel movement begins. The Driving Control Session
         // itself is opened after this addressed command completes.
         await wakewordService.prepareDrivingControl().catch(() => false);
-        await voskDrivingCommandRecognizer.armEmergencyForMotion(`addressed-turn-${command.degrees}`, 3_000);
+        if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion(`addressed-turn-${command.degrees}`, 3_000))) {
+          throw new Error("Local emergency STOP recognition is not ready");
+        }
         try {
           await turnLooi(command.direction, command.degrees);
         } finally {
@@ -2055,7 +2059,9 @@ export class VoicePerceiver extends BasePerceiver {
         await stopLooiMotion("explicit-voice-stop");
       } else {
         await wakewordService.prepareDrivingControl().catch(() => false);
-        await voskDrivingCommandRecognizer.armEmergencyForMotion("addressed-move", 8_000);
+        if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion("addressed-move", 8_000))) {
+          throw new Error("Local emergency STOP recognition is not ready");
+        }
         try {
           await startLooiMotion(command.direction);
         } catch (error) {

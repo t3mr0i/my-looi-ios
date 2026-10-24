@@ -1,6 +1,16 @@
 {
-  "platforms": ["android"],
+  "platforms": [
+    "android",
+    "apple"
+  ],
   "android": {
-    "modules": ["com.superlooi.backupstorageaccess.BackupStorageAccessModule"]
+    "modules": [
+      "com.superlooi.backupstorageaccess.BackupStorageAccessModule"
+    ]
+  },
+  "apple": {
+    "modules": [
+      "BackupStorageAccessModule"
+    ]
   }
 }

@@ -316,7 +316,9 @@ export class WakewordService {
           // Arm a fresh tiny STOP decoder before the very first motor frame.
           // It remains armed until STOP/deadman/sensor-stop (health teardown)
           // rather than accumulating speech across the whole driving session.
-          await voskDrivingCommandRecognizer.armEmergencyForMotion("local-move", 8_000);
+          if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion("local-move", 8_000))) {
+            throw new Error("Local emergency STOP recognition is not ready");
+          }
           try {
             await startLooiMotion(command.direction);
           } catch (error) {
@@ -324,7 +326,9 @@ export class WakewordService {
             throw error;
           }
         } else if (command.kind === "turn") {
-          await voskDrivingCommandRecognizer.armEmergencyForMotion(`local-turn-${command.degrees}`, 3_000);
+          if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion(`local-turn-${command.degrees}`, 3_000))) {
+            throw new Error("Local emergency STOP recognition is not ready");
+          }
           try {
             await turnLooi(command.direction, command.degrees);
           } finally {
@@ -332,7 +336,9 @@ export class WakewordService {
           }
         } else if (command.kind === "dance") {
           triggerCharacterReaction("victory", { durationMs: 5_000, source: "voice-dance" });
-          await voskDrivingCommandRecognizer.armEmergencyForMotion("local-dance", 10_000);
+          if (!(await voskDrivingCommandRecognizer.armEmergencyForMotion("local-dance", 10_000))) {
+            throw new Error("Local emergency STOP recognition is not ready");
+          }
           try {
             await performLooiDance();
           } finally {

@@ -118,7 +118,7 @@ export async function saveCombinedDiagnosticExportToSelectedFolder(): Promise<Ba
 
 export async function shareCombinedDiagnosticExport(dialogTitle = "Share My LOOI diagnostics"): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) {
-    throw new Error("Android sharing is unavailable on this device");
+    throw new Error("System sharing is unavailable on this device");
   }
   const uri = await writeCombinedDiagnosticExport();
   try {

@@ -18,7 +18,7 @@ assert.match(user, /stored\.version !== \d+/);
 assert.match(user, /version: \d+, preferences/);
 
 const settings = read("app/(tabs)/settings.tsx");
-assert.match(settings, /PermissionsAndroid\.PERMISSIONS\.CAMERA/);
+assert.match(settings, /await requestCameraAccess\(\)/);
 assert.match(settings, /updatePreferences\(\{ cameraAttentionEnabled: true \}\)/);
 assert.match(settings, /updatePreferences\(\{ cameraAttentionEnabled: false \}\)/);
 assert.match(settings, /settings\.cameraAttentionHelp/);

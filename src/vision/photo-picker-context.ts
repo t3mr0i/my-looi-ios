@@ -90,9 +90,9 @@ export type SelectedPhotoContextResult = {
  * the recent text conversation can be reseeded after returning.
  */
 export async function selectPhotosIntoCurrentDiscussion(): Promise<SelectedPhotoContextResult> {
-  if (Platform.OS !== "android") throw new Error("Android Photo Picker is available only on Android");
+  if (Platform.OS === "web") throw new Error("Photo selection requires a native runtime");
   const module = getPhotoPickerAccessModule();
-  if (!module) throw new Error("Android Photo Picker module is unavailable");
+  if (!module) throw new Error("Photo selection module is unavailable");
 
   const continuationContext = buildRecentConversationContinuation();
   recordDiagnosticEvent("vision", "photo-picker-opened", {

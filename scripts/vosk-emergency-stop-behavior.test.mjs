@@ -25,6 +25,9 @@ function compileTs(file, customRequire) {
 
 const listeners = new Map();
 const diagnostics = [];
+const platform = { OS: "android" };
+const safetyStops = [];
+const performanceSnapshots = [];
 let prepareArgs = null;
 const commandCalls = [];
 const resetCalls = [];
@@ -75,12 +78,13 @@ const native = {
 };
 
 const customRequire = (id) => {
-  if (id === "react-native") return { Platform: { OS: "android" } };
+  if (id === "react-native") return { Platform: platform };
   if (id === "../../modules/vosk-command-recognizer") return { __esModule: true, default: native };
+  if (id === "../diagnostics/performance-monitor") return { recordPerformanceSnapshot: async (reason) => performanceSnapshots.push(reason) };
   if (id === "../diagnostics/diagnostic-log") return { recordDiagnosticEvent: (category, event, details = {}) => diagnostics.push({ category, event, details }) };
   if (id === "../store/user") return { useUserStore: { getState: () => ({ preferences: { listeningLanguage: "ru" } }) } };
   if (id === "../device-tools/looi-robot") {
-    return { getLooiRobotRuntimeState: () => ({ motionActive, activeDirection: motionActive ? "forward" : null }) };
+    return { getLooiRobotRuntimeState: () => ({ motionActive, activeDirection: motionActive ? "forward" : null }), stopLooiMotion: async (reason) => { safetyStops.push(reason); motionActive = false; } };
   }
   if (id === "./driving-command") {
     return {
@@ -182,4 +186,13 @@ const nativeSource = fs.readFileSync("modules/vosk-command-recognizer/android/sr
 assert.match(nativeSource, /feedEmergencyGeneration = if \(emergencyArmed\) emergencyArmGeneration\.get\(\) else 0/);
 assert.match(nativeSource, /feedEmergencyGeneration == emergencyArmGeneration\.get\(\)/);
 
-console.log("Vosk per-motion emergency STOP behavioral tests passed");
+// A stalled/failed iOS decoder must stop existing motion and disarm immediately.
+platform.OS = "ios";
+motionActive = true;
+listeners.get("onRecognizerError")({ stage: "backlog", message: "decoder overloaded" });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(motionActive, false);
+assert.deepEqual(safetyStops, ["native-recognizer-failed"]);
+assert.ok(disarmCalls.includes("native-recognizer-failed"));
+assert.ok(performanceSnapshots.includes("before-vosk-ru"));
+console.log("Vosk per-motion emergency STOP and iOS decoder failure tests passed");

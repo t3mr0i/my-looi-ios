@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Alert, Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { requestCameraAccess } from "@/src/permissions/camera";
 import Constants from "expo-constants";
 import { useFocusEffect } from "expo-router";
 
@@ -478,12 +479,11 @@ export default function SettingsScreen() {
       updatePreferences({ cameraAttentionEnabled: false });
       return;
     }
-    if (Platform.OS !== "android") {
-      Alert.alert(t("settings.cameraAttentionPermissionTitle"), t("settings.cameraAttentionAndroidOnly"));
+    if (Platform.OS === "web") {
+      Alert.alert(t("settings.cameraAttentionPermissionTitle"), t("settings.cameraAttentionNativeOnly"));
       return;
     }
-    const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
-    if (result === PermissionsAndroid.RESULTS.GRANTED) {
+    if (await requestCameraAccess()) {
       updatePreferences({ cameraAttentionEnabled: true });
       return;
     }
@@ -637,7 +637,7 @@ export default function SettingsScreen() {
         <Action label={t("settings.openUserGuide")} onPress={() => void openExternalUrl("user-guide", MY_LOOI_USER_GUIDE_URL)} secondary />
       </Section>
 
-      <Section title={t("settings.updates")}>
+      {Platform.OS === "android" ? <Section title={t("settings.updates")}>
         <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
         {updateRelease?.updateAvailable ? <Text style={styles.value}>{t("settings.updateAvailable", { version: updateRelease.version })}</Text> : null}
         <ButtonRow>
@@ -647,7 +647,10 @@ export default function SettingsScreen() {
         </ButtonRow>
         {downloadedUpdate ? <Action label={t("settings.installSettings")} onPress={() => void openInstallSettings()} disabled={updateBusy} secondary /> : null}
         {updateResult ? <Text style={styles.result}>{updateResult}</Text> : null}
-      </Section>
+      </Section> : <Section title={t("settings.updates")}>
+        <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
+        <Text style={styles.help}>{t("settings.appleUpdatesHelp")}</Text>
+      </Section>}
 
       <View style={styles.sectionWide}>
         <Pressable onPress={() => setAdvanced(!advanced)} style={styles.advancedHeader}><Text style={styles.sectionTitle}>{t("settings.advanced")}</Text><Text style={styles.value}>{advanced ? t("common.hide") : t("common.open")}</Text></Pressable>

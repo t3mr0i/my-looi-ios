@@ -27,9 +27,9 @@ const speechStopped = pcm.slice(
 assert.match(speechStarted, /markRobotInteraction\("realtime-pcm-speech-start"\)/, "actual speech must immediately preempt natural motion");
 assert.match(speechStarted, /store\.setUserSpeaking\(true\)/, "server VAD speech_started must mark actual human speech");
 assert.match(speechStopped, /store\.setUserSpeaking\(false\)/, "server VAD speech_stopped must clear actual human speech");
-assert.match(pcm, /captureRequested: "VOICE_COMMUNICATION\/16000\/mono\/pcm16\/explicit-platform-aec"/);
-assert.match(pcm, /audioSource !== "VOICE_COMMUNICATION"/);
-assert.match(pcm, /captureSampleRate !== 16_000/);
+assert.match(pcm, /"VOICE_COMMUNICATION\/16000\/mono\/pcm16\/explicit-platform-aec"/);
+assert.match(pcm, /isRealtimeCaptureReady\(status, Platform.OS\)/);
+await import("./native-capture-profile.test.mjs");
 
 const ambient = read("src/core/ambient-motion.ts");
 assert.match(ambient, /if \(conversation\.isUserSpeaking\) return "user-speaking"/);

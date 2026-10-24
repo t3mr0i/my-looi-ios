@@ -8,18 +8,20 @@ export type DiagnosticArchiveResult = {
 };
 
 export type DiagnosticPerformanceSnapshot = {
+  platform?: "ios" | "android";
   pid: number;
   elapsedRealtimeMs: number;
-  pssKb: number;
+  pssKb: number | null;
   rssKb: number | null;
-  javaHeapUsedBytes: number;
-  javaHeapTotalBytes: number;
-  javaHeapMaxBytes: number;
-  nativeHeapBytes: number;
-  systemAvailMemBytes: number;
+  javaHeapUsedBytes: number | null;
+  javaHeapTotalBytes: number | null;
+  javaHeapMaxBytes: number | null;
+  nativeHeapBytes: number | null;
+  systemAvailMemBytes: number | null;
   systemTotalMemBytes: number;
-  systemLowMemory: boolean;
-  systemLowMemoryThresholdBytes: number;
+  systemLowMemory: boolean | null;
+  systemLowMemoryThresholdBytes: number | null;
+  thermalState?: number;
 };
 
 export type DiagnosticProcessExitReason = {
@@ -42,7 +44,7 @@ declare class DiagnosticArchiveNativeModule extends NativeModule {
 let cached: DiagnosticArchiveNativeModule | null = null;
 
 function getModule(): DiagnosticArchiveNativeModule {
-  if (Platform.OS !== "android") throw new Error("Diagnostic native helpers are available on Android only");
+  if (Platform.OS === "web") throw new Error("Native diagnostics require an iOS or Android runtime");
   cached ??= requireNativeModule<DiagnosticArchiveNativeModule>("DiagnosticArchive");
   return cached;
 }
@@ -55,7 +57,7 @@ export async function createDiagnosticZip(
 }
 
 export async function getDiagnosticPerformanceSnapshot(): Promise<DiagnosticPerformanceSnapshot | null> {
-  if (Platform.OS !== "android") return null;
+  if (Platform.OS === "web") return null;
   return getModule().getPerformanceSnapshot();
 }
 

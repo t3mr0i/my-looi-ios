@@ -1,4 +1,5 @@
 import { AppState, Platform } from "react-native";
+import { isRealtimeCaptureReady } from "./audio-capture-profile";
 import { setIsAudioActiveAsync } from "expo-audio";
 
 import { createObservation } from "../core/observation";
@@ -21,6 +22,9 @@ import {
 } from "../../modules/realtime-audio-route";
 import {
   getRealtimePcmAudioModule,
+  startPcmCapture,
+  stopPcmCapture,
+  reservePcmCapture,
   type RealtimePcmAudioDataEvent,
   type RealtimePcmAudioStatus,
 } from "../../modules/local-realtime-audio-capture/realtime-pcm";
@@ -168,7 +172,7 @@ export class RealtimePcmConversationService {
         content: [
           {
             type: "input_text",
-            text: `SELECTED PHOTO ${safeIndex} OF ${safeTotal}: The user explicitly selected this image in Android Photo Picker for the current discussion. Preserve this numbering for follow-up references such as “the first photo” or “the second photo”. Inspect visible text/details carefully and never guess what is unreadable.`,
+            text: `SELECTED PHOTO ${safeIndex} OF ${safeTotal}: The user explicitly selected this image in the system photo picker for the current discussion. Preserve this numbering for follow-up references such as “the first photo” or “the second photo”. Inspect visible text/details carefully and never guess what is unreadable.`,
           },
           {
             type: "input_image",
@@ -209,7 +213,7 @@ export class RealtimePcmConversationService {
   async start(detection?: WakewordDetection): Promise<void> {
     if (this.stopPromise) await this.stopPromise;
     if (this.active || this.stopping) return;
-    if (Platform.OS !== "android") throw new Error("Realtime PCM experiment is Android-only");
+    if (Platform.OS === "web") throw new Error("Realtime PCM requires a native runtime");
 
     this.active = true;
     this.configured = false;
@@ -252,8 +256,12 @@ export class RealtimePcmConversationService {
       transport: "openai-websocket-app-owned-pcm",
       model: this.sessionModel,
       source: detection?.source ?? "manual",
-      captureRequested: "VOICE_COMMUNICATION/16000/mono/pcm16/explicit-platform-aec",
-      playbackRequested: "USAGE_VOICE_COMMUNICATION/24000/mono/pcm16",
+      captureRequested: Platform.OS === "ios"
+        ? "VOICE_PROCESSING_IO/16000/mono/pcm16/platform-aec"
+        : "VOICE_COMMUNICATION/16000/mono/pcm16/explicit-platform-aec",
+      playbackRequested: Platform.OS === "ios"
+        ? "AVAudioEngine/24000/mono/pcm16"
+        : "USAGE_VOICE_COMMUNICATION/24000/mono/pcm16",
       explicitNoiseSuppressor: false,
     });
 
@@ -261,6 +269,9 @@ export class RealtimePcmConversationService {
       if (AppState.currentState !== "active" || useUserStore.getState().robotSleeping) {
         throw new Error("Realtime PCM can start only while LOOI is active in the foreground");
       }
+
+      await reservePcmCapture("conversation");
+      if (!this.active) { await stopPcmCapture("conversation"); return; }
 
       const gateWasClosed = !kwsAudioFeeder.diagnosticStatus.appCaptureAllowed;
       await setIsAudioActiveAsync(true);
@@ -331,7 +342,7 @@ export class RealtimePcmConversationService {
         if (!this.active) return;
         this.speakerRouteActive = prepared.active && prepared.speakerSelected;
         if (!prepared.modeMatchesCommunication || !prepared.speakerSelected) {
-          throw new Error("Realtime PCM could not establish Android communication speaker route");
+          throw new Error("Realtime PCM could not establish a communication audio route");
         }
         await waitMs(COMMUNICATION_ROUTE_SETTLE_MS);
         const settled = await getRealtimeAudioRouteStatus();
@@ -428,7 +439,7 @@ export class RealtimePcmConversationService {
     this.removeNativeAudioEvents();
     const audio = getRealtimePcmAudioModule();
     try { audio.stopPlayback(); } catch {}
-    await audio.stopCapture().catch(() => undefined);
+    await stopPcmCapture("conversation").catch(() => undefined);
 
     const ws = this.webSocket;
     this.webSocket = null;
@@ -438,7 +449,7 @@ export class RealtimePcmConversationService {
     }
 
     if (this.speakerRouteActive) {
-      await deactivateRealtimeSpeakerRoute().catch(() => undefined);
+      if (Platform.OS !== "ios") await deactivateRealtimeSpeakerRoute().catch(() => undefined);
       this.speakerRouteActive = false;
     }
 
@@ -625,7 +636,7 @@ export class RealtimePcmConversationService {
       const audio = getRealtimePcmAudioModule();
       let status: RealtimePcmAudioStatus;
       try {
-        status = await audio.startCapture();
+        status = await startPcmCapture("conversation");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         recordDiagnosticEvent("realtime", "pcm-capture-start-failed", { error: message });
@@ -634,7 +645,7 @@ export class RealtimePcmConversationService {
         return;
       }
       if (!this.active) return;
-      if (!status.aecEnabled || status.audioSource !== "VOICE_COMMUNICATION" || status.captureSampleRate !== 16_000) {
+      if (!isRealtimeCaptureReady(status, Platform.OS)) {
         recordDiagnosticEvent("realtime", "pcm-capture-profile-mismatch", {
           supported: status.supported,
           captureRunning: status.captureRunning,

@@ -42,8 +42,10 @@ assert.match(realtimeConfig, /noise_reduction: \{ type: "far_field" \}/);
 assert.match(realtimeConfig, /REALTIME_UPLINK_GAIN = 2\.0/);
 
 const pcm = read("src/voice/realtime-pcm-conversation.ts");
-const pcmHash = crypto.createHash("sha256").update(pcm).digest("hex");
-assert.equal(pcmHash, "a22924f9c8e5da6e93bdf94e10a17a88bab43ccae732fb5fac82c19861313ced");
+// The shared service now supports iOS. Validate the capture contract rather than
+// freezing its entire source file, which prevents intentional platform changes.
+assert.match(pcm, /isRealtimeCaptureReady\(status, Platform.OS\)/);
+await import("./native-capture-profile.test.mjs");
 const nativePcm = read("modules/local-realtime-audio-capture/android/src/main/java/com/superlooi/localrealtimecapture/RealtimePcmAudioModule.kt");
 const nativeHash = crypto.createHash("sha256").update(nativePcm).digest("hex");
 assert.equal(nativeHash, "667938b5ce3c8c2991b23f1d24661ef5db914a504482ded186f570c1614d77cc");

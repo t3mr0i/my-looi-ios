@@ -21,12 +21,10 @@ assert.match(read("src/diagnostics/performance-monitor.ts"), /EVENT_LOOP_WARN_MS
 assert.match(read("src/core/app-bootstrap.ts"), /const delayMs = 12_000/);
 assert.match(read("src/voice/wakeword.ts"), /const delayMs = 8_000/);
 
-assert.equal(
-  crypto.createHash("sha256")
-    .update(read("src/voice/realtime-pcm-conversation.ts"))
-    .digest("hex"),
-  "a22924f9c8e5da6e93bdf94e10a17a88bab43ccae732fb5fac82c19861313ced"
-);
+// iOS intentionally changes the shared service. Preserve its audio validation
+// with executable platform-profile checks; keep the Android native hash below.
+assert.match(read("src/voice/realtime-pcm-conversation.ts"), /isRealtimeCaptureReady\(status, Platform.OS\)/);
+await import("./native-capture-profile.test.mjs");
 
 assert.equal(
   crypto.createHash("sha256")

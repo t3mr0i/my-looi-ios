@@ -182,7 +182,7 @@ export class RealtimeConversationService {
         content: [
           {
             type: "input_text",
-            text: `SELECTED PHOTO ${safeIndex} OF ${safeTotal}: The user explicitly selected this image in Android Photo Picker for the current discussion. Preserve this numbering for follow-up references such as “the first photo” or “the second photo”. Inspect visible text/details carefully and never guess what is unreadable.`,
+            text: `SELECTED PHOTO ${safeIndex} OF ${safeTotal}: The user explicitly selected this image in the system photo picker for the current discussion. Preserve this numbering for follow-up references such as “the first photo” or “the second photo”. Inspect visible text/details carefully and never guess what is unreadable.`,
           },
           {
             type: "input_image",
@@ -394,7 +394,7 @@ export class RealtimeConversationService {
       // then left untouched while PeerConnection/getUserMedia creates the
       // default react-native-webrtc VOICE_COMMUNICATION + AEC/NS path.
       // This is the last routing-order A/B before instrumenting actual AEC.
-      if (Platform.OS === "android") {
+      if (Platform.OS !== "web") {
         const beforeRoute = await getRealtimeAudioRouteStatus();
         if (!this.active) return;
         this.recordAudioRoute("before-activation", beforeRoute, "before-get-user-media");
@@ -406,7 +406,7 @@ export class RealtimeConversationService {
           this.recordAudioRoute("activated", preparedRoute, "before-get-user-media");
           if (!preparedRoute.modeMatchesCommunication || !preparedRoute.speakerSelected) {
             throw new Error(
-              "Android communication mode + built-in speaker were not established before WebRTC capture"
+              "Communication audio routing was not established before capture"
             );
           }
 
@@ -425,7 +425,7 @@ export class RealtimeConversationService {
           });
           if (!settledRoute.modeMatchesCommunication || !settledRoute.speakerSelected) {
             throw new Error(
-              "Android communication route did not remain stable before WebRTC capture"
+              "Communication audio routing did not remain stable before capture"
             );
           }
         } else {
@@ -479,7 +479,7 @@ export class RealtimeConversationService {
       // the pre-selected communication speaker while its AudioRecord/AEC path
       // was being created. A supported Android route drift fails this A/B
       // rather than repairing the route after capture and changing topology.
-      if (Platform.OS === "android") {
+      if (Platform.OS !== "web") {
         const postCaptureRoute = await getRealtimeAudioRouteStatus();
         if (!this.active) return;
         this.recordAudioRoute("verified", postCaptureRoute, "local-audio-ready-read-only");
@@ -488,7 +488,7 @@ export class RealtimeConversationService {
           (!postCaptureRoute.modeMatchesCommunication || !postCaptureRoute.speakerSelected)
         ) {
           throw new Error(
-            "Android communication speaker route changed while WebRTC capture was created"
+            "Communication audio routing changed while capture was being created"
           );
         }
       }

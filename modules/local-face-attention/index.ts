@@ -72,7 +72,7 @@ declare class LocalFaceAttentionNativeModule extends NativeModule<Events> {
 let cached: LocalFaceAttentionNativeModule | null | undefined;
 
 function getModule(): LocalFaceAttentionNativeModule | null {
-  if (Platform.OS !== "android") return null;
+  if (Platform.OS === "web") return null;
   if (cached !== undefined) return cached;
   try {
     cached = requireNativeModule<LocalFaceAttentionNativeModule>("LocalFaceAttention");

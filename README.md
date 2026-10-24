@@ -1,8 +1,13 @@
 # My LOOI
 
-**My LOOI** is an unofficial, local-first Android companion app for the LOOI robot. It focuses on natural realtime voice conversation, local memory, multilingual interaction, and reliable BLE robot control.
+**My LOOI** is an unofficial, local-first Expo/React Native companion app for the LOOI robot. It focuses on natural realtime voice conversation, local memory, multilingual interaction, and reliable BLE robot control.
 
 The project is community-developed and is not affiliated with or endorsed by the robot manufacturer.
+
+An Expo/React Native iOS port is in progress. Apple implementations of the local
+native modules and build profiles are included; native compilation and physical
+iPhone/robot acceptance remain required. See [the iOS build guide](docs/ios.md)
+for setup, implementation status and the remaining validation steps.
 
 ## User guide
 

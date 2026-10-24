@@ -76,7 +76,7 @@ declare class RealtimeAudioRouteNativeModule extends NativeModule {
 let cachedModule: RealtimeAudioRouteNativeModule | null = null;
 
 function getNativeModule(): RealtimeAudioRouteNativeModule | null {
-  if (Platform.OS !== "android") return null;
+  if (Platform.OS === "web") return null;
   cachedModule ??= requireNativeModule<RealtimeAudioRouteNativeModule>("RealtimeAudioRoute");
   return cachedModule;
 }
