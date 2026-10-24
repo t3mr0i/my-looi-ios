@@ -134,4 +134,56 @@ startupMemory.reject(new Error("old database request failed"));
 await startup;
 assert.deepEqual(stopped, ["playback-error"]);
 assert.equal(storeEvents.length, 0);
-console.log("Realtime session isolation and playback error recovery passed");
+
+const currentSocket = {};
+service.webSocket = currentSocket; service.bindWebSocket(currentSocket);
+service.handleEvent = async () => { throw new Error("unexpected event failure"); };
+currentSocket.onmessage({ data: '{"type":"response.failed"}' });
+await Promise.resolve();
+await Promise.resolve();
+assert.deepEqual(stopped, ["playback-error", "event-handler-failed"]);
+
+// Two taps share the entire selection/import lifecycle. A completed old call
+// therefore cannot clear a second picker that has already begun importing.
+let pickerResult = deferred();
+let pickerCalls = 0;
+let clears = 0;
+const pickerDependencies = {
+  "react-native": { Platform: { OS: "ios" }, AppState: { currentState: "active" } },
+  "../../modules/photo-picker-access": { getPhotoPickerAccessModule: () => ({
+    selectPhotos() { pickerCalls++; return pickerResult.promise; },
+    async clearSelection() { clears++; },
+  }) },
+  "../core/app-bootstrap": {},
+  "../core/background-process-exit": { async withExternalActivityLease(_, operation) { return operation(); } },
+  "../diagnostics/diagnostic-log": { recordDiagnosticEvent() {} },
+  "../perceivers/voice-runtime": {},
+  "../store/conversation": { useConversationStore: { getState: () => ({ messages: [] }) } },
+  "../voice/realtime-conversation": {},
+};
+const pickerOutput = ts.transpileModule(fs.readFileSync("src/vision/photo-picker-context.ts", "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const pickerModule = { exports: {} };
+new Function("require", "module", "exports", pickerOutput)((name) => {
+  assert.ok(name in pickerDependencies, `Unexpected picker dependency ${name}`);
+  return pickerDependencies[name];
+}, pickerModule, pickerModule.exports);
+const pick = pickerModule.exports.selectPhotosIntoCurrentDiscussion;
+const firstPick = pick();
+assert.equal(pick(), firstPick);
+assert.equal(pickerCalls, 1);
+pickerResult.resolve([]);
+assert.deepEqual(await firstPick, { selected: 0, cancelled: true });
+assert.equal(clears, 1);
+pickerResult = deferred();
+const failedPick = pick();
+assert.equal(pickerCalls, 2);
+pickerResult.reject(new Error("provider failed"));
+await assert.rejects(failedPick, /provider failed/);
+pickerResult = deferred();
+const retry = pick();
+pickerResult.resolve([]);
+await retry;
+assert.equal(pickerCalls, 3);
+console.log("Realtime session isolation, error recovery and photo selection serialization passed");

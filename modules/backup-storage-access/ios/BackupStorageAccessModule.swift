@@ -42,7 +42,7 @@ public final class BackupStorageAccessModule: Module {
       try self.withFolder(uri) { folder in
         guard let local = URL(string: source), local.isFileURL else { throw looiError("A private file URL is required") }
         let url = try self.child(folder, name)
-        let data = try Data(contentsOf: local, options: .mappedIfSafe)
+        let data = try self.readBounded(local, limit: 64 * 1024 * 1024)
         try self.coordinatedWrite(url, data: data); return try self.fileStatus(url)
       }
     }
@@ -54,10 +54,8 @@ public final class BackupStorageAccessModule: Module {
         var coordinationError: NSError?
         NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinated in
           do {
-            let size = try coordinated.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-            guard size <= min(16 * 1024 * 1024, max(0, maxBytes)) else { throw looiError("Backup is too large") }
-            let data = try Data(contentsOf: coordinated)
-            guard data.count <= maxBytes, let text = String(data: data, encoding: .utf8) else { throw looiError("Invalid UTF-8 backup") }
+            let data = try self.readBounded(coordinated, limit: min(16 * 1024 * 1024, max(0, maxBytes)))
+            guard let text = String(data: data, encoding: .utf8) else { throw looiError("Invalid UTF-8 backup") }
             result = ["file": try self.fileStatus(url), "content": text, "bytes": data.count]
           } catch { failure = error }
         }
@@ -121,6 +119,19 @@ public final class BackupStorageAccessModule: Module {
       do { try data.write(to: file, options: .atomic) } catch { failure = error }
     }
     if let error = error ?? (failure as NSError?) { throw error }
+  }
+
+  private func readBounded(_ url: URL, limit: Int) throws -> Data {
+    let handle = try FileHandle(forReadingFrom: url)
+    defer { try? handle.close() }
+    var data = Data()
+    // Enforce the actual bytes read, not only the provider's size metadata.
+    // The file may change or its provider may omit/report a stale size.
+    while let chunk = try handle.read(upToCount: min(64 * 1024, limit - data.count + 1)), !chunk.isEmpty {
+      guard chunk.count <= limit - data.count else { throw looiError("File exceeds the permitted size") }
+      data.append(chunk)
+    }
+    return data
   }
 }
 

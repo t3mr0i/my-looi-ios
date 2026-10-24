@@ -9,6 +9,11 @@ public final class RealtimePcmAudioModule: Module {
   private let player = AVAudioPlayerNode()
   private let playbackFormat = AVAudioFormat(standardFormatWithSampleRate: 24000, channels: 1)!
   private var converter: AVAudioConverter?
+  private let ingressLock = NSLock()
+  private var ingressGeneration: Int?
+  private var queuedCaptureSeconds = 0.0
+  private var failedIngressGeneration: Int?
+
   private var capturing = false
   private var tapInstalled = false
   private var captureGeneration = 0
@@ -18,7 +23,15 @@ public final class RealtimePcmAudioModule: Module {
   private var playing = false
   private var finishing = false
   private var completedFrames: Int64 = 0
-  private var segments: [(start: Int64, frames: Int64)] = []
+  private struct PlaybackSegment {
+    let id: Int
+    let start: Int64
+    let frames: Int64
+    var completed = false
+  }
+  private var segments: [PlaybackSegment] = []
+  private var nextSegmentId = 0
+  private var nextPlaybackFrame: Int64 = 0
   private var pending = 0
   private var lastPlayedMs = 0
   private var interruptionObserver: NSObjectProtocol?
@@ -40,9 +53,11 @@ public final class RealtimePcmAudioModule: Module {
       self.routeObserver = NotificationCenter.default.addObserver(
         forName: .AVAudioEngineConfigurationChange, object: self.engine, queue: nil
       ) { [weak self] _ in
-        self?.worker.async { [weak self] in
-          guard let self, self.capturing, !self.engine.isRunning else { return }
-          self.captureFailure("route-change", "Audio configuration changed; restart the conversation")
+        guard let self else { return }
+        self.ingressLock.lock(); let generation = self.ingressGeneration; self.ingressLock.unlock()
+        self.worker.async { [weak self] in
+          guard let self, let generation, !self.engine.isRunning else { return }
+          self.failCapture("route-change", "Audio configuration changed; restart the conversation", generation: generation)
         }
       }
     }
@@ -66,7 +81,7 @@ public final class RealtimePcmAudioModule: Module {
     OnDestroy {
       if let token = self.interruptionObserver { NotificationCenter.default.removeObserver(token) }
       if let token = self.routeObserver { NotificationCenter.default.removeObserver(token) }
-      self.worker.sync { self.stopCapture(); _ = self.stopPlayback() }
+      self.worker.sync { self.stopCapture() }
     }
   }
 
@@ -90,9 +105,33 @@ public final class RealtimePcmAudioModule: Module {
     chunks = 0
     capturedFrames = 0
     capturing = true
+    ingressLock.lock(); ingressGeneration = generation; failedIngressGeneration = nil; ingressLock.unlock()
     input.installTap(onBus: 0, bufferSize: 960, format: format) { [weak self] buffer, _ in
-      // AVAudioEngine reuses the tap's storage after this callback returns.
-      guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return }
+      guard let self, buffer.frameLength > 0 else { return }
+      let duration = Double(buffer.frameLength) / buffer.format.sampleRate
+      self.ingressLock.lock()
+      guard self.ingressGeneration == generation, self.failedIngressGeneration != generation else {
+        self.ingressLock.unlock(); return
+      }
+      guard self.queuedCaptureSeconds + duration <= 0.5 else {
+        self.failedIngressGeneration = generation
+        self.ingressLock.unlock()
+        self.worker.async { [weak self] in
+          self?.failCapture("capture-backlog", "Microphone processing exceeded its latency budget", generation: generation)
+        }
+        return
+      }
+      self.queuedCaptureSeconds += duration
+      self.ingressLock.unlock()
+      // AVAudioEngine reuses this storage. Copy only after admission to a
+      // bounded half-second queue, not into an unlimited stream of work items.
+      guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else {
+        self.releaseIngress(duration)
+        self.worker.async { [weak self] in
+          self?.failCapture("allocation", "Microphone buffer allocation failed", generation: generation)
+        }
+        return
+      }
       copy.frameLength = buffer.frameLength
       let source = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
       let target = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
@@ -101,7 +140,11 @@ public final class RealtimePcmAudioModule: Module {
           memcpy(dst, src, Int(source[index].mDataByteSize))
         }
       }
-      self?.worker.async { [weak self] in self?.emitCapture(copy, generation: generation) }
+      self.worker.async { [weak self] in
+        guard let self else { return }
+        defer { self.releaseIngress(duration) }
+        self.emitCapture(copy, generation: generation)
+      }
     }
     tapInstalled = true
     do { engine.prepare(); try engine.start() }
@@ -118,7 +161,7 @@ public final class RealtimePcmAudioModule: Module {
       if consumed { state.pointee = .noDataNow; return nil }
       consumed = true; state.pointee = .haveData; return input
     }
-    if let error { captureFailure("convert", error.localizedDescription); return }
+    if let error { failCapture("convert", error.localizedDescription, generation: generation); return }
     guard output.frameLength > 0, let samples = output.int16ChannelData?[0] else { return }
     let frames = Int(output.frameLength)
     let data = Data(bytes: samples, count: frames * 2)
@@ -132,23 +175,36 @@ public final class RealtimePcmAudioModule: Module {
   }
 
   private func stopCapture() {
+    _ = stopPlayback()
+    ingressLock.lock(); ingressGeneration = nil; ingressLock.unlock()
     capturing = false; captureGeneration += 1
     if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }
     engine.stop()
     converter = nil
   }
 
+  private func releaseIngress(_ duration: Double) {
+    ingressLock.lock(); queuedCaptureSeconds = max(0, queuedCaptureSeconds - duration); ingressLock.unlock()
+  }
+
   private func captureFailure(_ stage: String, _ message: String) {
-    worker.async { [weak self] in
-      guard let self, self.capturing else { return }
-      self.stopCapture(); _ = self.stopPlayback()
-      self.sendEvent("onCaptureError", ["stage": stage, "message": message])
-    }
+    ingressLock.lock(); let generation = ingressGeneration; ingressLock.unlock()
+    guard let generation else { return }
+    worker.async { [weak self] in self?.failCapture(stage, message, generation: generation) }
+  }
+
+  // Only invoked on the worker. Old route/converter callbacks must not tear
+  // down a newer capture that has started since they were queued.
+  private func failCapture(_ stage: String, _ message: String, generation: Int) {
+    guard capturing, captureGeneration == generation else { return }
+    stopCapture()
+    sendEvent("onCaptureError", ["stage": stage, "message": message])
   }
 
   private func beginPlayback() {
     _ = stopPlayback()
-    segments = []; completedFrames = 0; pending = 0; lastPlayedMs = 0
+    segments = []; nextSegmentId = 0; nextPlaybackFrame = 0
+    completedFrames = 0; pending = 0; lastPlayedMs = 0
     finishing = false; playing = true
   }
 
@@ -161,17 +217,17 @@ public final class RealtimePcmAudioModule: Module {
     guard playing else { return }
     guard let data = Data(base64Encoded: base64), data.count % 2 == 0,
       data.count <= 24000 * 2 * 5 else {
-      sendEvent("onPlaybackError", ["message": "Invalid PCM24 playback buffer"]); return
+      playbackFailure("Invalid PCM24 playback buffer"); return
     }
     let frames = data.count / 2
     if frames == 0 { return }
-    let queuedFrames = segments.reduce(Int64(0)) { $0 + $1.frames } - completedFrames
+    let queuedFrames = segments.reduce(Int64(0)) { $0 + ($1.completed ? 0 : $1.frames) }
     guard queuedFrames + Int64(frames) <= 24000 * 30 else {
-      sendEvent("onPlaybackError", ["message": "PCM playback queue exceeded 30 seconds"]); return
+      playbackFailure("PCM playback queue exceeded 30 seconds"); return
     }
     guard engine.isRunning,
       let buffer = AVAudioPCMBuffer(pcmFormat: playbackFormat, frameCapacity: AVAudioFrameCount(frames)) else {
-      sendEvent("onPlaybackError", ["message": "Audio capture engine is not running"]); return
+      playbackFailure("Audio capture engine is not running"); return
     }
     buffer.frameLength = AVAudioFrameCount(frames)
     data.withUnsafeBytes { raw in
@@ -182,14 +238,26 @@ public final class RealtimePcmAudioModule: Module {
       }
     }
     let now = playerFrame()
-    let start = segments.isEmpty ? 0 : max(now + 240, segments.last.map { $0.start + $0.frames } ?? 0)
-    segments.append((start, Int64(frames))); pending += 1
+    let start = nextSegmentId == 0 ? 0 : max(now + 240, nextPlaybackFrame)
+    nextPlaybackFrame = start + Int64(frames)
+    let segmentId = nextSegmentId
+    nextSegmentId += 1
+    segments.append(PlaybackSegment(id: segmentId, start: start, frames: Int64(frames)))
+    pending += 1
     let generation = playbackGeneration
     player.scheduleBuffer(buffer, at: AVAudioTime(sampleTime: start, atRate: 24000),
       options: [], completionCallbackType: .dataPlayedBack) { [weak self] _ in
       self?.worker.async { [weak self] in
         guard let self, generation == self.playbackGeneration else { return }
-        self.completedFrames += Int64(frames); self.pending -= 1; self.drainIfReady()
+        if let index = self.segments.firstIndex(where: { $0.id == segmentId }) {
+          self.segments[index].completed = true
+        }
+        while let first = self.segments.first, first.completed {
+          self.completedFrames += first.frames
+          self.segments.removeFirst()
+        }
+        self.pending -= 1
+        self.drainIfReady()
       }
     }
     if !player.isPlaying { player.play() }
@@ -199,10 +267,11 @@ public final class RealtimePcmAudioModule: Module {
     guard playing else { return lastPlayedMs }
     let session = AVAudioSession.sharedInstance()
     let now = max(0, playerFrame() - Int64((session.outputLatency + session.ioBufferDuration) * 24000))
-    let frames = segments.reduce(Int64(0)) { total, segment in
-      total + min(segment.frames, max(0, now - segment.start))
+    let frames = segments.reduce(completedFrames) { total, segment in
+      total + (segment.completed ? segment.frames : min(segment.frames, max(0, now - segment.start)))
     }
-    return Int(max(frames, completedFrames) * 1000 / 24000)
+    lastPlayedMs = max(lastPlayedMs, Int(frames * 1000 / 24000))
+    return lastPlayedMs
   }
 
   @discardableResult private func stopPlayback() -> Int {
@@ -210,6 +279,11 @@ public final class RealtimePcmAudioModule: Module {
     playbackGeneration += 1
     playing = false; finishing = false; player.stop(); pending = 0
     return lastPlayedMs
+  }
+
+  private func playbackFailure(_ message: String) {
+    _ = stopPlayback()
+    sendEvent("onPlaybackError", ["message": message])
   }
 
   private func drainIfReady() {

@@ -53,6 +53,9 @@ public enum LooiAppleUI {
       .flatMap({ $0.windows }).first(where: { $0.isKeyWindow })?.rootViewController
     else { throw looiError("No foreground window is available") }
     while let next = vc.presentedViewController { vc = next }
+    guard !vc.isBeingDismissed, !vc.isBeingPresented else {
+      throw looiError("A system dialog is still transitioning; try again when it closes")
+    }
     return vc
   }
 }

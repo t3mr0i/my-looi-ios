@@ -594,7 +594,14 @@ export class RealtimePcmConversationService {
       if (!isCurrent()) return;
       try {
         const event = JSON.parse(String(message.data ?? "")) as RealtimeEvent;
-        void this.handleEvent(event);
+        void this.handleEvent(event).catch((error) => {
+          if (!isCurrent()) return;
+          recordDiagnosticEvent("realtime", "pcm-event-handler-failed", {
+            type: event.type,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          void this.stop("event-handler-failed");
+        });
       } catch (error) {
         recordDiagnosticEvent("realtime", "pcm-ws-message-parse-failed", {
           error: error instanceof Error ? error.message : String(error),

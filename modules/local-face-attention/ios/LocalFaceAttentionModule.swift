@@ -14,6 +14,7 @@ public final class LocalFaceAttentionModule: Module {
   private var camera: AVCaptureDevice?
   private var frames = 0
   private var lastAnalysis = 0.0
+  private var lastOrientation: AVCaptureVideoOrientation = .landscapeRight
   private var pending: (promise: Promise, id: Int64, restoreRunning: Bool, restoreFacing: String)?
   private var facing = "front"
   private var attentionRequested = false
@@ -27,9 +28,11 @@ public final class LocalFaceAttentionModule: Module {
       try self.worker.sync {
         self.attentionRequested = true
         if self.pending != nil { return self.status() }
-        try self.configure("front")
-        if !self.session.isRunning { self.session.startRunning() }
-        return self.status()
+        do {
+          try self.configure("front")
+          if !self.session.isRunning { self.session.startRunning() }
+          return self.status()
+        } catch { self.attentionRequested = false; throw error }
       }
     }
     AsyncFunction("stop") { () -> [String: Any] in
@@ -45,6 +48,7 @@ public final class LocalFaceAttentionModule: Module {
           guard facing == "front" || facing == "back" else { throw looiError("Unknown camera facing") }
           try self.configure(facing)
           if !self.session.isRunning { self.session.startRunning() }
+          guard self.session.isRunning else { throw looiError("The requested camera could not start") }
           let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
           settings.photoQualityPrioritization = .quality
           settings.maxPhotoDimensions = self.photo.maxPhotoDimensions
@@ -54,7 +58,7 @@ public final class LocalFaceAttentionModule: Module {
           // Allow autoexposure/autofocus to settle after switching cameras.
           self.worker.asyncAfter(deadline: .now() + 0.65) {
             guard self.pending?.id == id, self.session.isRunning else { return }
-            if let connection = self.photo.connection(with: .video) { connection.videoOrientation = self.orientation() }
+            if let connection = self.photo.connection(with: .video) { self.configureConnection(connection) }
             self.photo.capturePhoto(with: settings, delegate: self.nativeDelegate)
           }
           self.worker.asyncAfter(deadline: .now() + 8) {
@@ -74,8 +78,20 @@ public final class LocalFaceAttentionModule: Module {
 
   private func orientation() -> AVCaptureVideoOrientation {
     switch UIDevice.current.orientation {
-    case .landscapeRight: return .landscapeLeft
-    default: return .landscapeRight
+    case .landscapeRight: lastOrientation = .landscapeLeft
+    case .landscapeLeft: lastOrientation = .landscapeRight
+    default: break
+    }
+    return lastOrientation
+  }
+  private func configureConnection(_ connection: AVCaptureConnection) {
+    let requested = orientation()
+    if connection.isVideoOrientationSupported && connection.videoOrientation != requested {
+      connection.videoOrientation = requested
+    }
+    if connection.isVideoMirroringSupported {
+      connection.automaticallyAdjustsVideoMirroring = false
+      connection.isVideoMirrored = false
     }
   }
   private func configure(_ requested: String) throws {
@@ -86,12 +102,26 @@ public final class LocalFaceAttentionModule: Module {
     else { throw looiError("The requested camera is not available") }
     let input = try AVCaptureDeviceInput(device: device)
     let oldInputs = session.inputs
+    let oldPreset = session.sessionPreset
+    let hadVideo = session.outputs.contains(video)
+    let hadPhoto = session.outputs.contains(photo)
+    let oldDimensions = photo.maxPhotoDimensions
+    var committed = false
     session.beginConfiguration()
-    defer { session.commitConfiguration() }
+    defer {
+      if !committed {
+        for current in session.inputs { session.removeInput(current) }
+        for old in oldInputs where session.canAddInput(old) { session.addInput(old) }
+        if !hadVideo && session.outputs.contains(video) { session.removeOutput(video) }
+        if !hadPhoto && session.outputs.contains(photo) { session.removeOutput(photo) }
+        if session.canSetSessionPreset(oldPreset) { session.sessionPreset = oldPreset }
+        if hadPhoto && oldDimensions.width > 0 { photo.maxPhotoDimensions = oldDimensions }
+      }
+      session.commitConfiguration()
+    }
     if session.canSetSessionPreset(.photo) { session.sessionPreset = .photo }
     for old in oldInputs { session.removeInput(old) }
     guard session.canAddInput(input) else {
-      for old in oldInputs where session.canAddInput(old) { session.addInput(old) }
       throw looiError("The camera input cannot be configured")
     }
     session.addInput(input)
@@ -115,10 +145,13 @@ public final class LocalFaceAttentionModule: Module {
       try device.lockForConfiguration(); device.focusMode = .continuousAutoFocus; device.unlockForConfiguration()
     }
     camera = device; facing = requested
+    committed = true
   }
   public func captureOutput(_ output: AVCaptureOutput, didOutput sample: CMSampleBuffer, from connection: AVCaptureConnection) {
     guard session.isRunning, facing == "front", pending == nil else { return }
-    connection.videoOrientation = orientation()
+    let previousOrientation = connection.videoOrientation
+    configureConnection(connection)
+    if previousOrientation != connection.videoOrientation { return }
     let now = ProcessInfo.processInfo.systemUptime
     guard now - lastAnalysis >= 0.12 else { return }
     lastAnalysis = now
@@ -155,6 +188,13 @@ public final class LocalFaceAttentionModule: Module {
       } catch { self.complete(nil, error: error) }
     }
   }
+  public func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor settings: AVCaptureResolvedPhotoSettings, error: Error?) {
+    guard let error else { return }
+    worker.async {
+      guard self.pending?.id == settings.uniqueID else { return }
+      self.complete(nil, error: error)
+    }
+  }
   private func complete(_ result: [String: Any]?, error: Error?) {
     guard let item = pending else { return }
     pending = nil
@@ -189,4 +229,8 @@ private final class LocalFaceAttentionModuleDelegate: NSObject, AVCaptureVideoDa
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
     owner?.photoOutput(output, didFinishProcessingPhoto: photo, error: error)
   }
+  func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor settings: AVCaptureResolvedPhotoSettings, error: Error?) {
+    owner?.photoOutput(output, didFinishCaptureFor: settings, error: error)
+  }
+
 }

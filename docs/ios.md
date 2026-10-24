@@ -19,7 +19,7 @@ constants, RSS/thermal diagnostics, capture-only compatibility through the share
 PCM engine, and startup/suspend serialization. Logic tests cover competing audio
 clients, failed acquisition/teardown, denied permissions, missing runtime modules,
 event forwarding, suspended timers and a background transition during startup.
-The source regression run passes 48 of 52 scripts; the four Android baseline
+The source regression run passes 49 of 53 scripts; the four Android baseline
 failures are listed below. No native build or new JavaScript bundle was run for
 this source-only pass.
 
@@ -119,6 +119,12 @@ the Linux cloud task.
 - AEC must be enabled and the native capture profile must match before Realtime
   becomes ready. Playback interruption reports completed/audible frames rather
   than treating all received audio as played.
+- Native microphone input has a half-second processing budget. Delayed callbacks
+  are tied to their capture generation. Completed playback ledger entries are
+  discarded so a long response does not accumulate an unbounded history.
+- A failed audio output cancels/truncates the response and stops the conversation.
+  Old socket, camera, memory and capture completions cannot mutate a replacement
+  conversation, including while a previous startup is still pending.
 - Vosk uses the pinned react-native-vosk XCFramework via a local Expo bridge.
   Its React Native microphone interface is not used. Android autolinking for
   that dependency is disabled to retain the existing Android Vosk module.
@@ -128,9 +134,15 @@ the Linux cloud task.
 - Face detection uses Vision on device. Explicit photos use AVFoundation and are
   normalized in memory. PHPicker reads only images selected by the user, without
   requesting broad photo-library access or creating durable app copies.
+- Photo selection/import is serialized. Clearing a selection, backgrounding or
+  destroying its module cancels the provider and invalidates late callbacks.
+  Camera input changes roll back if configuration fails, and face-analysis frames
+  stay unmirrored to preserve the robot's gaze-coordinate convention.
 - Files uses picker-granted security-scoped bookmarks. Access is started/stopped
   around each operation and stale bookmarks are refreshed. A moved, revoked or
   unavailable provider folder must be selected again.
+- Backup reads enforce their byte limit while reading, rather than trusting
+  provider size metadata. Private diagnostic-file transfers are capped at 64 MiB.
 - Audio, camera and BLE are suspended in the background. Background audio modes
   are disabled. Android's scheduled process exit is never invoked by iOS app
   lifecycle handling.

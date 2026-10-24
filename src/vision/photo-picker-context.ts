@@ -89,7 +89,14 @@ export type SelectedPhotoContextResult = {
  * suspend in background, but the native five-second process kill is skipped so
  * the recent text conversation can be reseeded after returning.
  */
-export async function selectPhotosIntoCurrentDiscussion(): Promise<SelectedPhotoContextResult> {
+let selectionInFlight: Promise<SelectedPhotoContextResult> | null = null;
+
+export function selectPhotosIntoCurrentDiscussion(): Promise<SelectedPhotoContextResult> {
+  selectionInFlight ??= performPhotoSelection().finally(() => { selectionInFlight = null; });
+  return selectionInFlight;
+}
+
+async function performPhotoSelection(): Promise<SelectedPhotoContextResult> {
   if (Platform.OS === "web") throw new Error("Photo selection requires a native runtime");
   const module = getPhotoPickerAccessModule();
   if (!module) throw new Error("Photo selection module is unavailable");
