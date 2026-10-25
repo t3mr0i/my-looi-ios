@@ -1,8 +1,6 @@
 import { perceiverManager } from "./perceiver-manager";
 import { voiceRuntime } from "../perceivers/voice-runtime";
-import { isRealtimeConversationMode, useUserStore } from "../store/user";
-import { useConversationStore } from "../store/conversation";
-import { getRuntimeProfile } from "./runtime-profile";
+import { useUserStore } from "../store/user";
 import {
   getLoadedSttModule,
   getLoadedTtsModule,
@@ -11,6 +9,7 @@ import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { recordPerformanceSnapshot } from "../diagnostics/performance-monitor";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { AppState } from "react-native";
+import { recoverWakewordRuntime } from "./voice-runtime-recovery";
 import { isMainScreenFocused } from "./main-screen-presence";
 import {
   resumeLooiRobotAutoConnection,
@@ -27,9 +26,6 @@ let desiredForegroundActive = true;
 let runtimeLifecycleQueue: Promise<void> = Promise.resolve();
 let ownerEnrollmentPromise: Promise<void> | null = null;
 let bootstrapPromise: Promise<void> | null = null;
-
-const VOICE_PCM_STARTUP_TIMEOUT_MS = 1200;
-const VOICE_PCM_RETRY_TIMEOUT_MS = 800;
 
 /**
  * Initialize all perceivers and wire observation events.
@@ -128,33 +124,8 @@ export async function pauseAppRuntime(reason: "background" | "sleep" = "backgrou
     // otherwise that resume sees paused=false and never restores BLE/audio.
     if (paused) return;
     paused = true;
-    stopAmbientMotionController(reason);
-    await stopSocialAttentionController(reason);
-
     recordDiagnosticEvent("app", reason === "sleep" ? "sleep-runtime-pause-start" : "background-entered");
-    const sttModule = getLoadedSttModule();
-    const ttsModule = getLoadedTtsModule();
-    const { kwsAudioFeeder } = await import("../voice/kws-audio-feeder");
-
-    kwsAudioFeeder.setAppCaptureAllowed(false);
-    recordDiagnosticEvent("audio", "capture-release-start", {
-      feederRunning: kwsAudioFeeder.isRunning,
-    });
-
-    await Promise.allSettled([
-      // Screen-off/background is a hard suspend: stop motion and release the BLE
-      // link so LOOI is free to idle/sleep and no reconnect can occur off-screen.
-      suspendLooiRobotAutoConnection(reason),
-      perceiverManager.stopAll(),
-      kwsAudioFeeder.stop(),
-      sttModule?.then(({ sttService }) => sttService.cancel({ resumeWakeword: false })),
-      ttsModule?.then(({ ttsService }) => ttsService.stop()),
-    ].filter(Boolean));
-
-    recordDiagnosticEvent("audio", "capture-release-finished", {
-      feederRunning: kwsAudioFeeder.isRunning,
-      feederDesired: kwsAudioFeeder.diagnosticStatus.desiredRunning,
-    });
+    await stopRuntimeComponents(reason);
 
     try {
       await setIsAudioActiveAsync(false);
@@ -239,22 +210,73 @@ function enqueueRuntimeLifecycle(task: () => Promise<void>): Promise<void> {
   return queued;
 }
 
-/** Retry wakeword startup after setup changed models or microphone access. */
-export async function syncVoiceRuntime(): Promise<void> {
-  if (!bootstrapped || paused || useUserStore.getState().robotSleeping) return;
-  await voiceRuntime.sync();
-  const [{ kwsAudioFeeder }, { wakewordService }] = await Promise.all([
-    import("../voice/kws-audio-feeder"),
-    import("../voice/wakeword"),
+async function stopRuntimeComponents(reason: string): Promise<void> {
+  // Peripheral teardown starts immediately, independently of loading the capture
+  // facade. Every stop settles before the audio session is deactivated.
+  const peripheralStops = [
+    stopRuntimeComponent("ambient-motion", reason, () => stopAmbientMotionController(reason)),
+    stopRuntimeComponent("social-attention", reason, () => stopSocialAttentionController(reason)),
+    stopRuntimeComponent("robot", reason, () => suspendLooiRobotAutoConnection(reason)),
+  ];
+  const feeder = await closeCaptureIngress(reason);
+  recordDiagnosticEvent("audio", "capture-release-start", { feederRunning: feeder?.isRunning ?? null });
+  await Promise.all([
+    ...peripheralStops,
+    stopRuntimeComponent("perceivers", reason, () => perceiverManager.stopAll()),
+    stopRuntimeComponent("microphone", reason, () => feeder?.stop()),
+    stopRuntimeComponent("speech-recognition", reason, () => getLoadedSttModule()
+      ?.then(({ sttService }) => sttService.cancel({ resumeWakeword: false }))),
+    stopRuntimeComponent("speech-output", reason, () => getLoadedTtsModule()
+      ?.then(({ ttsService }) => ttsService.stop())),
   ]);
-  const status = kwsAudioFeeder.diagnosticStatus;
-  recordDiagnosticEvent("runtime", "voice-sync", {
-    feederRunning: status.running,
-    feederDesired: status.desiredRunning,
-    wakewordFeeding: status.wakewordFeedingEnabled,
-    wakewordListening: wakewordService.isListening,
-    nativeKwsAvailable: wakewordService.isNativeKwsAvailable,
-    wakewordState: wakewordService.state,
+  recordDiagnosticEvent("audio", "capture-release-finished", {
+    feederRunning: feeder?.isRunning ?? null,
+    feederDesired: feeder?.diagnosticStatus.desiredRunning ?? null,
+  });
+}
+
+async function closeCaptureIngress(reason: string) {
+  try {
+    const { kwsAudioFeeder } = await import("../voice/kws-audio-feeder");
+    kwsAudioFeeder.setAppCaptureAllowed(false);
+    return kwsAudioFeeder;
+  } catch (error) {
+    recordStopFailure("capture-ingress", reason, error);
+    return null;
+  }
+}
+
+async function stopRuntimeComponent(component: string, reason: string, stop: () => unknown): Promise<void> {
+  try { await stop(); }
+  catch (error) { recordStopFailure(component, reason, error); }
+}
+
+function recordStopFailure(component: string, reason: string, error: unknown): void {
+  recordDiagnosticEvent("runtime", "runtime-component-stop-failed", {
+    component, reason, error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+/** Retry wakeword startup after setup changed models or microphone access. */
+export function syncVoiceRuntime(): Promise<void> {
+  return enqueueRuntimeLifecycle(async () => {
+    if (!bootstrapped || paused || !runtimeShouldBeActive()) return;
+    await voiceRuntime.sync();
+    if (!runtimeShouldBeActive()) return;
+    const [{ kwsAudioFeeder }, { wakewordService }] = await Promise.all([
+      import("../voice/kws-audio-feeder"),
+      import("../voice/wakeword"),
+    ]);
+    if (!runtimeShouldBeActive()) return;
+    const status = kwsAudioFeeder.diagnosticStatus;
+    recordDiagnosticEvent("runtime", "voice-sync", {
+      feederRunning: status.running,
+      feederDesired: status.desiredRunning,
+      wakewordFeeding: status.wakewordFeedingEnabled,
+      wakewordListening: wakewordService.isListening,
+      nativeKwsAvailable: wakewordService.isNativeKwsAvailable,
+      wakewordState: wakewordService.state,
+    });
   });
 }
 
@@ -274,159 +296,8 @@ async function startRuntimePerceivers(): Promise<void> {
     if (!runtimeShouldBeActive()) return;
     recordDiagnosticEvent("performance", "voice-runtime-sync-stage", { durationMs: Date.now() - voiceSyncAt });
 
-    const profile = getRuntimeProfile();
-    const prefs = useUserStore.getState().preferences;
-    const importsAt = Date.now();
-    const [{ kwsAudioFeeder }, { wakewordService }, { realtimeConversationService }] = await Promise.all([
-      import("../voice/kws-audio-feeder"),
-      import("../voice/wakeword"),
-      import("../voice/realtime-conversation"),
-    ]);
+    await recoverWakewordRuntime(runtimeShouldBeActive);
     if (!runtimeShouldBeActive()) return;
-    recordDiagnosticEvent("performance", "voice-runtime-imports-stage", { durationMs: Date.now() - importsAt });
-    const expectedWakeword = profile.allowsWakewordAutostart && prefs.wakeWordEnabled;
-    let status = kwsAudioFeeder.diagnosticStatus;
-    const conversationStore = useConversationStore.getState();
-    const realtimeOwnsVoiceRuntime = () => {
-      if (realtimeConversationService.isActive) return true;
-      // Fresh-launch/manual Realtime activation can overlap this foreground
-      // watchdog. Treat the selected Realtime mode plus an already-owned
-      // conversation state as authoritative even if native startup is between
-      // async phases, so the watchdog never hard-restarts voice underneath it.
-      const conversation = useConversationStore.getState();
-      return isRealtimeConversationMode(prefs.conversationMode) &&
-        (conversation.isListening || conversation.isProcessing || conversation.isSpeaking);
-    };
-    const conversationOwnsVoiceRuntime = () => {
-      if (realtimeOwnsVoiceRuntime()) return true;
-      const conversation = useConversationStore.getState();
-      return conversation.isListening || conversation.isProcessing || conversation.isSpeaking;
-    };
-    if (expectedWakeword && !realtimeOwnsVoiceRuntime() && conversationStore.isListening && !status.running) {
-      conversationStore.setListening(false);
-      conversationStore.setProcessing(false);
-      conversationStore.setSpeaking(false);
-      conversationStore.setOverlayVisible(false);
-      useUserStore.getState().setVoiceState("sleeping");
-      recordDiagnosticEvent("runtime", "foreground-stale-listening-reset");
-      await voiceRuntime.sync();
-      if (!runtimeShouldBeActive()) return;
-      status = kwsAudioFeeder.diagnosticStatus;
-    }
-
-    if (
-      expectedWakeword &&
-      !conversationOwnsVoiceRuntime() &&
-      status.running &&
-      wakewordService.isListening &&
-      !status.pcmFlowing
-    ) {
-      const pcmReady = await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_STARTUP_TIMEOUT_MS);
-      if (!runtimeShouldBeActive()) return;
-      status = kwsAudioFeeder.diagnosticStatus;
-      recordDiagnosticEvent("runtime", "voice-readiness-watchdog", {
-        pcmReady,
-        feederRunning: status.running,
-        pcmFlowing: status.pcmFlowing,
-        pcmAgeMs: status.pcmAgeMs,
-        recordingAgeMs: status.recordingAgeMs,
-      });
-    }
-
-    recordDiagnosticEvent("runtime", "foreground-voice-state", {
-      expectedWakeword,
-      feederRunning: status.running,
-      feederDesired: status.desiredRunning,
-      pcmFlowing: status.pcmFlowing,
-      pcmAgeMs: status.pcmAgeMs,
-      wakewordFeeding: status.wakewordFeedingEnabled,
-      wakewordListening: wakewordService.isListening,
-      wakewordState: wakewordService.state,
-    });
-
-    if (expectedWakeword && conversationOwnsVoiceRuntime()) {
-      const activeConversation = useConversationStore.getState();
-      recordDiagnosticEvent("runtime", "foreground-voice-repair-deferred", {
-        reason: "conversation-owns-runtime",
-        listening: activeConversation.isListening,
-        processing: activeConversation.isProcessing,
-        speaking: activeConversation.isSpeaking,
-        feederRunning: status.running,
-        pcmFlowing: status.pcmFlowing,
-        wakewordListening: wakewordService.isListening,
-      });
-    }
-
-    if (
-      expectedWakeword &&
-      !conversationOwnsVoiceRuntime() &&
-      (!status.running || !wakewordService.isListening || !status.pcmFlowing)
-    ) {
-      recordDiagnosticEvent("runtime", "foreground-voice-retry", {
-        feederRunning: status.running,
-        pcmFlowing: status.pcmFlowing,
-        wakewordListening: wakewordService.isListening,
-      });
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      if (!runtimeShouldBeActive()) return;
-      await voiceRuntime.sync();
-      if (!runtimeShouldBeActive()) return;
-      if (kwsAudioFeeder.isRunning) {
-        await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_RETRY_TIMEOUT_MS);
-      }
-      if (!runtimeShouldBeActive()) return;
-      status = kwsAudioFeeder.diagnosticStatus;
-      recordDiagnosticEvent("runtime", "foreground-voice-retry-finished", {
-        feederRunning: status.running,
-        feederDesired: status.desiredRunning,
-        pcmFlowing: status.pcmFlowing,
-        pcmAgeMs: status.pcmAgeMs,
-        wakewordFeeding: status.wakewordFeedingEnabled,
-        wakewordListening: wakewordService.isListening,
-        wakewordState: wakewordService.state,
-      });
-    }
-
-    if (
-      expectedWakeword &&
-      !conversationOwnsVoiceRuntime() &&
-      (!status.running || !wakewordService.isListening || !status.pcmFlowing)
-    ) {
-      recordDiagnosticEvent("runtime", "foreground-voice-hard-restart", {
-        feederRunning: status.running,
-        pcmFlowing: status.pcmFlowing,
-        wakewordListening: wakewordService.isListening,
-      });
-      await voiceRuntime.stop();
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      if (!runtimeShouldBeActive()) return;
-      await voiceRuntime.start();
-      if (!runtimeShouldBeActive()) return;
-      await voiceRuntime.sync();
-      if (!runtimeShouldBeActive()) return;
-      if (kwsAudioFeeder.isRunning) {
-        await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_STARTUP_TIMEOUT_MS);
-      }
-      if (!runtimeShouldBeActive()) return;
-      status = kwsAudioFeeder.diagnosticStatus;
-      recordDiagnosticEvent("runtime", "foreground-voice-hard-restart-finished", {
-        feederRunning: status.running,
-        feederDesired: status.desiredRunning,
-        pcmFlowing: status.pcmFlowing,
-        pcmAgeMs: status.pcmAgeMs,
-        wakewordFeeding: status.wakewordFeedingEnabled,
-        wakewordListening: wakewordService.isListening,
-        wakewordState: wakewordService.state,
-      });
-      if (!status.running || !status.pcmFlowing || !wakewordService.isListening) {
-        recordDiagnosticEvent("runtime", "foreground-voice-readiness-failed", {
-          feederRunning: status.running,
-          pcmFlowing: status.pcmFlowing,
-          pcmAgeMs: status.pcmAgeMs,
-          wakewordListening: wakewordService.isListening,
-        });
-      }
-    }
     recordDiagnosticEvent("performance", "voice-runtime-perceivers-total", { durationMs: Date.now() - startedAt });
   } catch (error) {
     console.warn("[Bootstrap] Failed to start voice perceiver:", error);
@@ -440,12 +311,13 @@ function prewarmOfflineStt(): void {
   const delayMs = 12_000;
   recordDiagnosticEvent("performance", "offline-stt-prewarm-scheduled", { delayMs });
   setTimeout(() => {
-    if (paused || useUserStore.getState().robotSleeping) return;
+    if (paused || !runtimeShouldBeActive()) return;
     const startedAt = Date.now();
     void recordPerformanceSnapshot("before-offline-stt-prewarm");
     void import("../voice/stt")
-      .then(({ sttService }) => sttService.initialize())
-      .then(() => {
+      .then(async ({ sttService }) => {
+        if (paused || !runtimeShouldBeActive()) return;
+        await sttService.initialize();
         recordDiagnosticEvent("performance", "offline-stt-prewarm-finished", {
           durationMs: Date.now() - startedAt,
         });

@@ -1,19 +1,5 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import ts from "typescript";
-
-function load(file, dependencies = {}, globals = {}) {
-  const output = ts.transpileModule(fs.readFileSync(file, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  const module = { exports: {} };
-  const names = Object.keys(globals);
-  new Function("require", "module", "exports", ...names, output)((id) => {
-    assert.ok(id in dependencies, `Unexpected dependency ${id}`);
-    return dependencies[id];
-  }, module, module.exports, ...Object.values(globals));
-  return module.exports;
-}
+import { loadTypeScript as load } from "./helpers/load-typescript.mjs";
 
 // Two clients racing a native asynchronous start must never acquire two mics.
 const { createCaptureController } = load("src/voice/capture-owner.ts");
@@ -207,9 +193,8 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
     getRegisteredNames: () => ["voice"],
   } },
   "../perceivers/voice-runtime": { voiceRuntime: { async sync() { bootEvents.push(["voiceSync"]); } } },
-  "../store/user": { useUserStore: { getState: () => user }, isRealtimeConversationMode: () => false },
-  "../store/conversation": { useConversationStore: { getState: () => ({}) } },
-  "./runtime-profile": { getRuntimeProfile: () => ({ allowsWakewordAutostart: false }) },
+  "../store/user": { useUserStore: { getState: () => user } },
+  "./voice-runtime-recovery": { async recoverWakewordRuntime() {} },
   "../voice/lazy-services": { getLoadedSttModule: () => null, getLoadedTtsModule: () => null },
   "../diagnostics/diagnostic-log": { recordDiagnosticEvent() {} },
   "../diagnostics/performance-monitor": { async recordPerformanceSnapshot() {} },
@@ -227,8 +212,6 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "./ambient-motion": { startAmbientMotionController() { bootEvents.push(["ambientStart"]); }, stopAmbientMotionController() {} },
   "./social-attention": { startSocialAttentionController() { bootEvents.push(["cameraStart"]); }, async stopSocialAttentionController() {} },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
-  "../voice/wakeword": { wakewordService: { isListening: false } },
-  "../voice/realtime-conversation": { realtimeConversationService: { isActive: false } },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();
 assert.equal(bootstrap.bootstrapApp(), boot, "Bootstrap must be coalesced");

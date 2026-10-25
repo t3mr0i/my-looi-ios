@@ -88,11 +88,7 @@ assert.ok(voiceSource.includes('intent === "search" && facts.length > 0 ? "chat"
 assert.equal(voiceSource.includes('preferences.memoryBackend'), false);
 
 const bootstrapSource = fs.readFileSync("src/core/app-bootstrap.ts", "utf8");
-assert.ok(bootstrapSource.includes("conversationOwnsVoiceRuntime"));
-assert.ok(bootstrapSource.includes('foreground-voice-repair-deferred'));
-assert.match(
-  bootstrapSource,
-  /!conversationOwnsVoiceRuntime\(\)[\s\S]{0,180}!status\.running \|\| !wakewordService\.isListening \|\| !status\.pcmFlowing/
-);
+assert.match(bootstrapSource, /await recoverWakewordRuntime\(runtimeShouldBeActive\)/,
+  "startup must use the conversation-aware recovery exercised by voice-runtime-recovery-behavior.test.mjs");
 
 console.log("Generic memory retrieval + startup race behavior: PASS");

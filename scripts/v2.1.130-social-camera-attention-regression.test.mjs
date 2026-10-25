@@ -63,7 +63,7 @@ assert.match(face, /socialGazeY/);
 
 const bootstrap = read("src/core/app-bootstrap.ts");
 assert.match(bootstrap, /startSocialAttentionController\("bootstrap"\)/);
-assert.match(bootstrap, /await stopSocialAttentionController\(reason\)/);
+assert.match(bootstrap, /stopSocialAttentionController\(reason\)/);
 assert.match(bootstrap, /startSocialAttentionController\("foreground-resume"\)/);
 
 const privacy = read("PRIVACY.md");

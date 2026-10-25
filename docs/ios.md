@@ -19,7 +19,7 @@ constants, RSS/thermal diagnostics, capture-only compatibility through the share
 PCM engine, and startup/suspend serialization. Logic tests cover competing audio
 clients, failed acquisition/teardown, denied permissions, missing runtime modules,
 event forwarding, suspended timers and a background transition during startup.
-The source regression run passes 53 of 57 scripts; the four Android baseline
+The source regression run passes 55 of 59 scripts; the four Android baseline
 failures are listed below. No native build or new JavaScript bundle was run for
 this source-only pass.
 
@@ -113,6 +113,12 @@ the Linux cloud task.
   sheet or background suspension starts a fresh event-loop timing window. A new
   suspend during audio activation or voice restoration prevents the remaining
   camera, movement and BLE startup stages and still releases activated audio.
+- Settings voice synchronization uses the same lifecycle queue. Wakeword repair
+  checks current conversation ownership and preferences after each wait, so a
+  newly started conversation is not reset by delayed recovery work.
+- Suspend stops each component independently and records individual failures;
+  camera or capture-module errors do not skip BLE/voice teardown or audio-session
+  deactivation. Offline STT prewarm also rechecks foreground state after import.
 - Foreground BLE recovery retries transient failures after 1, 2 and 4 seconds,
   then stops until another lifecycle/manual recovery. The first link-loss retry
   keeps its existing 700 ms delay. Success resets this retry budget.
