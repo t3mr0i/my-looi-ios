@@ -1207,7 +1207,8 @@ export class RealtimeConversationService {
             publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
           }
           if ((wasGame || isBehaviorGameActive(this.sessionId)) && !store.isUserSpeaking) {
-            if (this.generationActive) this.send({ type: "response.cancel" });
+            if (this.playbackActive) void this.interruptAndListen("local-game-turn").catch(() => undefined);
+            if (!wasGame || this.generationActive) this.send({ type: "response.cancel" });
             this.send({ type: "response.create" });
           }
         }

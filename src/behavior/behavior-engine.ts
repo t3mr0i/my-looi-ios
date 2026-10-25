@@ -167,7 +167,8 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
     if (textIntent.greeting && (state.style.greetingRitual === "off" || wall() - lastGreetingAt < 30_000)) gesture = "hold";
     else if (textIntent.greeting) {
       lastGreetingAt = wall(); ritualCount += 1;
-      if (gesture !== "hold") gesture = state.style.greetingRitual ?? (ritualCount % 2 ? "curious" : "happy_bob");
+      const ritual = state.style.greetingRitual;
+      if (gesture !== "hold") gesture = ritual && ritual !== "off" ? ritual : (ritualCount % 2 ? "curious" : "happy_bob");
     }
     if (state.style.suppressNod && gesture === "nod") gesture = "hold";
     if (state.style.livelyWhenPlayful && textIntent.playful && gesture === "curious") gesture = "happy_bob";
@@ -183,11 +184,11 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
       try { void Promise.resolve(deps.executeCue(cue)).catch(() => { trace("cue-cancelled"); emit(); }); } catch { trace("cue-cancelled"); }
     }
   }
-  function pause(goal = previousTopic) {
+  function pause(goal = previousTopic, confirmedStep?: string) {
+    state.attentionPolicy = "release";
     if (!goal && !state.pendingIntention) return;
     const existing = state.pendingIntention;
-    state.pendingIntention = { id: existing?.id ?? `intent-${++serial}`, goal: bounded(existing?.goal ?? goal), source: "explicit_user_request", status: "paused", lastConfirmedStep: existing?.lastConfirmedStep ?? null, waitingFor: "user_return", createdAt: existing?.createdAt ?? wall(), updatedAt: wall(), expiresAt: wall() + 86_400_000, version: (existing?.version ?? 0) + 1 };
-    state.attentionPolicy = "release";
+    state.pendingIntention = { id: existing?.id ?? `intent-${++serial}`, goal: bounded(existing?.goal ?? goal), source: "explicit_user_request", status: "paused", lastConfirmedStep: bounded(confirmedStep) || existing?.lastConfirmedStep || null, waitingFor: "user_return", createdAt: existing?.createdAt ?? wall(), updatedAt: wall(), expiresAt: wall() + 86_400_000, version: (existing?.version ?? 0) + 1 };
   }
   function startGame() {
     state.game = { kind: "guess_number", status: "active", secretAnswer: ((state.turnId % 3) + 1) as 1 | 2 | 3, attemptsLeft: 3, round: (state.game?.round ?? 0) + 1, startedAt: wall(), updatedAt: wall(), lastOutcome: "waiting" };
@@ -222,6 +223,7 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
       const unsafe = !environment.foreground || !environment.focused || environment.sleeping || environment.userSpeaking || environment.motionActive;
       const wasUnsafe = !before.foreground || !before.focused || before.sleeping || before.userSpeaking || before.motionActive;
       if (unsafe && !wasUnsafe) invalidate("environment");
+      if (before.connected && !environment.connected) invalidate("robot-disconnected");
       if (before.cameraEnabled && !environment.cameraEnabled) { faces = []; faceMembership = ""; state.selectedFaceId = null; state.lastFaceSeenAt = null; }
       emit();
     },
@@ -243,7 +245,7 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
           break;
         case "faces": {
           if (!environment.cameraEnabled) break;
-          const nextFaces = event.faces.filter((face) => bounded(face.id, 80) && [face.centerX, face.centerY, face.width, face.height].every(Number.isFinite) && face.centerX >= 0 && face.centerX <= 1 && face.centerY >= 0 && face.centerY <= 1 && face.width > 0 && face.height > 0).slice(0, 8).map((face) => ({ ...face, id: face.id.slice(0, 80) }));
+          const nextFaces = event.faces.filter((face) => bounded(face.id, 80) && [face.centerX, face.centerY, face.width, face.height].every(Number.isFinite) && face.centerX >= 0 && face.centerX <= 1 && face.centerY >= 0 && face.centerY <= 1 && face.width > 0 && face.height > 0).slice(0, 8).map((face) => ({ id: face.id.slice(0, 80), centerX: face.centerX, centerY: face.centerY, width: face.width, height: face.height }));
           const membership = nextFaces.map((face) => face.id).sort().join("|");
           faces = nextFaces; state.lastFaceSeenAt = faces.length ? now() : null;
           if (!faces.some((face) => face.id === state.selectedFaceId)) state.selectedFaceId = [...faces].sort((a, b) => b.width * b.height - a.width * a.height)[0]?.id ?? null;
@@ -253,7 +255,12 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
         case "visual": if (settings.visualEnabled) queue("visual", event.taskText, event.imageDataUrl); break;
         case "game-command": invalidate("game-command"); if (event.action === "start") startGame(); else if (state.game) state.game = { ...state.game, status: "stopped", lastOutcome: "stopped", updatedAt: wall() }; break;
         case "correction": invalidate("correction"); state.referenceVersion += 1; state.repairRequired = true; state.attentionPolicy = "release"; state.selectedFaceId = null; if (event.correctedReference) previousTopic = bounded(event.correctedReference); break;
-        case "intention": invalidate("intention"); if (event.action === "pause") pause(event.goal); else if (event.action === "drop") state.pendingIntention = null; else if (state.pendingIntention) state.pendingIntention = { ...state.pendingIntention, status: "active", waitingFor: "user_reply", updatedAt: wall(), version: state.pendingIntention.version + 1 }; break;
+        case "intention":
+          invalidate("intention");
+          if (event.action === "pause") pause(event.goal, event.lastConfirmedStep);
+          else if (event.action === "drop") { state.pendingIntention = null; state.attentionPolicy = "release"; }
+          else if (state.pendingIntention) { state.pendingIntention = { ...state.pendingIntention, status: "active", waitingFor: "user_reply", updatedAt: wall(), version: state.pendingIntention.version + 1 }; state.attentionPolicy = "keep_target"; }
+          break;
       }
       emit();
     },

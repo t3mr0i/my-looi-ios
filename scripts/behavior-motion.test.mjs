@@ -138,6 +138,27 @@ assert.equal((await socialForBehavior).completed, true, "social attention outran
 await advanceClock(700);
 assert.equal((await behaviorForSocial).completed, false, "a social write cancels a behavior cue's later center step");
 
+// Late cleanup for a preempted behavior macro is scoped to behavior ownership.
+// Once an explicit gesture has taken the head, it must still finish its center
+// step even if the old macro's cleanup runs during the explicit wait.
+const beforeLateBehaviorCleanup = writes.filter((write) => write.key === "head").length;
+const behaviorTakenOver = robot.performLooiBehaviorHeadGesture("sleepy", () => true);
+await flushMicrotasks();
+assert.equal(writes.filter((write) => write.key === "head").at(-1).payload, "ff");
+const explicitAfterBehavior = robot.performLooiHeadGesture("curious");
+await flushMicrotasks();
+assert.equal(writes.filter((write) => write.key === "head").at(-1).payload, "00");
+robot.cancelLooiHeadMotion("late-behavior-cleanup", "behavior");
+await advanceClock(450);
+assert.deepEqual(
+  writes.filter((write) => write.key === "head").slice(beforeLateBehaviorCleanup).map((write) => write.payload),
+  ["ff", "00", "87"],
+  "late behavior cleanup must leave the explicit gesture's delayed center write intact",
+);
+assert.equal((await explicitAfterBehavior).completed, true);
+await advanceClock(150);
+assert.equal((await behaviorTakenOver).completed, false);
+
 blockNextUp = true;
 const heldExplicit = robot.setLooiHead("up");
 await flushMicrotasks();

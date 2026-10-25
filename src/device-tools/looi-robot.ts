@@ -982,8 +982,9 @@ function releaseHeadMotion(owner: HeadMotionOwner): void {
 }
 
 /** Cancel every pending head sequence without issuing a corrective center write. */
-export function cancelLooiHeadMotion(reason: string): void {
+export function cancelLooiHeadMotion(reason: string, onlyPriority?: LooiHeadMotionPriority): void {
   const owner = activeHeadMotion;
+  if (onlyPriority && owner?.priority !== onlyPriority) return;
   if (owner) owner.cancelled = true;
   activeHeadMotion = null;
   headMotionGeneration += 1;

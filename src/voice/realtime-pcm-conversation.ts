@@ -896,7 +896,9 @@ export class RealtimePcmConversationService {
             const wasGame = isBehaviorGameActive(this.sessionId);
             publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
             if ((wasGame || isBehaviorGameActive(this.sessionId)) && !store.isUserSpeaking) {
-              if (this.generationActive) this.send({ type: "response.cancel" });
+              // On entry, VAD may already have created an automatic response
+              // whose response.created event has not reached this client yet.
+              if (!wasGame || this.generationActive) this.send({ type: "response.cancel" });
               if (this.playbackActive) this.stopAndTruncatePlayback("local-game-turn");
               this.send({ type: "response.create" });
             }

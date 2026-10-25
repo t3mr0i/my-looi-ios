@@ -124,6 +124,7 @@ for (const invalidate of [
   (h) => event(h.engine, "user-speech-start"),
   (h) => h.engine.dispatch({ type: "session-end", sessionId: "s1" }),
   (h) => h.engine.resetLearning(),
+  (h) => h.engine.setEnvironment({ connected: false }),
 ]) {
   const h = makeEngine(); h.turn("Old turn"); const first = h.calls[0]; invalidate(h);
   first.deferred.resolve(resultFor(first.request, { cue: "curious", costUsd: 0.004 })); await flush();
@@ -226,8 +227,9 @@ const realEngine = loadTypeScript("src/behavior/behavior-engine.ts", { "./behavi
   executeCue: (cue) => httpEffects.push(cue),
 });
 realEngine.configure({ mode: "active", dailyBudgetUsd: 1, candidateScoring: true, visualEnabled: false });
-realEngine.setEnvironment({ foreground: true, focused: true });
+realEngine.setEnvironment({ foreground: true, focused: true, cameraEnabled: true });
 realEngine.dispatch({ type: "session-start", sessionId: "http-contract" });
+realEngine.dispatch({ type: "faces", faces: [{ ...faceA, unusedNativeField: undefined }] });
 realEngine.dispatch({ type: "user-turn", text: "Tell me about that", sessionId: "http-contract" });
 await new Promise((resolve) => setImmediate(resolve));
 await flush();

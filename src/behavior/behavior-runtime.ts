@@ -72,7 +72,7 @@ function clearCue(reason: string): void {
   const owned = activeCueId !== null;
   activeCueId = null;
   useBehaviorStore.setState({ presentation: null });
-  if (owned) cancelLooiHeadMotion(reason);
+  if (owned) cancelLooiHeadMotion(reason, "behavior");
   if (behaviorReactionId !== null && useCharacterReactionStore.getState().reactionId === behaviorReactionId) clearCharacterReaction(reason);
   behaviorReactionId = null;
 }
@@ -183,7 +183,11 @@ export function installBehaviorRuntime(): () => void {
     isGameActive: () => useBehaviorStore.getState().settings.mode === "active" && behaviorEngine.getState().game?.status === "active",
     inspectVisual: (image, task, sessionId) => useBehaviorStore.getState().settings.mode === "active" && useBehaviorStore.getState().settings.visualEnabled ? behaviorEngine.inspectVisual(image, task, sessionId) : Promise.resolve(""),
   }));
-  uninstalls.push(behaviorEngine.subscribe((state) => { useBehaviorStore.setState({ state }); schedulePersist(); refreshBehaviorContext(); }));
+  uninstalls.push(behaviorEngine.subscribe((state) => {
+    const presentation = useBehaviorStore.getState().presentation;
+    if (presentation && presentation.generation !== state.lifecycleGeneration) clearCue("behavior-invalidated");
+    useBehaviorStore.setState({ state }); schedulePersist(); refreshBehaviorContext();
+  }));
   configureAmbientBehaviorPolicy(() => ({ suppress: useBehaviorStore.getState().settings.mode === "active" && behaviorEngine.getState().sessionId !== null && (behaviorEngine.getState().posture === "attend" || behaviorEngine.getState().posture === "yield" || monotonicNow() < (behaviorEngine.getState().cue?.expiresAt ?? 0)) }));
   configureSocialBehaviorPolicy(() => {
     const state = behaviorEngine.getState();

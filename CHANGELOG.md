@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add optional Decisions behavior with Off/Observe/Active modes, contextual expression, task continuity, attention policies, requested-image assessment, explicit greeting/style preferences, reference repair, candidate scoring, group face tracks and a bounded number game.
+- Serialize head movement across explicit, social, behavior and ambient owners, with cancellation at each sequence step and owner-scoped cleanup.
+- Add local Decisions usage/budget accounting and PCM/WebRTC lifecycle, visual-race, game-turn and interruption regressions.
 - Add optional Hermes research tasks with HTTPS setup, encrypted admission recovery, cursor-paged history, lazy results, cancellation and terminal deletion.
 - Add a pinned Hermes/DDGS container and Fly.io configuration with a persistent single-worker queue, enforced process deadlines, restart handling and deleted-ID receipts.
 - Add local saved-fact search, provenance, individual correction and confirmed deletion, including SQLite/FTS and backup compatibility.
