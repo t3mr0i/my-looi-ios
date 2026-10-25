@@ -1,4 +1,4 @@
-import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, inspectBehaviorVisual, publishBehaviorEvent } from "../behavior/behavior-events";
+import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, isBehaviorGameActive, inspectBehaviorVisual, publishBehaviorEvent } from "../behavior/behavior-events";
 import { AppState, Platform } from "react-native";
 import { isRealtimeCaptureReady } from "./audio-capture-profile";
 import { setIsAudioActiveAsync } from "expo-audio";
@@ -311,7 +311,8 @@ export class RealtimePcmConversationService {
         useUserStore.getState().preferences,
         undefined,
         this.sessionMemoryContext,
-        getBehaviorConversationContext(this.sessionId)
+        getBehaviorConversationContext(this.sessionId),
+        isBehaviorGameActive(this.sessionId)
       );
       const sessionConfig = (sessionUpdate.session ?? {}) as Record<string, unknown>;
       const clientSecret = await createOpenAiRealtimeClientSecret(sessionConfig);
@@ -397,7 +398,7 @@ export class RealtimePcmConversationService {
   applySessionPreferences(source: string): void {
     if (!this.active || !this.webSocket) return;
     const preferences = useUserStore.getState().preferences;
-    this.send(buildRealtimeSessionUpdate(preferences, undefined, this.sessionMemoryContext, getBehaviorConversationContext(this.sessionId)));
+    this.send(buildRealtimeSessionUpdate(preferences, undefined, this.sessionMemoryContext, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId)));
     recordDiagnosticEvent("realtime", "pcm-session-preferences-updated", {
       source,
       listeningLanguage: preferences.listeningLanguage,
@@ -863,7 +864,7 @@ export class RealtimePcmConversationService {
         if (physicalCommand) {
           this.visualRequestGeneration += 1;
           this.localVisualCommandInFlight = false;
-          publishBehaviorEvent({ type: "interrupt", reason: "explicit-physical-command", sessionId: this.sessionId ?? undefined });
+          publishBehaviorEvent({ type: "interrupt", reason: physicalCommand.kind === "emergency-stop" ? "emergency-stop" : "explicit-physical-command", sessionId: this.sessionId ?? undefined });
           this.localPhysicalCommandInFlight = true;
           if (this.playbackActive) {
             this.playbackInterrupted = true;
@@ -892,7 +893,13 @@ export class RealtimePcmConversationService {
             useUserStore.getState().setVoiceState("processing");
             void this.executeLocalVisualCommand(visualCommand, transcript);
           } else if (this.sessionId) {
+            const wasGame = isBehaviorGameActive(this.sessionId);
             publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
+            if ((wasGame || isBehaviorGameActive(this.sessionId)) && !store.isUserSpeaking) {
+              if (this.generationActive) this.send({ type: "response.cancel" });
+              if (this.playbackActive) this.stopAndTruncatePlayback("local-game-turn");
+              this.send({ type: "response.create" });
+            }
           }
         }
       }

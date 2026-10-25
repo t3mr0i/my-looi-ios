@@ -4,6 +4,7 @@ type Adapter = {
   dispatch(event: BehaviorEvent): void;
   getContext(): string;
   inspectVisual(image: string, task: string, sessionId: string): Promise<string>;
+  isGameActive?(): boolean;
 };
 let adapter: Adapter | null = null;
 let session: string | null = null;
@@ -49,6 +50,10 @@ export function getBehaviorConversationContext(sessionId: string | null): string
   return sessionId && sessionId === session ? (adapter?.getContext() ?? "") : "";
 }
 
+export function isBehaviorGameActive(sessionId: string | null): boolean {
+  return !!sessionId && sessionId === session && adapter?.isGameActive?.() === true;
+}
+
 export function refreshBehaviorContext(): void {
   if (!session || !contextListener) return;
   const context = adapter?.getContext() ?? "";
@@ -62,6 +67,6 @@ export async function inspectBehaviorVisual(image: string, task: string, session
   const currentRevision = revision;
   try {
     const advice = await adapter.inspectVisual(image, task, sessionId);
-    return session === sessionId && revision === currentRevision ? advice : "";
+    return session === sessionId && revision === currentRevision ? advice.slice(0, 1000) : "";
   } catch { return ""; }
 }

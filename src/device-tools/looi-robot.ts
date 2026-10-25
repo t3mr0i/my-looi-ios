@@ -101,6 +101,7 @@ type LooiRuntimeState = {
   motionGeneration: number;
   motionActive: boolean;
   activeDirection: LooiMoveDirection | null;
+  stopGeneration: number;
   sensors: LooiSensorSnapshot;
   nearEdge: NearEdgeLatch;
   lastSafetyStopReason: string | null;
@@ -157,6 +158,7 @@ const state: LooiRuntimeState = {
   motionGeneration: 0,
   motionActive: false,
   activeDirection: null,
+  stopGeneration: 0,
   sensors: emptySensors(),
   nearEdge: emptyNearEdgeLatch(),
   lastSafetyStopReason: null,
@@ -519,6 +521,7 @@ export function getLooiRobotRuntimeState() {
     lastError: state.lastError,
     motionActive: state.motionActive,
     activeDirection: state.activeDirection,
+    stopGeneration: state.stopGeneration,
     driveControlReady: state.connected && !state.driveControlRevalidationRequired,
     driveControlRevalidationReason: state.driveControlRevalidationReason,
     sensors: { ...state.sensors },
@@ -886,11 +889,13 @@ export async function stopLooiMotion(reason = "explicit"): Promise<void> {
   clearContinuousMotionDeadman();
   clearNearEdgeEscapeTimers();
   state.motionGeneration += 1;
+  state.stopGeneration += 1;
   const wasMoving = state.motionActive;
   const direction = state.activeDirection;
   state.motionActive = false;
   state.activeDirection = null;
   state.lastSafetyStopReason = reason;
+  emitLooiRobotRuntimeStateChanged();
   const robot = state.robot;
   if (!robot || !state.connected) return;
   robot.stopMoveLoop({ writeStop: false });
@@ -1365,7 +1370,9 @@ function triggerSensorSafetyStop(reason: "cliff" | "obstacle", details: Record<s
   state.motionActive = false;
   state.activeDirection = null;
   state.motionGeneration += 1;
+  state.stopGeneration += 1;
   state.lastSafetyStopReason = reason;
+  emitLooiRobotRuntimeStateChanged();
   const robot = state.robot;
   if (!robot || !state.connected) return;
   robot.stopMoveLoop({ writeStop: false });

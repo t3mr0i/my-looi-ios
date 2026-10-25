@@ -69,11 +69,12 @@ const robot = compileTs("src/device-tools/looi-robot.ts", customRobotRequire);
 
 let heldHeadWrite = null;
 let blockNextUp = false;
+let notifyFed9 = null;
 const transport = {
   async connect() {},
   async disconnect() {},
   hasCharacteristic(key) { return ["dockNotify", "drive", "head"].includes(key); },
-  async startNotifications() {},
+  async startNotifications(key, callback) { if (key === "dockNotify") notifyFed9 = callback; },
   async write(key, payload, options) {
     writes.push({ at: fakeNow, key, payload, options });
     if (key === "head" && payload === "00" && blockNextUp) {
@@ -82,6 +83,14 @@ const transport = {
     }
   },
 };
+
+function sendFed9(bytes) {
+  notifyFed9({
+    characteristic: "dockNotify",
+    hex: Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""),
+    bytes: new Uint8Array(bytes),
+  });
+}
 
 robot.configureLooiRobotTransport(transport);
 await robot.connectLooiRobot();
@@ -152,6 +161,38 @@ assert.deepEqual(
   "STOP must leave no delayed down/up/center head writes",
 );
 
+// Runtime observers need a monotonically increasing STOP version, even when
+// consecutive stops carry the same reason. The state change is published
+// synchronously, before awaiting the BLE stop write.
+const observedStopGenerations = [];
+const unsubscribeRuntime = robot.subscribeLooiRobotRuntimeState(() => {
+  observedStopGenerations.push(robot.getLooiRobotRuntimeState().stopGeneration);
+});
+const firstStopGeneration = robot.getLooiRobotRuntimeState().stopGeneration;
+const firstRepeatedStop = robot.stopLooiMotion("repeat-stop-test");
+assert.equal(robot.getLooiRobotRuntimeState().stopGeneration, firstStopGeneration + 1);
+assert.equal(observedStopGenerations.at(-1), firstStopGeneration + 1);
+await firstRepeatedStop;
+const secondRepeatedStop = robot.stopLooiMotion("repeat-stop-test");
+assert.equal(robot.getLooiRobotRuntimeState().stopGeneration, firstStopGeneration + 2);
+assert.equal(observedStopGenerations.at(-1), firstStopGeneration + 2);
+await secondRepeatedStop;
+
+// Sensor safety STOPs publish the same version transition synchronously after
+// latching the stopped state. A fresh safe sensor frame allows this isolated
+// fake robot to move before the unsafe frame arrives.
+sendFed9([0x0e, 0xe8, 0x03]);
+sendFed9([1, 1, 1, 1, 1]);
+await advanceClock(300);
+await robot.startLooiMotion("forward");
+observedStopGenerations.length = 0;
+const sensorStopGeneration = robot.getLooiRobotRuntimeState().stopGeneration;
+sendFed9([1, 0, 1, 1, 1]);
+assert.equal(robot.getLooiRobotRuntimeState().motionActive, false);
+assert.equal(robot.getLooiRobotRuntimeState().stopGeneration, sensorStopGeneration + 1);
+assert.ok(observedStopGenerations.includes(sensorStopGeneration + 1));
+await flushMicrotasks();
+
 // Disconnect invalidates the in-flight owner and its completion cannot revive it.
 const disconnectGesture = robot.performLooiHeadGesture("sleepy");
 await flushMicrotasks();
@@ -159,6 +200,14 @@ robot.handleLooiRobotTransportDisconnected(new Error("test disconnect"));
 await advanceClock(700);
 assert.equal((await disconnectGesture).completed, false);
 assert.notEqual(writes.filter((write) => write.key === "head").at(-1).payload, "87");
+
+// A disconnected STOP still invalidates root-owned pending behavior and emits
+// the new version even though there is no BLE write to await.
+observedStopGenerations.length = 0;
+const disconnectedStopGeneration = robot.getLooiRobotRuntimeState().stopGeneration;
+await robot.stopLooiMotion("disconnected-repeat-stop-test");
+assert.deepEqual(observedStopGenerations, [disconnectedStopGeneration + 1]);
+unsubscribeRuntime();
 
 // The ambient behavior seam suppresses scheduling only while the local policy
 // says a behavior cue owns the moment; null restores the legacy scheduler.

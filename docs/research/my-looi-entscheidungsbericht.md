@@ -309,7 +309,7 @@ Gemeinsame Quellenregister und Grenzen: [A: Bestand/Hardware](bestand-hardware.m
 
 Die Checks liefen auf macOS mit Node 26.5.0, pnpm 10.34.5, Xcode 27.1 und CocoaPods 1.16.2. Ein früherer Inventarlauf hatte einen Fehler im temporären Runner (Scriptargument verworfen) und wurde vollständig verworfen; nur die erneut korrekt gestarteten Prozesse mit erfasstem Exitstatus wurden ausgewertet. Zusätzlich gefundene Audit-Fehlalarme für synthetische Testdaten/Patchdateinamen und ein doppeltes JSX-Attribut wurden korrigiert und erneut geprüft.
 
-iPhone/LOOI-Hardware, akustische Barge-in-/Routentests, echte Suchabrechnung und Nutzerstudien wurden nicht durchgeführt. Keine Motoren aktiviert, keine Firmwareänderung, keine Veröffentlichung, keine Kontaktaufnahme und keine kostenpflichtige API-Testserie.
+iPhone/LOOI-Hardware, akustische Barge-in-/Routentests, echte Suchabrechnung und Nutzerstudien wurden in dieser ersten Lieferung nicht durchgeführt. Keine Motoren aktiviert, keine Firmwareänderung und keine Kontaktaufnahme. Die nachfolgende, ausdrücklich freigegebene Hermes-Erweiterung wurde auf Fly.io bereitgestellt und mit zwei kleinen öffentlichen Modell-/Rechercheaufträgen geprüft; deren aktueller Stand und verbleibende Grenzen stehen in [Hermes-Agent-Anbindung](../hermes-agent.md).
 
 ### Abschluss: drei konkrete nächste Schritte
 

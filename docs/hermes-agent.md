@@ -150,6 +150,10 @@ task, reconnect, cancellation, deletion and a Machine restart.
 - Live checks confirmed identical-ID retry without replay, conflicting-ID
   rejection, summary/detail separation, terminal-task cancellation semantics,
   and unchanged completed-task persistence across the image update/restart.
+  Both test tasks were then deleted: detail GET returned 404, retry PUT returned
+  the deleted-ID receipt 410, repeated DELETE returned 204, and the task list
+  was empty. Active-worker cancellation is covered by local spawned-worker HTTP
+  tests; an in-flight paid request was not deliberately interrupted.
 - Device/UI acceptance remains open. CoreSimulator has an incompatible system
   component, and the optional web preview cannot bundle its existing
   `expo-sqlite` WASM import. Neither successful compilation nor fixture tests

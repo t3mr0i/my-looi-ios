@@ -32,7 +32,9 @@ let facePoll: ReturnType<typeof setInterval> | null = null;
 let activeCueId: string | null = null;
 let behaviorReactionId: number | null = null;
 let priorPreferenceKey = "";
-let lastStopReason: string | null = null;
+let lastStopGeneration = 0;
+let lastSavedState = "";
+let lastScheduledState = "";
 
 export const behaviorEngine = createBehaviorEngine({
   decide: (input, options) => requestDecisions(input, options),
@@ -42,7 +44,7 @@ export const behaviorEngine = createBehaviorEngine({
   decisionTimeoutMs: 1_800,
   traceLimit: 80,
 });
-try { const stored = storage.getString(STATE_KEY); if (stored) behaviorEngine.restore(stored); } catch {}
+try { const stored = storage.getString(STATE_KEY); if (stored) { behaviorEngine.restore(stored); lastSavedState = stored; } } catch {}
 
 export const useBehaviorStore = create<{
   settings: BehaviorSettings;
@@ -54,9 +56,15 @@ behaviorEngine.configure(useBehaviorStore.getState().settings);
 function saveState(): void {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = null;
-  try { storage.set(STATE_KEY, behaviorEngine.serialize()); } catch {}
+  try {
+    const serialized = behaviorEngine.serialize();
+    if (serialized !== lastSavedState) { storage.set(STATE_KEY, serialized); lastSavedState = serialized; }
+  } catch {}
 }
 function schedulePersist(): void {
+  const serialized = behaviorEngine.serialize();
+  if (serialized === lastScheduledState) return;
+  lastScheduledState = serialized;
   if (persistTimer) return;
   persistTimer = setTimeout(saveState, 750);
 }
@@ -114,11 +122,11 @@ function refreshEnvironment(): void {
     connected: robot.connected, ambientEnabled: preferences.ambientMotionLevel !== "off", cameraEnabled: preferences.cameraAttentionEnabled,
     userSpeaking: conversation.isUserSpeaking, assistantSpeaking: conversation.isSpeaking, motionActive: robot.motionActive,
   });
-  if (robot.safety.lastSafetyStopReason && robot.safety.lastSafetyStopReason !== lastStopReason) {
-    behaviorEngine.dispatch({ type: "interrupt", reason: robot.safety.lastSafetyStopReason });
+  if (robot.stopGeneration !== lastStopGeneration) {
+    lastStopGeneration = robot.stopGeneration;
+    behaviorEngine.dispatch({ type: "interrupt", reason: robot.safety.lastSafetyStopReason ?? "robot-stop" });
     clearCue("behavior-robot-stop");
   }
-  lastStopReason = robot.safety.lastSafetyStopReason;
 }
 
 async function executeCue(cue: BehaviorCue): Promise<void> {
@@ -140,11 +148,12 @@ async function executeCue(cue: BehaviorCue): Promise<void> {
   useBehaviorStore.setState({ presentation: cue });
   if (cue.gesture === "hold") {
     holdAmbientMotionFor(Math.max(0, cue.expiresAt - monotonicNow()), "behavior-hold");
+    activeCueId = null;
     return;
   }
   if (cue.mood) behaviorReactionId = triggerCharacterReaction(cue.mood, { durationMs: 900, source: "behavior" });
   const robot = getLooiRobotRuntimeState();
-  if (!robot.connected || useUserStore.getState().preferences.ambientMotionLevel === "off") return;
+  if (!robot.connected || useUserStore.getState().preferences.ambientMotionLevel === "off") { activeCueId = null; return; }
   holdAmbientHeadMotionFor(1_500, "behavior-cue");
   holdSocialAttentionMotionFor(1_500, "behavior-cue");
   // Freshness limits the start; a started macro gets a bounded closing phase.
@@ -171,6 +180,7 @@ export function installBehaviorRuntime(): () => void {
   uninstalls.push(registerBehaviorAdapter({
     dispatch(event) { refreshEnvironment(); if (event.type === "interrupt" || event.type === "user-speech-start" || event.type === "session-end") clearCue(`behavior-${event.type}`); behaviorEngine.dispatch(event); },
     getContext: () => useBehaviorStore.getState().settings.mode === "active" ? behaviorEngine.getConversationContext() : "",
+    isGameActive: () => useBehaviorStore.getState().settings.mode === "active" && behaviorEngine.getState().game?.status === "active",
     inspectVisual: (image, task, sessionId) => useBehaviorStore.getState().settings.mode === "active" && useBehaviorStore.getState().settings.visualEnabled ? behaviorEngine.inspectVisual(image, task, sessionId) : Promise.resolve(""),
   }));
   uninstalls.push(behaviorEngine.subscribe((state) => { useBehaviorStore.setState({ state }); schedulePersist(); refreshBehaviorContext(); }));

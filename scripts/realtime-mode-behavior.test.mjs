@@ -70,6 +70,9 @@ assert.match(behaviorUpdate.session.instructions, /LOCAL ROBOT INTERACTION STATE
 assert.match(behaviorUpdate.session.instructions, /Never reveal a game's secret answer/);
 assert.equal(behaviorUpdate.session.audio.input.turn_detection.create_response, true, "behavior must preserve automatic voice response timing");
 
+const gameUpdate = realtime.buildRealtimeSessionUpdate({ language: "en", listeningLanguage: "en" }, undefined, undefined, "local game state", true);
+assert.equal(gameUpdate.session.audio.input.turn_detection.create_response, false, "local games wait for the verified answer state");
+
 const toolNames = update.session.tools.map((tool) => tool.name).sort();
 assert.deepEqual(toolNames, ["remember", "search_memory", "set_language_preferences"]);
 assert.equal(toolNames.some((name) => /move|drive|turn|sleep|robot/i.test(name)), false, "Realtime must expose no physical robot tools");

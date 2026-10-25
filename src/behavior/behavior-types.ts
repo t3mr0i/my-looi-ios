@@ -71,11 +71,9 @@ export interface BehaviorStylePreferences {
   scope: "device";
   suppressNod: boolean;
   livelyWhenPlayful: boolean;
+  greetingRitual: "nod" | "curious" | "happy_bob" | "off" | null;
+  greetingRitualSource: "explicit_user_request" | null;
   maxCuesPerTurn: number;
-  greetingRitualEnabled: boolean;
-  greetingCountToday: number;
-  greetingCountDay: string;
-  lastGreetingGesture: Exclude<BehaviorGesture, "hold" | "thinking" | "speaking_soft"> | null;
   updatedAt: number;
 }
 
@@ -189,6 +187,7 @@ export interface BehaviorEngine {
   getConversationContext(): string;
   serialize(): string;
   restore(serialized: string): void;
+  resetLearning(): void;
   dispose(): void;
   subscribe(listener: (state: BehaviorState) => void): () => void;
 }

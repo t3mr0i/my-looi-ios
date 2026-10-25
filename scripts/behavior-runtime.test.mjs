@@ -39,7 +39,7 @@ function makeRuntime() {
   const robotListeners = new Set();
   const cancelledHeadMotions = [];
   const events = [];
-  const pendingGesture = deferred();
+  const gesturePromises = [];
   let currentCheck = null;
 
   const userState = {
@@ -56,6 +56,7 @@ function makeRuntime() {
   const robotState = {
     connected: true,
     motionActive: false,
+    stopGeneration: 0,
     safety: { lastSafetyStopReason: null },
   };
   const userStore = {
@@ -80,7 +81,12 @@ function makeRuntime() {
   const engine = {
     configure(settings) { this.settings = settings; },
     setEnvironment(environment) { this.environment = { ...this.environment, ...environment }; },
-    dispatch(event) { events.push(event); if (event.type === "session-start") engineState.sessionId = event.sessionId; if (event.type === "session-end") engineState.sessionId = null; },
+    dispatch(event) {
+      events.push(event);
+      if (["session-start", "session-end", "user-speech-start", "user-turn", "assistant-end", "interrupt", "correction", "intention", "game-command"].includes(event.type)) engineState.lifecycleGeneration += 1;
+      if (event.type === "session-start") engineState.sessionId = event.sessionId;
+      if (event.type === "session-end") engineState.sessionId = null;
+    },
     inspectVisual() { inspectVisualCalls += 1; return Promise.resolve("use the requested view"); },
     getState: () => engineState,
     getConversationContext: () => "A short pending task",
@@ -137,7 +143,8 @@ function makeRuntime() {
       performLooiBehaviorHeadGesture: (_gesture, isCurrent) => {
         movementCalls += 1;
         currentCheck = isCurrent;
-        return pendingGesture.promise;
+        const pending = deferred(); gesturePromises.push(pending);
+        return pending.promise;
       },
       subscribeLooiRobotRuntimeState: (listener) => { robotListeners.add(listener); return () => robotListeners.delete(listener); },
     },
@@ -169,8 +176,8 @@ function makeRuntime() {
     getCurrentCheck: () => currentCheck,
     setNow: (value) => { now = value; },
     setFocused: (value) => { focused = value; for (const listener of focusListeners) listener(value); },
-    setSafetyStop: (reason) => { robotState.safety.lastSafetyStopReason = reason; for (const listener of robotListeners) listener(); },
-    finishGesture: (completed = false) => pendingGesture.resolve({ completed }),
+    setSafetyStop: (reason) => { robotState.stopGeneration += 1; robotState.safety.lastSafetyStopReason = reason; for (const listener of robotListeners) listener(); },
+    finishGesture: (index = gesturePromises.length - 1, completed = false) => gesturePromises[index].resolve({ completed }),
     getAppStateListener: () => appStateListener,
   };
 }
@@ -183,7 +190,7 @@ assert.equal(runtime.getPoll().delay, 400, "face evidence is polled at a bounded
 
 for (const mode of ["off", "shadow"]) {
   runtime.runtime.updateBehaviorSettings({ mode });
-  await runtime.engineDependencies.executeCue({ id: `cue-${mode}`, generation: 1, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
+  await runtime.engineDependencies.executeCue({ id: `cue-${mode}`, generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
   assert.equal(runtime.getMetrics().movementCalls, 0, `${mode} mode cannot start a head gesture`);
   assert.equal(runtime.reactionStore.getState().mood, null, `${mode} mode cannot trigger a visible reaction`);
   assert.equal(runtime.getState().presentation, null, `${mode} mode does not publish a visible cue`);
@@ -191,7 +198,7 @@ for (const mode of ["off", "shadow"]) {
 
 runtime.runtime.updateBehaviorSettings({ mode: "active" });
 assert.equal(adapter.getContext(), "A short pending task", "active mode shares bounded local conversation context");
-await runtime.engineDependencies.executeCue({ id: "expired-before-start", generation: 1, expiresAt: 999, gesture: "curious", mood: "pleased" });
+await runtime.engineDependencies.executeCue({ id: "expired-before-start", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 999, gesture: "curious", mood: "pleased" });
 assert.equal(runtime.getMetrics().movementCalls, 0, "an expired cue cannot start a new head macro");
 runtime.runtime.updateBehaviorSettings({ mode: "shadow" });
 assert.equal(adapter.getContext(), "", "shadow mode does not change speech context");
@@ -202,15 +209,15 @@ assert.equal(await adapter.inspectVisual("image", "look", "session-1"), "use the
 assert.equal(runtime.getMetrics().inspectVisualCalls, 1, "visual advice is opt-in");
 
 runtime.userState.robotSleeping = true;
-await runtime.engineDependencies.executeCue({ id: "sleeping-cue", generation: 1, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
+await runtime.engineDependencies.executeCue({ id: "sleeping-cue", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
 assert.equal(runtime.getMetrics().movementCalls, 0, "sleep state blocks cue start");
 runtime.userState.robotSleeping = false;
 runtime.setFocused(false);
-await runtime.engineDependencies.executeCue({ id: "unfocused-cue", generation: 1, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
+await runtime.engineDependencies.executeCue({ id: "unfocused-cue", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
 assert.equal(runtime.getMetrics().movementCalls, 0, "route focus blocks cue start");
 runtime.setFocused(true);
 
-const activeCue = runtime.engineDependencies.executeCue({ id: "running-cue", generation: 1, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
+const activeCue = runtime.engineDependencies.executeCue({ id: "running-cue", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: "pleased" });
 assert.equal(runtime.getMetrics().movementCalls, 1);
 assert.equal(runtime.getCurrentCheck()(), true, "a currently valid active cue may continue");
 
@@ -221,16 +228,23 @@ assert.equal(runtime.getCurrentCheck()(), false, "a new user turn invalidates th
 assert.ok(runtime.cancelledHeadMotions.includes("behavior-user-speech-start"), "a new turn cancels the active head generation");
 assert.equal(runtime.getMetrics().clearReactionCalls, 0, "interrupt does not clear a newer manual reaction");
 assert.equal(runtime.reactionStore.getState().mood, "angry");
-runtime.finishGesture(false);
+runtime.finishGesture(0, false);
 await activeCue;
 
-const stoppedCue = runtime.engineDependencies.executeCue({ id: "stopped-cue", generation: 1, expiresAt: 2_000, gesture: "curious", mood: null });
+const stoppedCue = runtime.engineDependencies.executeCue({ id: "stopped-cue", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: null });
 assert.equal(runtime.getMetrics().movementCalls, 2);
 runtime.setSafetyStop("cliff-stop");
 assert.equal(runtime.getCurrentCheck()(), false, "a STOP state update invalidates the current cue guard");
 assert.ok(runtime.cancelledHeadMotions.includes("behavior-robot-stop"), "STOP cancels the active head generation");
-runtime.finishGesture(false);
+runtime.finishGesture(1, false);
 await stoppedCue;
+
+const repeatedStopCue = runtime.engineDependencies.executeCue({ id: "repeated-stop-cue", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: null });
+assert.equal(runtime.getMetrics().movementCalls, 3);
+runtime.setSafetyStop("cliff-stop");
+assert.equal(runtime.getCurrentCheck()(), false, "a repeated same-reason STOP still invalidates a later cue");
+runtime.finishGesture(2, false);
+await repeatedStopCue;
 
 runtime.runtime.updateBehaviorSettings({ dailyBudgetUsd: 3 });
 runtime.runtime.resetBehaviorLearning();

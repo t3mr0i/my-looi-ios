@@ -21,7 +21,7 @@ export function BehaviorSettings() {
   const state = useBehaviorStore((store) => store.state);
   const gameActive = state.game?.status === "active";
   const gameAction = gameActive ? "stop" : "start";
-  const gameDisabled = !state.sessionId;
+  const gameDisabled = !state.sessionId || settings.mode !== "active";
 
   const confirmLearningReset = () => {
     Alert.alert(t("resetTitle"), t("resetMessage"), [

@@ -1,4 +1,4 @@
-import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, publishBehaviorEvent } from "../behavior/behavior-events";
+import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, isBehaviorGameActive, publishBehaviorEvent } from "../behavior/behavior-events";
 import { AppState, Platform } from "react-native";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from "react-native-webrtc";
@@ -31,6 +31,8 @@ import {
   REALTIME_MODEL,
   resample16kTo24k,
 } from "./realtime-config";
+import { parseRealtimePhysicalCommand } from "./realtime-physical-command";
+import { parseRealtimeVisualCommand } from "./realtime-visual-command";
 import { realtimePcmConversationService } from "./realtime-pcm-conversation";
 
 const DATA_CHANNEL_OPEN_TIMEOUT_MS = 9_000;
@@ -273,6 +275,7 @@ export class RealtimeConversationService {
     conversationStore.setListening(true);
     conversationStore.setProcessing(false);
     conversationStore.setSpeaking(false);
+    conversationStore.setUserSpeaking(false);
     conversationStore.setCurrentTranscript("");
     conversationStore.setStreamingText("");
     conversationStore.setOverlayVisible(true);
@@ -316,7 +319,7 @@ export class RealtimeConversationService {
       conversationStore.setActiveSession(localSessionId);
       mirrorSessionTouch(localSessionId, "realtime");
 
-      const sessionUpdate = buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId));
+      const sessionUpdate = buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId));
       const sessionConfig = (sessionUpdate.session ?? {}) as Record<string, unknown>;
 
       // BYOK: the owner's standard key stays in SecureStore. It is used only to
@@ -556,7 +559,7 @@ export class RealtimeConversationService {
   applySessionPreferences(source: string): void {
     if (!this.active) return;
     const preferences = useUserStore.getState().preferences;
-    this.send(buildRealtimeSessionUpdate(preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId)));
+    this.send(buildRealtimeSessionUpdate(preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId)));
     recordDiagnosticEvent("realtime", "webrtc-session-preferences-updated", {
       source,
       listeningLanguage: preferences.listeningLanguage,
@@ -585,6 +588,7 @@ export class RealtimeConversationService {
     this.playbackTerminal = "cleared";
     const store = useConversationStore.getState();
     store.setSpeaking(false);
+    store.setUserSpeaking(false);
     store.setProcessing(false);
     store.setListening(true);
     store.setStreamingText("");
@@ -713,6 +717,7 @@ export class RealtimeConversationService {
     store.setListening(false);
     store.setProcessing(false);
     store.setSpeaking(false);
+    store.setUserSpeaking(false);
     store.setRealtimeReadiness("idle");
     store.setOverlayVisible(false);
     useUserStore.getState().setVoiceState("sleeping");
@@ -1142,6 +1147,7 @@ export class RealtimeConversationService {
       }
       const store = useConversationStore.getState();
       if (wasOutputActive) store.setStreamingText("");
+      store.setUserSpeaking(true);
       store.setSpeaking(false);
       store.setProcessing(false);
       store.setListening(true);
@@ -1175,6 +1181,7 @@ export class RealtimeConversationService {
     if (type === "input_audio_buffer.speech_stopped") {
       publishBehaviorEvent({ type: "user-speech-end", sessionId: this.sessionId ?? undefined });
       const store = useConversationStore.getState();
+      store.setUserSpeaking(false);
       store.setListening(false);
       store.setProcessing(true);
       useUserStore.getState().setVoiceState("processing");
@@ -1191,7 +1198,18 @@ export class RealtimeConversationService {
         store.addMessage({ role: "user", content: transcript });
         if (this.sessionId) {
           mirrorSessionMessage(this.sessionId, { role: "user", content: transcript });
-          publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
+          const physical = parseRealtimePhysicalCommand(transcript, useUserStore.getState().preferences);
+          const visual = parseRealtimeVisualCommand(transcript, useUserStore.getState().preferences);
+          const wasGame = isBehaviorGameActive(this.sessionId);
+          if (physical || visual) {
+            publishBehaviorEvent({ type: "interrupt", reason: physical?.kind === "emergency-stop" ? "emergency-stop" : "explicit-command", sessionId: this.sessionId });
+          } else {
+            publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
+          }
+          if ((wasGame || isBehaviorGameActive(this.sessionId)) && !store.isUserSpeaking) {
+            if (this.generationActive) this.send({ type: "response.cancel" });
+            this.send({ type: "response.create" });
+          }
         }
         recordDiagnosticEvent("realtime", "input-transcript", {
           length: transcript.length,
@@ -1758,7 +1776,7 @@ export class RealtimeConversationService {
       this.vadHealthProbeSentAt = now;
       this.vadHealthProbeAcknowledgedAt = 0;
       this.vadHealthSpeechBaseline = this.lastServerSpeechAt;
-      this.send(buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId)));
+      this.send(buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId)));
       recordDiagnosticEvent("realtime", "vad-health-probe-sent", {
         sinceServerSpeechMs,
         packetsSent: stats.packetsSent,

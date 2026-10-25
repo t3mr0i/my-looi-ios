@@ -37,7 +37,7 @@ assert.match(runtime, /applySessionPreferences/);
 const pcm = read("src/voice/realtime-pcm-conversation.ts");
 assert.match(pcm, /pcm-session-preferences-updated/);
 assert.match(pcm, /sessionMemoryContext/);
-assert.match(pcm, /buildRealtimeSessionUpdate\(preferences, undefined, this\.sessionMemoryContext\)/);
+assert.match(pcm, /buildRealtimeSessionUpdate\(preferences, undefined, this\.sessionMemoryContext, getBehaviorConversationContext\(this\.sessionId\), isBehaviorGameActive\(this\.sessionId\)\)/);
 
 const webrtc = read("src/voice/realtime-conversation.ts");
 assert.match(webrtc, /webrtc-session-preferences-updated/);

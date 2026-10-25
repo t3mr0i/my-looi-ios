@@ -137,7 +137,8 @@ export function buildRealtimeSessionUpdate(
   preferences: Pick<UserPreferences, "language" | "listeningLanguage" | "realtimeModelId" | "ttsVoiceId" | "ttsSpeed" | "speechGender" | "robotName" | "robotAddressAliases" | "robotAddressRecognitionAliases">,
   previousSummary?: string,
   memoryContext?: string,
-  behaviorContext?: string
+  behaviorContext?: string,
+  manualBehaviorTurns = false
 ): Record<string, unknown> {
   return {
     type: "session.update",
@@ -160,7 +161,7 @@ export function buildRealtimeSessionUpdate(
             threshold: 0.15,
             prefix_padding_ms: 500,
             silence_duration_ms: 1000,
-            create_response: true,
+            create_response: !manualBehaviorTurns,
             // WebRTC keeps the microphone live while model audio plays. OpenAI
             // can therefore cancel/truncate the remote output when the user
             // starts talking. Actual device AEC quality is verified physically.

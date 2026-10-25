@@ -26,7 +26,7 @@ const audio = {
 const store = new Proxy({}, { get: (_, name) => (...args) => storeEvents.push([name, ...args]) });
 const dependencies = {
   "../behavior/behavior-events": {
-    beginBehaviorSession() {}, endBehaviorSession() {}, getBehaviorConversationContext: () => "",
+    beginBehaviorSession() {}, endBehaviorSession() {}, getBehaviorConversationContext: () => "", isBehaviorGameActive: () => false,
     inspectBehaviorVisual: async () => "", publishBehaviorEvent() {},
   },
   "react-native": { Platform: { OS: "ios" }, AppState: { currentState: "active" } },
