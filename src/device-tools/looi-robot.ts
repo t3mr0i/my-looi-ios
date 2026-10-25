@@ -104,6 +104,7 @@ function emptyNearEdgeLatch(): NearEdgeLatch {
 
 type LooiRuntimeStateListener = () => void;
 const runtimeStateListeners = new Set<LooiRuntimeStateListener>();
+let connectionGeneration = 0;
 
 function emitLooiRobotRuntimeStateChanged(): void {
   for (const listener of runtimeStateListeners) {
@@ -139,6 +140,7 @@ const state: LooiRuntimeState = {
 
 /** Bind the platform-specific LOOI BLE transport. */
 export function configureLooiRobotTransport(transport: LooiTransport): void {
+  connectionGeneration += 1;
   state.transport = transport;
   state.robot = new LooiRobot(transport);
   state.connected = false;
@@ -163,6 +165,7 @@ export function markLooiDriveControlNeedsRevalidation(reason: string): void {
 }
 
 export function handleLooiRobotTransportDisconnected(error?: unknown): void {
+  connectionGeneration += 1;
   const message = error instanceof Error ? error.message : error ? String(error) : "BLE link disconnected";
   const previousDirection = state.activeDirection;
   state.driveControlRevalidationRequired = true;
@@ -199,8 +202,16 @@ export async function connectLooiRobot(options: LooiConnectOptions = {}): Promis
 }
 
 export async function disconnectLooiRobot(): Promise<void> {
+  const generation = ++connectionGeneration;
+  const robot = state.robot;
+  state.connecting = null;
   clearContinuousMotionDeadman();
   await stopLooiMotion("disconnect").catch(() => undefined);
+  if (generation !== connectionGeneration) {
+    // Another transport now owns shared state. Only release the captured client.
+    if (robot !== state.robot) await robot?.disconnect();
+    return;
+  }
   state.connecting = null;
   state.connected = false;
   state.lastError = null;
@@ -211,7 +222,7 @@ export async function disconnectLooiRobot(): Promise<void> {
   lastCliffLoggedAt = 0;
   lastCliffLoggedSafe = null;
   emitLooiRobotRuntimeStateChanged();
-  await state.robot?.disconnect();
+  await robot?.disconnect();
 }
 
 function clearNearEdgeEscapeTimers(): void {
@@ -499,19 +510,28 @@ async function getRobot(options: LooiConnectOptions = {}): Promise<LooiRobot> {
   }
   if (state.connected) return state.robot;
   if (!state.connecting) {
+    const robot = state.robot;
+    const generation = connectionGeneration;
+    const isCurrent = () => generation === connectionGeneration && robot === state.robot;
+    const assertCurrent = () => {
+      if (!isCurrent()) throw new Error("LOOI connection superseded");
+    };
     const wrappedOptions: LooiConnectOptions = {
       ...options,
       onDock: (event) => {
+        if (!isCurrent()) return;
         state.sensors.docked = event.docked;
         options.onDock?.(event);
       },
       onRawNotify: (event) => {
+        if (!isCurrent()) return;
         rememberRawNotification(event);
         options.onRawNotify?.(event);
       },
     };
-    const connecting = state.robot.connect(wrappedOptions)
+    const connecting = robot.connect(wrappedOptions)
       .then(async () => {
+        assertCurrent();
         if (state.driveControlRevalidationRequired) {
           const reason = state.driveControlRevalidationReason ?? "reconnect";
           const startedAt = Date.now();
@@ -519,11 +539,12 @@ async function getRobot(options: LooiConnectOptions = {}): Promise<LooiRobot> {
           // possible frame: the existing STOP payload. No movement payloads,
           // timing, deadman, cliff logic or command grammar are changed.
           await withDeadline(
-            (state.robot as LooiRobot).stop(),
+            robot.stop(),
             BLE_STOP_TIMEOUT_MS,
             `BLE drive channel revalidation timed out after ${BLE_STOP_TIMEOUT_MS}ms`
           );
           await delay(DRIVE_REVALIDATION_SETTLE_MS);
+          assertCurrent();
           state.driveControlRevalidationRequired = false;
           state.driveControlRevalidationReason = null;
           recordDiagnosticEvent("robot", "ble-drive-channel-revalidated", {
@@ -533,12 +554,14 @@ async function getRobot(options: LooiConnectOptions = {}): Promise<LooiRobot> {
             method: "existing-stop-frame",
           });
         }
+        assertCurrent();
         state.connected = true;
         state.lastError = null;
         emitLooiRobotRuntimeStateChanged();
-        return state.robot as LooiRobot;
+        return robot;
       })
       .catch((error) => {
+        if (!isCurrent()) throw error;
         state.connected = false;
         state.lastError = error instanceof Error ? error.message : String(error);
         emitLooiRobotRuntimeStateChanged();

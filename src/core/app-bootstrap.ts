@@ -123,7 +123,10 @@ export async function pauseAppRuntime(reason: "background" | "sleep" = "backgrou
   if (!bootstrapped) return;
 
   return enqueueRuntimeLifecycle(async () => {
-    if (desiredForegroundActive || paused) return;
+    // BLE's synchronous AppState listener has already invalidated its session.
+    // Honour this pause even if a resume was queued immediately afterwards;
+    // otherwise that resume sees paused=false and never restores BLE/audio.
+    if (paused) return;
     paused = true;
     stopAmbientMotionController(reason);
     await stopSocialAttentionController(reason);
@@ -182,6 +185,9 @@ export async function resumeAppRuntime(): Promise<void> {
 
   return enqueueRuntimeLifecycle(async () => {
     if (!desiredForegroundActive || !paused || useUserStore.getState().robotSleeping) return;
+    // A queued pause must tear down an in-progress resume as well as a fully
+    // resumed runtime, including cancellation while audio activation is pending.
+    paused = false;
 
     try {
       await setIsAudioActiveAsync(true);
@@ -193,11 +199,12 @@ export async function resumeAppRuntime(): Promise<void> {
       });
     }
 
+    if (!runtimeShouldBeActive()) return;
     const { kwsAudioFeeder } = await import("../voice/kws-audio-feeder");
+    if (!runtimeShouldBeActive()) return;
     kwsAudioFeeder.setAppCaptureAllowed(true);
-    paused = false;
-
     await startRuntimePerceivers();
+    if (!runtimeShouldBeActive()) return;
     startAmbientMotionController("foreground-resume");
     startSocialAttentionController("foreground-resume");
 
@@ -275,6 +282,7 @@ async function startRuntimePerceivers(): Promise<void> {
       import("../voice/wakeword"),
       import("../voice/realtime-conversation"),
     ]);
+    if (!runtimeShouldBeActive()) return;
     recordDiagnosticEvent("performance", "voice-runtime-imports-stage", { durationMs: Date.now() - importsAt });
     const expectedWakeword = profile.allowsWakewordAutostart && prefs.wakeWordEnabled;
     let status = kwsAudioFeeder.diagnosticStatus;
@@ -302,6 +310,7 @@ async function startRuntimePerceivers(): Promise<void> {
       useUserStore.getState().setVoiceState("sleeping");
       recordDiagnosticEvent("runtime", "foreground-stale-listening-reset");
       await voiceRuntime.sync();
+      if (!runtimeShouldBeActive()) return;
       status = kwsAudioFeeder.diagnosticStatus;
     }
 
@@ -313,6 +322,7 @@ async function startRuntimePerceivers(): Promise<void> {
       !status.pcmFlowing
     ) {
       const pcmReady = await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_STARTUP_TIMEOUT_MS);
+      if (!runtimeShouldBeActive()) return;
       status = kwsAudioFeeder.diagnosticStatus;
       recordDiagnosticEvent("runtime", "voice-readiness-watchdog", {
         pcmReady,
@@ -358,10 +368,13 @@ async function startRuntimePerceivers(): Promise<void> {
         wakewordListening: wakewordService.isListening,
       });
       await new Promise((resolve) => setTimeout(resolve, 120));
+      if (!runtimeShouldBeActive()) return;
       await voiceRuntime.sync();
+      if (!runtimeShouldBeActive()) return;
       if (kwsAudioFeeder.isRunning) {
         await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_RETRY_TIMEOUT_MS);
       }
+      if (!runtimeShouldBeActive()) return;
       status = kwsAudioFeeder.diagnosticStatus;
       recordDiagnosticEvent("runtime", "foreground-voice-retry-finished", {
         feederRunning: status.running,
@@ -386,11 +399,15 @@ async function startRuntimePerceivers(): Promise<void> {
       });
       await voiceRuntime.stop();
       await new Promise((resolve) => setTimeout(resolve, 120));
+      if (!runtimeShouldBeActive()) return;
       await voiceRuntime.start();
+      if (!runtimeShouldBeActive()) return;
       await voiceRuntime.sync();
+      if (!runtimeShouldBeActive()) return;
       if (kwsAudioFeeder.isRunning) {
         await kwsAudioFeeder.waitForFreshPcm(VOICE_PCM_STARTUP_TIMEOUT_MS);
       }
+      if (!runtimeShouldBeActive()) return;
       status = kwsAudioFeeder.diagnosticStatus;
       recordDiagnosticEvent("runtime", "foreground-voice-hard-restart-finished", {
         feederRunning: status.running,

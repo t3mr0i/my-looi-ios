@@ -1,4 +1,4 @@
-import { PermissionsAndroid, Platform } from "react-native";
+import { AppState, PermissionsAndroid, Platform } from "react-native";
 import {
   BleManager,
   ScanMode,
@@ -42,6 +42,7 @@ export type ReactNativeBleLooiTransportOptions = {
   scanTimeoutMs?: number;
   bleStateTimeoutMs?: number;
   connectTimeoutMs?: number;
+  isConnectionAllowed?: () => boolean;
   onDisconnected?: (error?: Error) => void;
 };
 
@@ -88,6 +89,13 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
   private readonly bleStateTimeoutMs: number;
   private readonly connectTimeoutMs: number;
   private readonly onDisconnected?: (error?: Error) => void;
+  private readonly isConnectionAllowed: () => boolean;
+  private connectionGeneration = 0;
+  private connectionPromise: Promise<void> | null = null;
+  private connectionQueue: Promise<unknown> = Promise.resolve();
+  private teardownPromise: Promise<unknown> = Promise.resolve();
+  private pendingDeviceId: string | null = null;
+  private cancelPendingWait: (() => void) | null = null;
   private deviceId: string | null = null;
   private disconnectSubscription: Subscription | null = null;
   private notificationSubscriptions = new Map<LooiCharacteristicKey, Subscription>();
@@ -108,28 +116,61 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     this.bleStateTimeoutMs = options.bleStateTimeoutMs ?? DEFAULT_BLE_STATE_TIMEOUT_MS;
     this.connectTimeoutMs = options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
     this.onDisconnected = options.onDisconnected;
+    this.isConnectionAllowed = options.isConnectionAllowed ?? (() => true);
   }
 
-  async connect(): Promise<void> {
+  connect(): Promise<void> {
+    if (this.connectionPromise) return this.connectionPromise;
+    const generation = ++this.connectionGeneration;
+    const attempt = this.connectionQueue.then(async () => {
+      await this.teardownPromise;
+      this.assertConnectionActive(generation);
+      await this.performConnect(generation);
+    }).catch(async (error) => {
+      if (generation === this.connectionGeneration) await this.disconnect();
+      throw error;
+    });
+    this.connectionQueue = attempt.catch(() => undefined);
+    this.connectionPromise = attempt;
+    const release = () => { if (this.connectionPromise === attempt) this.connectionPromise = null; };
+    void attempt.then(release, release);
+    return attempt;
+  }
+
+  private assertConnectionActive(generation: number): void {
+    if (generation !== this.connectionGeneration || !this.isConnectionAllowed()) {
+      throw new Error("LOOI BLE connection cancelled");
+    }
+  }
+
+  private async performConnect(generation: number): Promise<void> {
     if (Platform.OS === "web") {
       throw new Error("LOOI BLE transport requires a native iOS or Android runtime.");
     }
 
+    this.assertConnectionActive(generation);
     await requestAndroidBluetoothPermissions();
-    await this.waitForPoweredOn();
+    this.assertConnectionActive(generation);
+    await this.waitForPoweredOn(generation);
+    this.assertConnectionActive(generation);
 
-    const device = await this.findRobotDevice();
+    const device = await this.findRobotDevice(generation);
+    this.assertConnectionActive(generation);
     let connectedDevice = device;
     let adoptedExistingConnection = await this.manager.isDeviceConnected(device.id).catch(() => false);
+    this.assertConnectionActive(generation);
 
     if (!adoptedExistingConnection) {
+      this.pendingDeviceId = device.id;
       try {
         connectedDevice = await this.manager.connectToDevice(device.id, {
           timeout: this.connectTimeoutMs,
         });
       } catch (error) {
+        this.assertConnectionActive(generation);
         const message = error instanceof Error ? error.message : String(error);
         const connectedAfterError = await this.manager.isDeviceConnected(device.id).catch(() => false);
+        this.assertConnectionActive(generation);
         if (!connectedAfterError && !/already connected/i.test(message)) throw error;
         // Android can retain the GATT link even after lifecycle cancel. Treat the
         // platform's "already connected" result as an adoptable transport state:
@@ -148,15 +189,24 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
       });
     }
 
+    if (generation !== this.connectionGeneration || !this.isConnectionAllowed()) {
+      // Some native adapters complete connect after acknowledging cancellation.
+      // The next queued attempt waits until this late link has been released.
+      await this.manager.cancelDeviceConnection(connectedDevice.id).catch(() => {});
+      this.assertConnectionActive(generation);
+    }
     this.deviceId = connectedDevice.id;
+    this.pendingDeviceId = null;
     this.disconnectSubscription?.remove();
     this.disconnectSubscription = this.manager.onDeviceDisconnected(connectedDevice.id, (error) => {
-      if (this.deviceId !== connectedDevice.id) return;
+      if (generation !== this.connectionGeneration || this.deviceId !== connectedDevice.id) return;
+      this.connectionGeneration += 1;
       this.deviceId = null;
       for (const subscription of this.notificationSubscriptions.values()) subscription.remove();
       this.notificationSubscriptions.clear();
       this.resolvedCharacteristics.clear();
       this.gattSnapshot = { deviceId: null, services: [], characteristics: [], availableKeys: [], legacyHandshakeAvailable: false };
+      this.disconnectSubscription?.remove();
       this.disconnectSubscription = null;
       const normalizedError = error instanceof Error
         ? error
@@ -169,7 +219,9 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     });
 
     await this.manager.discoverAllServicesAndCharacteristicsForDevice(connectedDevice.id);
-    await this.discoverGatt(connectedDevice.id);
+    this.assertConnectionActive(generation);
+    await this.discoverGatt(connectedDevice.id, generation);
+    this.assertConnectionActive(generation);
     if (adoptedExistingConnection) {
       recordDiagnosticEvent("robot", "ble-existing-connection-gatt-restored", {
         deviceId: connectedDevice.id,
@@ -182,25 +234,33 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
         console.warn("[LOOI BLE] MTU request failed; continuing with default MTU", error);
       });
     }
+    this.assertConnectionActive(generation);
   }
 
   async disconnect(): Promise<void> {
+    this.connectionGeneration += 1;
+    this.connectionPromise = null;
+    this.cancelPendingWait?.();
+    this.cancelPendingWait = null;
+    const deviceIds = new Set([this.deviceId, this.pendingDeviceId]);
+    this.deviceId = null;
+    this.pendingDeviceId = null;
     this.disconnectSubscription?.remove();
     this.disconnectSubscription = null;
     for (const subscription of this.notificationSubscriptions.values()) {
       subscription.remove();
     }
     this.notificationSubscriptions.clear();
+    this.resolvedCharacteristics.clear();
+    this.gattSnapshot = { deviceId: null, services: [], characteristics: [], availableKeys: [], legacyHandshakeAvailable: false };
 
-    await this.manager.stopDeviceScan().catch(() => {});
-
-    if (this.deviceId) {
-      const deviceId = this.deviceId;
-      this.deviceId = null;
-      this.resolvedCharacteristics.clear();
-      this.gattSnapshot = { deviceId: null, services: [], characteristics: [], availableKeys: [], legacyHandshakeAvailable: false };
-      await this.manager.cancelDeviceConnection(deviceId).catch(() => {});
-    }
+    const teardown = Promise.all([
+      this.manager.stopDeviceScan().catch(() => {}),
+      ...[...deviceIds].filter((id): id is string => id !== null)
+        .map((id) => this.manager.cancelDeviceConnection(id).catch(() => {})),
+    ]);
+    this.teardownPromise = Promise.allSettled([this.teardownPromise, teardown]);
+    await this.teardownPromise;
   }
 
   hasCharacteristic(characteristicKey: LooiCharacteristicKey): boolean {
@@ -221,6 +281,7 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     onValue?: LooiNotificationHandler,
   ): Promise<void> {
     const deviceId = this.requireDeviceId();
+    const generation = this.connectionGeneration;
     const resolved = this.requireResolvedCharacteristic(characteristicKey);
 
     if (!resolved.notifiable && !resolved.indicatable) {
@@ -234,6 +295,7 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
       resolved.serviceUuid,
       resolved.characteristicUuid,
       (error, characteristic) => {
+        if (generation !== this.connectionGeneration || this.deviceId !== deviceId) return;
         if (error) {
           console.warn(`[LOOI BLE] Notification failed for ${characteristicKey}`, error);
           return;
@@ -291,13 +353,15 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     throw new Error(`LOOI BLE characteristic ${shortUuid(resolved.characteristicUuid)} (${characteristicKey}) is not writable.`);
   }
 
-  private async discoverGatt(deviceId: string): Promise<void> {
+  private async discoverGatt(deviceId: string, generation: number): Promise<void> {
     this.resolvedCharacteristics.clear();
     const services = await this.manager.servicesForDevice(deviceId);
+    this.assertConnectionActive(generation);
     const characteristicSnapshots: LooiGattCharacteristicSnapshot[] = [];
 
     for (const service of services) {
       const characteristics = await this.manager.characteristicsForDevice(deviceId, service.uuid).catch(() => []);
+      this.assertConnectionActive(generation);
       for (const characteristic of characteristics) {
         const key = findCharacteristicKey(characteristic.uuid);
         characteristicSnapshots.push({
@@ -351,41 +415,51 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     throw new Error(`LOOI BLE characteristic ${shortUuid(CHARACTERISTIC_UUIDS[characteristicKey])} (${characteristicKey}) is not exposed by this robot firmware.`);
   }
 
-  private async waitForPoweredOn(): Promise<void> {
+  private async waitForPoweredOn(generation: number): Promise<void> {
     const currentState = await this.manager.state();
+    this.assertConnectionActive(generation);
     if (currentState === State.PoweredOn) return;
 
     if (Platform.OS === "android" && currentState === State.PoweredOff) {
       await this.manager.enable().catch(() => {});
+      this.assertConnectionActive(generation);
     }
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
       let subscription: Subscription | null = null;
-      const timeout = setTimeout(() => {
+      const finish = (error?: Error) => {
         if (settled) return;
-        settled = true;
-        subscription?.remove();
-        reject(new Error(`Bluetooth did not become ready within ${this.bleStateTimeoutMs}ms`));
-      }, this.bleStateTimeoutMs);
-
-      subscription = this.manager.onStateChange((nextState) => {
-        if (nextState !== State.PoweredOn || settled) return;
         settled = true;
         clearTimeout(timeout);
         subscription?.remove();
-        resolve();
+        if (this.cancelPendingWait === cancel) this.cancelPendingWait = null;
+        if (error) reject(error); else resolve();
+      };
+      const cancel = () => finish(new Error("LOOI BLE connection cancelled"));
+      this.cancelPendingWait = cancel;
+      const timeout = setTimeout(() => {
+        finish(new Error(`Bluetooth did not become ready within ${this.bleStateTimeoutMs}ms`));
+      }, this.bleStateTimeoutMs);
+
+      subscription = this.manager.onStateChange((nextState) => {
+        if (nextState === State.PoweredOn) finish();
       }, true);
+      // CoreBluetooth may synchronously deliver the initial state while the
+      // subscription is still being assigned.
+      if (settled) subscription.remove();
     });
   }
 
-  private async findRobotDevice(): Promise<Device> {
+  private async findRobotDevice(generation: number): Promise<Device> {
     if (this.preferredDeviceId) {
       const connected = await this.manager.connectedDevices([LOOI_SERVICE_UUID]).catch(() => []);
+      this.assertConnectionActive(generation);
       const connectedMatch = connected.find((device) => device.id === this.preferredDeviceId);
       if (connectedMatch) return connectedMatch;
 
       const known = await this.manager.devices([this.preferredDeviceId]).catch(() => []);
+      this.assertConnectionActive(generation);
       if (known[0]) return known[0];
       return {
         id: this.preferredDeviceId,
@@ -396,6 +470,7 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
     }
 
     const connected = await this.manager.connectedDevices([LOOI_SERVICE_UUID]).catch(() => []);
+    this.assertConnectionActive(generation);
     const connectedMatch = connected.find((device) => this.isTargetRobot(device)) ?? connected[0];
     if (connectedMatch) return connectedMatch;
 
@@ -406,8 +481,12 @@ export class ReactNativeBleLooiTransport implements LooiTransport {
       const finish = (callback: () => void) => {
         if (settled) return;
         settled = true;
-        void this.manager.stopDeviceScan().finally(callback);
+        clearTimeout(timeout);
+        if (this.cancelPendingWait === cancel) this.cancelPendingWait = null;
+        void this.manager.stopDeviceScan().catch(() => {}).then(callback);
       };
+      const cancel = () => finish(() => reject(new Error("LOOI BLE connection cancelled")));
+      this.cancelPendingWait = cancel;
 
       const timeout = setTimeout(() => {
         finish(() => reject(new Error(`LOOI robot not found within ${this.scanTimeoutMs}ms`)));
@@ -455,15 +534,24 @@ export async function scanLooiRobotCandidates(options: {
   robotName?: string;
 } = {}): Promise<ScannedLooiRobot[]> {
   if (Platform.OS === "web") return [];
+  if (AppState.currentState !== "active") throw new Error("Robot search requires the app to be active");
 
   await requestAndroidBluetoothPermissions();
+  if (AppState.currentState !== "active") throw new Error("Robot search cancelled in background");
 
   const manager = new BleManager();
+  // BleManager's constructor returns its process-wide singleton. Destroying it
+  // after a Settings scan also destroys an existing robot's active GATT session.
+  const lifecycle = new AbortController();
+  const subscription = AppState.addEventListener("change", (state) => {
+    if (state !== "active") lifecycle.abort();
+  });
   const robotName = options.robotName ?? process.env.EXPO_PUBLIC_LOOI_ROBOT_NAME ?? DEFAULT_ROBOT_NAME;
   const scanTimeoutMs = options.scanTimeoutMs ?? DEFAULT_SCAN_TIMEOUT_MS;
 
   try {
-    await waitForManagerPoweredOn(manager, DEFAULT_BLE_STATE_TIMEOUT_MS);
+    await waitForManagerPoweredOn(manager, DEFAULT_BLE_STATE_TIMEOUT_MS, lifecycle.signal);
+    if (lifecycle.signal.aborted) throw new Error("Robot search cancelled in background");
 
     return await new Promise<ScannedLooiRobot[]>((resolve, reject) => {
       const candidates = new Map<string, ScannedLooiRobot>();
@@ -471,8 +559,12 @@ export async function scanLooiRobotCandidates(options: {
       const finish = (callback: () => void) => {
         if (settled) return;
         settled = true;
-        void manager.stopDeviceScan().finally(callback);
+        clearTimeout(timeout);
+        lifecycle.signal.removeEventListener("abort", cancelled);
+        void manager.stopDeviceScan().catch(() => {}).then(callback);
       };
+      const cancelled = () => finish(() => reject(new Error("Robot search cancelled in background")));
+      lifecycle.signal.addEventListener("abort", cancelled, { once: true });
       const timeout = setTimeout(() => {
         finish(() => resolve([...candidates.values()].sort(compareScannedRobots)));
       }, scanTimeoutMs);
@@ -500,7 +592,7 @@ export async function scanLooiRobotCandidates(options: {
         });
     });
   } finally {
-    await manager.destroy().catch(() => {});
+    subscription.remove();
   }
 }
 
@@ -523,31 +615,38 @@ async function requestAndroidBluetoothPermissions(): Promise<void> {
   }
 }
 
-async function waitForManagerPoweredOn(manager: BleManager, timeoutMs: number): Promise<void> {
+async function waitForManagerPoweredOn(manager: BleManager, timeoutMs: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) throw new Error("Robot search cancelled in background");
   const currentState = await manager.state();
+  if (signal.aborted) throw new Error("Robot search cancelled in background");
   if (currentState === State.PoweredOn) return;
 
   if (Platform.OS === "android" && currentState === State.PoweredOff) {
     await manager.enable().catch(() => {});
+    if (signal.aborted) throw new Error("Robot search cancelled in background");
   }
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let subscription: Subscription | null = null;
-    const timeout = setTimeout(() => {
+    const finish = (error?: Error) => {
       if (settled) return;
-      settled = true;
-      subscription?.remove();
-      reject(new Error(`Bluetooth did not become ready within ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    subscription = manager.onStateChange((nextState) => {
-      if (nextState !== State.PoweredOn || settled) return;
       settled = true;
       clearTimeout(timeout);
       subscription?.remove();
-      resolve();
+      signal.removeEventListener("abort", cancelled);
+      if (error) reject(error); else resolve();
+    };
+    const cancelled = () => finish(new Error("Robot search cancelled in background"));
+    signal.addEventListener("abort", cancelled, { once: true });
+    const timeout = setTimeout(() => {
+      finish(new Error(`Bluetooth did not become ready within ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    subscription = manager.onStateChange((nextState) => {
+      if (nextState === State.PoweredOn) finish();
     }, true);
+    if (settled) subscription.remove();
   });
 }
 

@@ -187,6 +187,9 @@ assert.equal(removed, 1);
 // A background transition while bootstrap awaits a native operation must run
 // teardown after it, without starting camera/idle movement in the background.
 let releaseVoiceStart;
+let holdVoiceStart = true;
+let holdAudioActivation = false;
+let releaseAudioActivation;
 const bootEvents = [];
 const bootState = { currentState: "active" };
 const feeder = {
@@ -199,25 +202,33 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "react-native": { AppState: bootState },
   "./perceiver-manager": { perceiverManager: {
     register() { bootEvents.push(["register"]); },
-    async start() { await new Promise((resolve) => { releaseVoiceStart = resolve; }); },
+    async start() { if (holdVoiceStart) await new Promise((resolve) => { releaseVoiceStart = resolve; }); },
     async stopAll() { bootEvents.push(["voiceStop"]); },
     getRegisteredNames: () => ["voice"],
   } },
   "../perceivers/voice-runtime": { voiceRuntime: { async sync() { bootEvents.push(["voiceSync"]); } } },
-  "../store/user": { useUserStore: { getState: () => user } },
-  "../store/conversation": {},
-  "./runtime-profile": {},
+  "../store/user": { useUserStore: { getState: () => user }, isRealtimeConversationMode: () => false },
+  "../store/conversation": { useConversationStore: { getState: () => ({}) } },
+  "./runtime-profile": { getRuntimeProfile: () => ({ allowsWakewordAutostart: false }) },
   "../voice/lazy-services": { getLoadedSttModule: () => null, getLoadedTtsModule: () => null },
   "../diagnostics/diagnostic-log": { recordDiagnosticEvent() {} },
   "../diagnostics/performance-monitor": { async recordPerformanceSnapshot() {} },
-  "expo-audio": { async setIsAudioActiveAsync(value) { bootEvents.push(["audioActive", value]); } },
-  "./main-screen-presence": {},
-  "../device-tools/looi-robot-autoconnect": { async suspendLooiRobotAutoConnection() { bootEvents.push(["bleStop"]); } },
+  "expo-audio": { async setIsAudioActiveAsync(value) {
+    bootEvents.push(["audioActive", value]);
+    if (value && holdAudioActivation) await new Promise((resolve) => { releaseAudioActivation = resolve; });
+  } },
+  "./main-screen-presence": { isMainScreenFocused: () => false },
+  "../device-tools/looi-robot-autoconnect": {
+    async suspendLooiRobotAutoConnection() { bootEvents.push(["bleStop"]); },
+    async resumeLooiRobotAutoConnection() { bootEvents.push(["bleResume"]); },
+  },
   "../voice/retired-experimental-voice-assets": { async removeRetiredExperimentalVoiceAssets() {} },
   "./legacy-network-credentials-retirement": { async retireLegacyNetworkCredentials() {} },
   "./ambient-motion": { startAmbientMotionController() { bootEvents.push(["ambientStart"]); }, stopAmbientMotionController() {} },
   "./social-attention": { startSocialAttentionController() { bootEvents.push(["cameraStart"]); }, async stopSocialAttentionController() {} },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
+  "../voice/wakeword": { wakewordService: { isListening: false } },
+  "../voice/realtime-conversation": { realtimeConversationService: { isActive: false } },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();
 assert.equal(bootstrap.bootstrapApp(), boot, "Bootstrap must be coalesced");
@@ -232,4 +243,50 @@ assert.equal(bootEvents.some(([event]) => event === "ambientStart" || event === 
 assert.ok(bootEvents.some(([event]) => event === "captureStop"));
 assert.ok(bootEvents.some(([event]) => event === "bleStop"));
 assert.deepEqual(bootEvents.at(-1), ["audioActive", false]);
+
+// Resuming is another asynchronous startup. A second background/sleep event
+// must prevent camera, movement, capture re-enable and BLE reconnect at each
+// await boundary, including while audio activation itself is pending.
+bootEvents.length = 0;
+bootState.currentState = "active";
+releaseVoiceStart = null;
+const resuming = bootstrap.resumeAppRuntime();
+for (let index = 0; index < 30 && !releaseVoiceStart; index++) await Promise.resolve();
+assert.equal(typeof releaseVoiceStart, "function");
+bootState.currentState = "background";
+const pausedAgain = bootstrap.pauseAppRuntime();
+releaseVoiceStart();
+await Promise.all([resuming, pausedAgain]);
+assert.equal(bootEvents.some(([event]) => event === "ambientStart" || event === "cameraStart"), false);
+assert.deepEqual(bootEvents.at(-1), ["audioActive", false]);
+
+bootEvents.length = 0;
+bootState.currentState = "active";
+holdAudioActivation = true;
+const activatingAudio = bootstrap.resumeAppRuntime();
+for (let index = 0; index < 30 && !releaseAudioActivation; index++) await Promise.resolve();
+assert.equal(typeof releaseAudioActivation, "function");
+user.robotSleeping = true;
+const sleeping = bootstrap.pauseAppRuntime("sleep");
+releaseAudioActivation();
+await Promise.all([activatingAudio, sleeping]);
+assert.equal(bootEvents.some(([event, value]) => event === "captureAllowed" && value === true), false);
+assert.ok(bootEvents.some(([event]) => event === "captureStop"));
+assert.deepEqual(bootEvents.at(-1), ["audioActive", false], "an interrupted audio activation must still be deactivated");
+
+// Fast inactive->active transitions (for example a permission sheet) must not
+// skip the pause and leave the synchronously suspended BLE runtime stranded.
+user.robotSleeping = false;
+holdAudioActivation = false;
+holdVoiceStart = false;
+await bootstrap.resumeAppRuntime();
+bootEvents.length = 0;
+bootState.currentState = "inactive";
+const fastPause = bootstrap.pauseAppRuntime();
+bootState.currentState = "active";
+const fastResume = bootstrap.resumeAppRuntime();
+await Promise.all([fastPause, fastResume]);
+assert.ok(bootEvents.findIndex(([event]) => event === "bleStop") >= 0);
+assert.ok(bootEvents.findIndex(([event]) => event === "bleResume") > bootEvents.findIndex(([event]) => event === "bleStop"));
+assert.deepEqual(bootEvents.filter(([event]) => event === "audioActive"), [["audioActive", false], ["audioActive", true]]);
 console.log("iOS runtime behavior: audio ownership, permissions, simulator, diagnosis and lifecycle passed");

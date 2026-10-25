@@ -19,7 +19,7 @@ constants, RSS/thermal diagnostics, capture-only compatibility through the share
 PCM engine, and startup/suspend serialization. Logic tests cover competing audio
 clients, failed acquisition/teardown, denied permissions, missing runtime modules,
 event forwarding, suspended timers and a background transition during startup.
-The source regression run passes 49 of 53 scripts; the four Android baseline
+The source regression run passes 52 of 56 scripts; the four Android baseline
 failures are listed below. No native build or new JavaScript bundle was run for
 this source-only pass.
 
@@ -110,7 +110,18 @@ the Linux cloud task.
   serialized. Capture-only and conversation clients cannot acquire or tear down
   each other's capture while a native start is pending.
 - Startup, suspend and resume share a lifecycle queue. Returning from a permission
-  sheet or background suspension starts a fresh event-loop timing window.
+  sheet or background suspension starts a fresh event-loop timing window. A new
+  suspend during audio activation or voice restoration prevents the remaining
+  camera, movement and BLE startup stages and still releases activated audio.
+- Foreground BLE recovery retries transient failures after 1, 2 and 4 seconds,
+  then stops until another lifecycle/manual recovery. The first link-loss retry
+  keeps its existing 700 ms delay. Success resets this retry budget.
+- Backgrounding, sleep and replacement/forgotten robot selections invalidate
+  pending BLE work. Native radio/scan waits and device connections are cancelled;
+  late connection, GATT and notification callbacks cannot revive an old session.
+- Settings robot searches preserve the process-wide Bluetooth manager and an
+  existing robot connection. Search listeners and timers are released on success,
+  failure and background cancellation.
 - The iOS simulator is identified by the native runtime. Automatic wake listening
   follows the same explicit opt-in as the Android emulator; physical devices
   keep the ordinary hands-free default.
