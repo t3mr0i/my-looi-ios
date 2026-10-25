@@ -8,6 +8,7 @@ trustPolicyIgnoreAfter: 10080
 
 patchedDependencies:
   "@siteed/sherpa-onnx.rn": "patches/@siteed__sherpa-onnx.rn.patch"
+  expo-modules-jsi@56.0.12: patches/expo-modules-jsi-56.0.12.patch
 
 allowBuilds:
   '@siteed/sherpa-onnx.rn': true

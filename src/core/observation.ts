@@ -36,6 +36,8 @@ export interface ObservationMetadata {
   confidence?: number; // 0-1
   location?: string;
   evidenceUri?: string;
+  origin?: "conversation" | "user-edit" | "unknown";
+  sourceSessionId?: string;
 }
 
 /**

@@ -16,8 +16,8 @@ assert.doesNotMatch(ambient, /conversation\.isListening \|\|/, "passive Realtime
 assert.match(ambient, /isDrivingControlSessionActive\(\)/, "ambient motion must yield to deterministic driving control");
 assert.match(ambient, /robot\.motionActive/, "ambient motion must not start over real robot motion");
 assert.match(ambient, /INTERACTION_COOLDOWN_MS/, "ambient motion must have a user-interaction cooldown");
-assert.match(ambient, /performLooiHeadGesture\("curious"\)/);
-assert.match(ambient, /performLooiHeadGesture\("sleepy"\)/);
+assert.match(ambient, /performLooiHeadGesture\("curious", 1, \{ priority: "ambient" \}\)/);
+assert.match(ambient, /performLooiHeadGesture\("sleepy", 1, \{ priority: "ambient" \}\)/);
 assert.match(ambient, /performLooiAmbientPivot\(direction, durationMs\)/);
 assert.match(ambient, /performLooiAmbientPivot\(returnDirection, durationMs\)/);
 assert.doesNotMatch(ambient, /startLooiMotion|turnLooi|moveLooi/, "ambient controller must not use continuous/full-turn motion APIs");

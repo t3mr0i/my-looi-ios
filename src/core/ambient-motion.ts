@@ -67,11 +67,18 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let generation = 0;
 let lastInteractionAt = Date.now();
 let actionInFlight = false;
+let currentAction: AmbientAction | null = null;
 let lastBlockedReason = "";
 let lastBlockedLoggedAt = 0;
 let coordinationHoldUntil = 0;
 let headCoordinationHoldUntil = 0;
 let lastHeadCoordinationSource = "";
+let behaviorPolicy: (() => { suppress: boolean }) | null = null;
+
+/** Connect local behavior holds to ambient action selection without coupling the controllers. */
+export function configureAmbientBehaviorPolicy(policy: null | (() => { suppress: boolean })): void {
+  behaviorPolicy = policy;
+}
 
 function randomBetween(minimum: number, maximum: number): number {
   return Math.round(minimum + Math.random() * (maximum - minimum));
@@ -119,6 +126,7 @@ function motionContext(): MotionContext {
 
 function commonBlockReason(): string | null {
   if (Date.now() < coordinationHoldUntil) return "coordination-hold";
+  if (behaviorSuppressesAmbient()) return "behavior-hold";
   const user = useUserStore.getState();
   if (user.preferences.ambientMotionLevel === "off") return "disabled";
   if (user.robotSleeping) return "robot-sleeping";
@@ -135,6 +143,15 @@ function commonBlockReason(): string | null {
   if (!robot.connected) return "robot-disconnected";
   if (robot.motionActive) return "motion-active";
   return null;
+}
+
+function behaviorSuppressesAmbient(): boolean {
+  if (!behaviorPolicy) return false;
+  try {
+    return behaviorPolicy().suppress === true;
+  } catch {
+    return false;
+  }
 }
 
 function idleBlockReason(level: Exclude<AmbientMotionLevel, "off">): string | null {
@@ -222,17 +239,18 @@ async function runOneAmbientAction(): Promise<void> {
   }
   const token = generation;
   actionInFlight = true;
+  currentAction = action;
   recordDiagnosticEvent("character", "ambient-motion-started", { action, level, context, requestedDurationMs: action === "body-left" || action === "body-right" ? `${BODY_PIVOT_MIN_MS}-${BODY_PIVOT_MAX_MS}` : undefined });
 
   try {
     if (action === "head-curious") {
-      await performLooiHeadGesture("curious");
+      await performLooiHeadGesture("curious", 1, { priority: "ambient" });
     } else if (action === "head-settle") {
-      await performLooiHeadGesture("sleepy");
+      await performLooiHeadGesture("sleepy", 1, { priority: "ambient" });
     } else if (action === "conversation-think") {
-      await performLooiHeadGesture("thinking");
+      await performLooiHeadGesture("thinking", 1, { priority: "ambient" });
     } else if (action === "conversation-speak") {
-      await performLooiHeadGesture("speaking_soft");
+      await performLooiHeadGesture("speaking_soft", 1, { priority: "ambient" });
     } else {
       await performBodyPeek(action === "body-left" ? "left" : "right", token);
     }
@@ -251,6 +269,7 @@ async function runOneAmbientAction(): Promise<void> {
     });
   } finally {
     actionInFlight = false;
+    currentAction = null;
     if (running && token === generation) {
       scheduleForContext(level, motionContext());
     }
@@ -279,7 +298,8 @@ export function holdAmbientMotionFor(durationMs: number, source = "motion-coordi
 /**
  * Reserve only the head channel for a higher-priority controller. Idle body
  * peeks remain eligible, preserving Lively behavior while Camera Attention owns
- * gaze/head pose. An ambient head gesture already in flight is allowed to finish.
+ * gaze/head pose. The head writer itself preempts any ambient gesture already
+ * in flight, while this hold prevents another ambient head action from starting.
  */
 export function holdAmbientHeadMotionFor(durationMs: number, source = "head-coordination"): void {
   const safeDurationMs = Math.max(0, Math.round(durationMs));
@@ -341,6 +361,7 @@ export function getAmbientMotionControllerState() {
   return {
     running,
     actionInFlight,
+    currentAction,
     lastInteractionAt,
     interactionCooldownMs: activeLevel() ? INTERACTION_COOLDOWN_MS[activeLevel()!] : 0,
     context: motionContext(),

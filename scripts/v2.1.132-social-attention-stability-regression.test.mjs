@@ -24,7 +24,7 @@ assert.ok(headStableFrames >= 3);
 assert.match(attention, /HEAD_UP_RELEASE/);
 assert.match(attention, /HEAD_DOWN_RELEASE/);
 assert.match(attention, /headCommandInFlight/);
-assert.match(attention, /const correctionAllowed = motionCorrectionAllowed\(\)/);
+assert.match(attention, /const bodyCorrectionAllowed = motionCorrectionAllowed\("body"\)/);
 assert.doesNotMatch(attention, /desired !== "center" && now - lastHeadCommandAt/);
 assert.match(attention, /SEARCH_SEQUENCE/);
 assert.match(attention, /direction: "left"/);

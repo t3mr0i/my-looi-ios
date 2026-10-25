@@ -5,7 +5,8 @@ import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { buildMemoryFtsQuery, buildRelaxedMemoryFtsQuery, normalizeMemorySearchText } from "./local-memory-search";
 
 const DATABASE_NAME = "looi-memory-v2.db";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+export const MAX_EDITED_MEMORY_LENGTH = 4_000;
 const MAX_SEARCH_RESULTS = 12;
 
 export type LocalMemoryStats = {
@@ -49,6 +50,8 @@ type LocalMemoryBackupMemory = {
   placementFact?: string;
   serverId?: string;
   syncState: string;
+  origin?: "conversation" | "user-edit" | "unknown";
+  sourceSessionId?: string;
 };
 
 type LocalMemoryBackupSession = {
@@ -85,6 +88,8 @@ type MemoryRow = {
   placement_fact: string | null;
   server_id: string | null;
   sync_state: string;
+  origin: "conversation" | "user-edit" | "unknown";
+  source_session_id: string | null;
 };
 
 type CountRow = { count: number };
@@ -210,6 +215,15 @@ async function openAndMigrateDatabase(): Promise<SQLite.SQLiteDatabase> {
       updated_at TEXT NOT NULL
     );
   `);
+  // Idempotent, additive migration: keep all v1 facts, history and FTS triggers.
+  // Inspect columns so a process interrupted between ALTERs can safely retry.
+  const columns = await db.getAllAsync<{ name: string }>("PRAGMA table_info(memories)");
+  if (!columns.some((column) => column.name === "origin")) {
+    await db.execAsync("ALTER TABLE memories ADD COLUMN origin TEXT NOT NULL DEFAULT 'unknown'");
+  }
+  if (!columns.some((column) => column.name === "source_session_id")) {
+    await db.execAsync("ALTER TABLE memories ADD COLUMN source_session_id TEXT");
+  }
   await db.runAsync(
     "INSERT OR REPLACE INTO schema_meta(key, value) VALUES (?, ?)",
     "schema_version",
@@ -301,7 +315,7 @@ export function validateLocalMemoryBackup(value: unknown): LocalMemoryBackupV1 {
   if (value.format !== "super-looi-local-memory" || value.version !== 1) {
     throw new Error("Unsupported local-memory backup format or version");
   }
-  if (value.schemaVersion !== SCHEMA_VERSION) {
+  if (value.schemaVersion !== 1 && value.schemaVersion !== SCHEMA_VERSION) {
     throw new Error(`Unsupported local-memory schema version: ${String(value.schemaVersion)}`);
   }
   requiredString(value, "exportedAt");
@@ -336,6 +350,8 @@ export function validateLocalMemoryBackup(value: unknown): LocalMemoryBackupV1 {
       placementFact: optionalString(raw, "placementFact"),
       serverId: optionalString(raw, "serverId"),
       syncState: requiredString(raw, "syncState"),
+      origin: validateMemoryOrigin(raw.origin),
+      sourceSessionId: optionalString(raw, "sourceSessionId"),
     };
   });
 
@@ -410,6 +426,8 @@ function rowToMemory(row: MemoryRow, score?: number): MemoryResult {
       evidenceUri: row.evidence_uri ?? undefined,
       description: row.description ?? undefined,
       placementFact: row.placement_fact ?? undefined,
+      origin: row.origin ?? "unknown",
+      sourceSessionId: row.source_session_id ?? undefined,
     },
     score,
   };
@@ -433,18 +451,35 @@ async function touchSessionInternal(
   );
 }
 
+export function validateEditedMemory(text: string): string {
+  const value = text.trim();
+  if (!value || value.length > MAX_EDITED_MEMORY_LENGTH) {
+    throw new Error(`Memory must contain 1–${MAX_EDITED_MEMORY_LENGTH} characters`);
+  }
+  return value;
+}
+
+function validateMemoryOrigin(value: unknown): "conversation" | "user-edit" | "unknown" {
+  if (value == null) return "unknown";
+  if (value === "conversation" || value === "user-edit" || value === "unknown") return value;
+  throw new Error("Invalid memory origin");
+}
+
 export const localMemoryDatabase = {
-  async remember(messages: Message[], metadata: ObservationMetadata): Promise<void> {
+  async remember(
+    messages: Message[], metadata: ObservationMetadata, isCurrent: () => boolean = () => true
+  ): Promise<void> {
     const memory = memoryTextFromMessages(messages);
     if (!memory) throw new Error("Cannot store empty memory");
     const db = await getDatabase();
+    if (!isCurrent()) return;
     const now = new Date().toISOString();
     const id = makeLocalId("mem");
     await db.runAsync(
       `INSERT INTO memories(
         id, memory, normalized, category, source, timestamp, created_at, updated_at,
-        confidence, location, evidence_uri, sync_state
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        confidence, location, evidence_uri, sync_state, origin, source_session_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       memory,
       normalizeMemorySearchText(memory),
@@ -456,7 +491,9 @@ export const localMemoryDatabase = {
       metadata.confidence ?? null,
       metadata.location ?? null,
       metadata.evidenceUri ?? null,
-      "local-only"
+      "local-only",
+      metadata.origin ?? "unknown",
+      metadata.sourceSessionId ?? null
     );
     recordDiagnosticEvent("memory", "local-memory-stored", {
       id,
@@ -464,6 +501,29 @@ export const localMemoryDatabase = {
       source: metadata.source,
       length: memory.length,
     });
+  },
+
+  async updateMemory(id: string, text: string): Promise<boolean> {
+    const memory = validateEditedMemory(text);
+    if (!id.trim()) throw new Error("Memory id is required");
+    const db = await getDatabase();
+    const result = await db.runAsync(
+      `UPDATE memories SET memory = ?, normalized = ?, updated_at = ?,
+       origin = 'user-edit', confidence = NULL, description = NULL, placement_fact = NULL
+       WHERE id = ?`,
+      memory, normalizeMemorySearchText(memory), new Date().toISOString(), id
+    );
+    recordDiagnosticEvent("memory", "local-memory-corrected", { changed: result.changes > 0 });
+    return result.changes > 0;
+  },
+
+  async deleteMemory(id: string): Promise<boolean> {
+    if (!id.trim()) throw new Error("Memory id is required");
+    const db = await getDatabase();
+    // Existing FTS delete trigger removes the searchable copy in the same statement.
+    const result = await db.runAsync("DELETE FROM memories WHERE id = ?", id);
+    recordDiagnosticEvent("memory", "local-memory-deleted", { changed: result.changes > 0 });
+    return result.changes > 0;
   },
 
   async search(query: string, filters?: { category?: MemoryCategory }): Promise<MemoryResult[]> {
@@ -678,8 +738,9 @@ export const localMemoryDatabase = {
         await txn.runAsync(
           `INSERT INTO memories(
             id, memory, normalized, category, source, timestamp, created_at, updated_at,
-            confidence, location, evidence_uri, description, placement_fact, server_id, sync_state
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            confidence, location, evidence_uri, description, placement_fact, server_id, sync_state,
+            origin, source_session_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           memory.id,
           memory.memory,
           normalizeMemorySearchText(memory.memory),
@@ -694,7 +755,9 @@ export const localMemoryDatabase = {
           memory.description ?? null,
           memory.placementFact ?? null,
           memory.serverId ?? null,
-          memory.syncState
+          memory.syncState,
+          memory.origin ?? "unknown",
+          memory.sourceSessionId ?? null
         );
       }
 
@@ -775,6 +838,8 @@ export const localMemoryDatabase = {
         placementFact: row.placement_fact ?? undefined,
         serverId: row.server_id ?? undefined,
         syncState: row.sync_state,
+        origin: row.origin ?? "unknown",
+        sourceSessionId: row.source_session_id ?? undefined,
       })),
       sessions: sessions.map((row) => ({
         id: row.id,

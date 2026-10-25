@@ -65,6 +65,11 @@ assert.ok(update.session.instructions.includes("may be intercepted and executed 
 assert.ok(update.session.instructions.includes("accepted nickname"));
 assert.ok(update.session.instructions.includes("Пользователь любит роботов."));
 
+const behaviorUpdate = realtime.buildRealtimeSessionUpdate({ language: "en", listeningLanguage: "en" }, undefined, undefined, "Open task: number guessing; secret 2; awaiting guess.");
+assert.match(behaviorUpdate.session.instructions, /LOCAL ROBOT INTERACTION STATE/);
+assert.match(behaviorUpdate.session.instructions, /Never reveal a game's secret answer/);
+assert.equal(behaviorUpdate.session.audio.input.turn_detection.create_response, true, "behavior must preserve automatic voice response timing");
+
 const toolNames = update.session.tools.map((tool) => tool.name).sort();
 assert.deepEqual(toolNames, ["remember", "search_memory", "set_language_preferences"]);
 assert.equal(toolNames.some((name) => /move|drive|turn|sleep|robot/i.test(name)), false, "Realtime must expose no physical robot tools");

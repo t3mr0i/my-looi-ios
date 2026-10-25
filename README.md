@@ -27,6 +27,9 @@ See [USER_GUIDE.md](USER_GUIDE.md) for setup, voice commands, visual look, safet
 - **Voice loudness boost**: optional local +15% / +30% / +45% gain for Realtime PCM assistant playback, with the accepted native capture/AEC path unchanged.
 - **Cleaner Settings**: legacy/rare controls are collapsed or moved under Advanced; fully installed local voice models stay out of the way.
 - **Local memory and conversation history** stored in SQLite on the Android device.
+- **Memory controls**: search saved facts, inspect their recorded origin, correct a fact or delete it individually. Changes close the current conversation so the next session loads the updated facts.
+- **On-demand web research** from Conversations: enter a question, review the API cost notice and search with your own OpenAI key. Answers include clickable inline citations and a source list.
+- **Optional Agent tasks** from Conversations: connect your own Hermes service, start a text research task and check its status/result after returning to the app. Includes cancellation, older task pages and deletion. [Connection and Fly.io deployment](docs/hermes-agent.md).
 - **Local wake and safety command pipeline** for hands-free use.
 - **BLE reconnect and deterministic robot control** with voice-addressed movement and safety guardrails.
 - **Natural idle and conversational micro-movements** with four intensity levels, conservative head gestures while processing/speaking, and optional tiny safety-bounded idle body pivots; actual user speech and explicit commands always take priority.
@@ -36,6 +39,10 @@ See [USER_GUIDE.md](USER_GUIDE.md) for setup, voice commands, visual look, safet
 - **Manual GitHub Releases update flow** with APK checksum/package/version/signing-certificate verification before Android installation.
 
 See [FEATURES.md](FEATURES.md) for a fuller feature list, [CHANGELOG.md](CHANGELOG.md) for release notes, and [docs/architecture.md](docs/architecture.md) for the runtime architecture.
+
+The dated [research and implementation report](docs/research/my-looi-entscheidungsbericht.md)
+records the selected improvements, evaluated alternatives, remaining hardware
+questions and three reproducible research experiments.
 
 ## Requirements
 
@@ -111,3 +118,7 @@ We thank the authors and contributors of both projects for their work and for ma
 See [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for additional community credits.
 
 Third-party components and model assets retain their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Contextual behavior with Decisions
+
+Optional Off/Observe/Active behavior modes add contextual gestures, task continuity, attention policies, explicit image-quality assessment and a small shared guessing game. Settings includes recorded usage, a local daily budget and a separate image opt-in. See [the behavior guide](docs/decisions-behavior.md).

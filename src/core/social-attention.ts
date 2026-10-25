@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import {
   getLocalFaceAttentionModule,
+  type LocalFaceRect,
   type LocalFaceFrameEvent,
 } from "../../modules/local-face-attention";
 import {
@@ -15,6 +16,7 @@ import { useUserStore } from "../store/user";
 import { isDrivingControlSessionActive } from "../voice/driving-control-session";
 import { getAmbientMotionControllerState, holdAmbientHeadMotionFor, holdAmbientMotionFor } from "./ambient-motion";
 import { isMainScreenFocused, subscribeMainScreenFocused } from "./main-screen-presence";
+import { createFaceTargetTracker, type FaceTargetRect } from "./face-target-tracking";
 
 const RELEASE_GRACE_MS = 5_000;
 const NOTE_ONLY_HOLD_MS = 8_000;
@@ -61,6 +63,11 @@ type Subscription = { remove(): void };
 type FacePoint = { centerX: number; centerY: number };
 type BodyDirection = "left" | "right";
 type BodyPivotReason = "search" | "recenter";
+export type SocialAttentionBehaviorPolicy = {
+  attention: "keep" | "search" | "release";
+  selectedFaceId: string | null;
+};
+export type SocialAttentionFaceSnapshot = LocalFaceRect & { id: string; trackingId: string };
 
 let running = false;
 let attentionActive = false;
@@ -79,6 +86,11 @@ let lastRawFace: FacePoint | null = null;
 let lastFace: FacePoint | null = null;
 let smoothedFace: FacePoint | null = null;
 let lastFaceAt = 0;
+let currentFaces: SocialAttentionFaceSnapshot[] = [];
+let selectedFaceId: string | null = null;
+let previousTargetFaceId: string | null = null;
+const faceTargetTracker = createFaceTargetTracker();
+let behaviorPolicy: (() => SocialAttentionBehaviorPolicy) | null = null;
 let lastKnownHorizontalDirection: BodyDirection | null = null;
 let lastSocialBodyMotionAt = 0;
 let bodySettleUntil = 0;
@@ -97,6 +109,21 @@ let searchAttemptedAt = 0;
 let searchRearmUsed = false;
 let faceSeenSinceSearch = false;
 let externalMotionHoldUntil = 0;
+
+/** Allow the behavior layer to guide attention without coupling it to camera or BLE lifecycle. */
+export function configureSocialBehaviorPolicy(policy: null | (() => SocialAttentionBehaviorPolicy)): void {
+  behaviorPolicy = policy;
+  if (policy && readBehaviorPolicy()?.attention !== "search") searchGeneration += 1;
+}
+
+function readBehaviorPolicy(): SocialAttentionBehaviorPolicy | null {
+  if (!behaviorPolicy) return null;
+  try {
+    return behaviorPolicy();
+  } catch {
+    return null;
+  }
+}
 
 function clearTimer(timer: ReturnType<typeof setTimeout> | null): void {
   if (timer) clearTimeout(timer);
@@ -202,6 +229,10 @@ function resetTrackingState(): void {
   lastFace = null;
   smoothedFace = null;
   lastFaceAt = 0;
+  currentFaces = [];
+  selectedFaceId = null;
+  previousTargetFaceId = null;
+  faceTargetTracker.reset();
   lastKnownHorizontalDirection = null;
   lastSocialBodyMotionAt = 0;
   bodySettleUntil = 0;
@@ -218,12 +249,15 @@ async function stopNative(reason: string): Promise<void> {
   resetTrackingState();
 
   if (lastHeadPosition !== "center") {
-    lastHeadPosition = "center";
     headCommandInFlight = false;
     const robot = getLooiRobotRuntimeState();
     if (robot.connected && robot.driveControlReady) {
-      void setLooiHead("center").catch(() => undefined);
-    }
+      void setLooiHead("center", { priority: "social" })
+        .then((result) => {
+          if (result.completed) lastHeadPosition = "center";
+        })
+        .catch(() => undefined);
+    } else lastHeadPosition = "center";
   }
 
   const hadNativeWork = nativeStarted || nativeStartPromise !== null;
@@ -347,8 +381,27 @@ function handleFaceFrame(event: LocalFaceFrameEvent): void {
   if (!attentionActive || !canUseAttention()) return;
   const now = Date.now();
   const primary = event.primary;
+  const detectedFaces: FaceTargetRect[] = event.faces?.length
+    ? event.faces
+    : primary ? [primary] : [];
+  const trackedFaces = faceTargetTracker.update(detectedFaces, now);
+  currentFaces = trackedFaces.map((face) => ({ ...face, id: face.id, trackingId: face.id }));
+  const policy = readBehaviorPolicy();
+  const selectedFromPolicy = policy?.selectedFaceId
+    ? currentFaces.find((face) => face.trackingId === policy.selectedFaceId)
+    : undefined;
+  const previousTarget = previousTargetFaceId
+    ? currentFaces.find((face) => face.trackingId === previousTargetFaceId)
+    : undefined;
+  const largestFace = currentFaces.reduce<SocialAttentionFaceSnapshot | undefined>(
+    (largest, face) => !largest || face.width * face.height > largest.width * largest.height ? face : largest,
+    undefined,
+  );
+  const target = selectedFromPolicy ?? previousTarget ?? largestFace;
+  selectedFaceId = target?.trackingId ?? null;
+  if (target) previousTargetFaceId = target.trackingId;
 
-  if (!primary) {
+  if (!target) {
     if (now < bodySettleUntil) {
       setVisual({ faceVisible: false, gazeX: 0, gazeY: 0 });
       return;
@@ -365,7 +418,7 @@ function handleFaceFrame(event: LocalFaceFrameEvent): void {
     return;
   }
 
-  const observed = { centerX: primary.centerX, centerY: primary.centerY };
+  const observed = { centerX: target.centerX, centerY: target.centerY };
   // Face frames continuously reserve only the ambient head channel. This keeps
   // the eyes/head visually coherent without disabling Lively body motion.
   holdAmbientHeadMotionFor(FACE_STALE_MS + 350, "attention-face-tracked");
@@ -403,14 +456,20 @@ function handleFaceFrame(event: LocalFaceFrameEvent): void {
   maybeCorrectTowardFace(observed, smoothedFace);
 }
 
-function motionCorrectionAllowed(): boolean {
+function motionCorrectionAllowed(channel: "body" | "head" = "body"): boolean {
   if (!attentionActive || !motionArmed || !canUseAttention()) return false;
+  if (readBehaviorPolicy()?.attention === "release") return false;
   if (Date.now() < externalMotionHoldUntil) return false;
   if (Date.now() < bodySettleUntil) return false;
   if (bodyMotionInFlight) return false;
   if (useConversationStore.getState().isUserSpeaking) return false;
   if (isDrivingControlSessionActive()) return false;
-  if (getAmbientMotionControllerState().actionInFlight) return false;
+  const ambient = getAmbientMotionControllerState();
+  if (ambient.actionInFlight) {
+    const ambientHeadGesture = ambient.currentAction !== null &&
+      ambient.currentAction !== "body-left" && ambient.currentAction !== "body-right";
+    if (channel !== "head" || !ambientHeadGesture) return false;
+  }
   const robot = getLooiRobotRuntimeState();
   return robot.connected && robot.driveControlReady && !robot.motionActive;
 }
@@ -468,7 +527,7 @@ async function performSocialBodyPivot(
 
 function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): void {
   const now = Date.now();
-  const correctionAllowed = motionCorrectionAllowed();
+  const bodyCorrectionAllowed = motionCorrectionAllowed("body");
   const errorX = filteredFace.centerX - 0.5;
   let bodyCorrectionStarted = false;
 
@@ -483,7 +542,7 @@ function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): vo
       bodyCandidateFrames = 1;
     }
 
-    if (correctionAllowed &&
+    if (bodyCorrectionAllowed &&
         bodyCandidateFrames >= BODY_STABLE_FRAMES &&
         now - lastSocialBodyMotionAt >= BODY_CORRECTION_COOLDOWN_MS) {
       const stableFrames = bodyCandidateFrames;
@@ -508,7 +567,7 @@ function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): vo
     headCandidateFrames = 1;
   }
 
-  if (!correctionAllowed ||
+  if (!motionCorrectionAllowed("head") ||
       headCommandInFlight ||
       headCandidateFrames < HEAD_STABLE_FRAMES ||
       now - lastHeadCommandAt < HEAD_COOLDOWN_MS) return;
@@ -527,9 +586,9 @@ function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): vo
     smoothedY: filteredFace.centerY,
     stableFrames,
   });
-  void setLooiHead(target)
-    .then(() => {
-      lastHeadPosition = target;
+  void setLooiHead(target, { priority: "social" })
+    .then((result) => {
+      if (result.completed) lastHeadPosition = target;
     })
     .catch((error) => {
       recordDiagnosticEvent("character", "social-attention-head-skipped", {
@@ -542,6 +601,8 @@ function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): vo
 }
 
 function maybeStartFaceSearch(): void {
+  const policy = readBehaviorPolicy();
+  if (policy && policy.attention !== "search") return;
   if (!motionArmed || searchInFlight || searchAttempted || !attentionActive || !canUseAttention()) return;
   if (Date.now() < bodySettleUntil) return;
   const robot = getLooiRobotRuntimeState();
@@ -589,7 +650,9 @@ async function runFaceSearch(generation: number): Promise<void> {
 }
 
 function searchStillNeeded(generation: number): boolean {
-  return generation === searchGeneration &&
+  const policy = readBehaviorPolicy();
+  return (!policy || policy.attention === "search") &&
+    generation === searchGeneration &&
     attentionActive &&
     motionArmed &&
     canUseAttention() &&
@@ -637,12 +700,19 @@ export async function stopSocialAttentionController(reason = "runtime"): Promise
 }
 
 export function getSocialAttentionControllerState() {
+  const lastFaceAgeMs = lastFaceAt ? Math.max(0, Date.now() - lastFaceAt) : null;
+  const faces = lastFaceAgeMs !== null && lastFaceAgeMs <= FACE_STALE_MS
+    ? currentFaces.map((face) => ({ ...face }))
+    : [];
   return {
     running,
     attentionActive,
     motionArmed,
     nativeStarted,
     faceVisible: useSocialAttentionStore.getState().faceVisible,
+    lastFaceAgeMs,
+    faces,
+    selectedFaceId: faces.some((face) => face.trackingId === selectedFaceId) ? selectedFaceId : null,
     searchInFlight,
     searchAttempted,
     bodyMotionInFlight,

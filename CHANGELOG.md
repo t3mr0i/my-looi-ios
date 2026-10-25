@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Add optional Hermes research tasks with HTTPS setup, encrypted admission recovery, cursor-paged history, lazy results, cancellation and terminal deletion.
+- Add a pinned Hermes/DDGS container and Fly.io configuration with a persistent single-worker queue, enforced process deadlines, restart handling and deleted-ID receipts.
+- Add local saved-fact search, provenance, individual correction and confirmed deletion, including SQLite/FTS and backup compatibility.
+- End active Realtime conversations before user memory changes and reject stale session-bound writes.
+- Add explicitly started Web research from Conversations, with BYOK cost disclosure, clickable inline sources, cancellation and error handling.
+- Reject negated, quoted, interrogative and non-command physical speech while preserving emergency STOP priority.
+- Align generated CocoaPods deployment targets with the app's iOS minimum without lowering newer dependency requirements.
+- Patch the pinned ExpoModulesJSI Swift callback conversion while preserving read-only host-object behavior.
+- Add a dated product/API/HRI research report, architecture/cost comparison and three bounded follow-up experiments.
+
 ## 2.1.151 — 2026-09-07
 
 Changes since v2.1.136:

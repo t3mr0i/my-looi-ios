@@ -1,3 +1,4 @@
+import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, publishBehaviorEvent } from "../behavior/behavior-events";
 import { AppState, Platform } from "react-native";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from "react-native-webrtc";
@@ -10,7 +11,7 @@ import {
   exchangeOpenAiRealtimeSdp,
 } from "../openai/openai-api-key";
 import { localMemoryDatabase } from "../memory/local-memory-database";
-import { mirrorSessionMessage, mirrorSessionTouch } from "../memory/memory-service";
+import { isLocalMemoryMutationInProgress, mirrorSessionMessage, mirrorSessionTouch } from "../memory/memory-service";
 import { isMainScreenFocused } from "../core/main-screen-presence";
 import { useConversationStore } from "../store/conversation";
 import { isPcmRealtimeMode, useUserStore } from "../store/user";
@@ -223,6 +224,7 @@ export class RealtimeConversationService {
   async start(detection?: WakewordDetection): Promise<void> {
     if (this.stopPromise) await this.stopPromise;
     if (this.speakerRouteRestorePromise) await this.speakerRouteRestorePromise;
+    if (isLocalMemoryMutationInProgress()) return;
     if (this.active || this.stopping) return;
     if (this.lastStopReason !== "vad-health-recovery") {
       this.vadHealthRecoveryAttempts = 0;
@@ -308,10 +310,13 @@ export class RealtimeConversationService {
 
       const localSessionId = makeLocalRealtimeSessionId();
       this.sessionId = localSessionId;
+      beginBehaviorSession(localSessionId, () => {
+        if (this.active && this.sessionId === localSessionId) this.applySessionPreferences("behavior-context");
+      });
       conversationStore.setActiveSession(localSessionId);
       mirrorSessionTouch(localSessionId, "realtime");
 
-      const sessionUpdate = buildRealtimeSessionUpdate(useUserStore.getState().preferences);
+      const sessionUpdate = buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId));
       const sessionConfig = (sessionUpdate.session ?? {}) as Record<string, unknown>;
 
       // BYOK: the owner's standard key stays in SecureStore. It is used only to
@@ -551,7 +556,7 @@ export class RealtimeConversationService {
   applySessionPreferences(source: string): void {
     if (!this.active) return;
     const preferences = useUserStore.getState().preferences;
-    this.send(buildRealtimeSessionUpdate(preferences));
+    this.send(buildRealtimeSessionUpdate(preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId)));
     recordDiagnosticEvent("realtime", "webrtc-session-preferences-updated", {
       source,
       listeningLanguage: preferences.listeningLanguage,
@@ -563,6 +568,7 @@ export class RealtimeConversationService {
 
   async interruptAndListen(source = "tap"): Promise<void> {
     if (!this.active) return;
+    publishBehaviorEvent({ type: "interrupt", reason: source, sessionId: this.sessionId ?? undefined });
     recordDiagnosticEvent("realtime", "interaction-interrupt", {
       source,
       transport: "webrtc",
@@ -600,6 +606,7 @@ export class RealtimeConversationService {
   private async performStop(reason: string): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
+    if (this.sessionId) endBehaviorSession(this.sessionId);
     this.lastStopReason = reason;
     this.active = false;
     this.configured = false;
@@ -1077,6 +1084,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "output_audio_buffer.started") {
+      if (this.sessionId) publishBehaviorEvent({ type: "assistant-start", sessionId: this.sessionId });
       this.markPlaybackStarted(event);
       return;
     }
@@ -1097,6 +1105,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "input_audio_buffer.speech_started") {
+      publishBehaviorEvent({ type: "user-speech-start", sessionId: this.sessionId ?? undefined });
       const wasOutputActive = this.playbackActive;
       this.lastServerSpeechAt = Date.now();
       this.vadHealthProbeSentAt = 0;
@@ -1164,6 +1173,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "input_audio_buffer.speech_stopped") {
+      publishBehaviorEvent({ type: "user-speech-end", sessionId: this.sessionId ?? undefined });
       const store = useConversationStore.getState();
       store.setListening(false);
       store.setProcessing(true);
@@ -1181,6 +1191,7 @@ export class RealtimeConversationService {
         store.addMessage({ role: "user", content: transcript });
         if (this.sessionId) {
           mirrorSessionMessage(this.sessionId, { role: "user", content: transcript });
+          publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
         }
         recordDiagnosticEvent("realtime", "input-transcript", {
           length: transcript.length,
@@ -1314,6 +1325,7 @@ export class RealtimeConversationService {
       useConversationStore.getState().addMessage({ role: "assistant", content: completion.transcript });
       if (this.sessionId) {
         mirrorSessionMessage(this.sessionId, { role: "assistant", content: completion.transcript });
+        publishBehaviorEvent({ type: "assistant-end", text: completion.transcript, sessionId: this.sessionId });
       }
     }
 
@@ -1464,6 +1476,7 @@ export class RealtimeConversationService {
   }
 
   private async executeToolCall(item: any): Promise<void> {
+    const sessionId = this.sessionId;
     const callId = String(item.call_id ?? item.id ?? "");
     if (!callId || this.handledToolCalls.has(callId) || !this.active) return;
     this.handledToolCalls.add(callId);
@@ -1476,9 +1489,13 @@ export class RealtimeConversationService {
         const query = String(args.query ?? "").trim();
         if (!query) throw new Error("query is required");
         const results = (await localMemoryDatabase.search(query)).slice(0, 6).map((result) => ({
+          id: result.id,
           memory: result.memory,
           score: result.score,
           category: result.metadata?.category,
+          origin: result.metadata?.origin ?? "unknown",
+          sourceSessionId: result.metadata?.sourceSessionId,
+          updatedAt: result.updatedAt,
         }));
         output = { ok: true, results };
       } else if (name === "remember") {
@@ -1486,7 +1503,8 @@ export class RealtimeConversationService {
         if (!note) throw new Error("note is required");
         await localMemoryDatabase.remember(
           [{ role: "user", content: note }],
-          createObservation(note, "voice", "note").metadata
+          { ...createObservation(note, "voice", "note").metadata, origin: "conversation", sourceSessionId: sessionId ?? undefined },
+          () => this.active && this.sessionId === sessionId
         );
         output = { ok: true, remembered: note };
       } else if (name === "set_language_preferences") {
@@ -1543,10 +1561,10 @@ export class RealtimeConversationService {
       output = { ok: false, error: error instanceof Error ? error.message : String(error) };
       recordDiagnosticEvent("realtime", "tool-finished", { name, ok: false });
     } finally {
-      this.toolCallsInFlight = Math.max(0, this.toolCallsInFlight - 1);
+      if (this.sessionId === sessionId) this.toolCallsInFlight = Math.max(0, this.toolCallsInFlight - 1);
     }
 
-    if (!this.active) return;
+    if (!this.active || this.sessionId !== sessionId) return;
     this.send({
       type: "conversation.item.create",
       item: {
@@ -1740,7 +1758,7 @@ export class RealtimeConversationService {
       this.vadHealthProbeSentAt = now;
       this.vadHealthProbeAcknowledgedAt = 0;
       this.vadHealthSpeechBaseline = this.lastServerSpeechAt;
-      this.send(buildRealtimeSessionUpdate(useUserStore.getState().preferences));
+      this.send(buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId)));
       recordDiagnosticEvent("realtime", "vad-health-probe-sent", {
         sinceServerSpeechMs,
         packetsSent: stats.packetsSent,

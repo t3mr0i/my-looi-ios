@@ -1,6 +1,8 @@
 # Dependencies / package managers
 node_modules/
 .venv*/
+__pycache__/
+*.pyc
 
 # Expo / generated native output
 .expo/

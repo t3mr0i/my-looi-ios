@@ -8,10 +8,13 @@ import {
 import {
   ensureLocalMemoryReady,
   localMemoryDatabase,
+  validateEditedMemory,
   type LocalMemoryBackupV1,
   type LocalMemoryRestoreStats,
   type LocalMemoryStats,
 } from "./local-memory-database";
+import { runLocalMemoryMutation } from "./memory-mutation";
+export { isLocalMemoryMutationInProgress } from "./memory-mutation";
 
 /**
  * v2.1.100: Local SQLite is the only long-term memory backend.
@@ -100,7 +103,26 @@ export async function exportLocalMemoryBackup(): Promise<LocalMemoryBackupV1> {
 }
 
 export async function restoreLocalMemoryBackup(value: unknown): Promise<LocalMemoryRestoreStats> {
-  return localMemoryDatabase.restoreBackup(value);
+  return runLocalMemoryMutation(stopConversationForMemoryChange, () => localMemoryDatabase.restoreBackup(value));
+}
+
+async function stopConversationForMemoryChange(): Promise<void> {
+  // Deferred import avoids making SQLite initialization depend on native audio.
+  const { realtimeConversationService } = await import("../voice/realtime-conversation");
+  await realtimeConversationService.stop("local-memory-change");
+  // Keep persisted history, but discard the active transcript too: the photo
+  // picker can otherwise reseed a new cloud session from those old messages.
+  const { useConversationStore } = await import("../store/conversation");
+  useConversationStore.getState().clearSession();
+}
+
+export function updateLocalMemory(id: string, text: string): Promise<boolean> {
+  const validated = validateEditedMemory(text);
+  return runLocalMemoryMutation(stopConversationForMemoryChange, () => localMemoryDatabase.updateMemory(id, validated));
+}
+
+export function deleteLocalMemory(id: string): Promise<boolean> {
+  return runLocalMemoryMutation(stopConversationForMemoryChange, () => localMemoryDatabase.deleteMemory(id));
 }
 
 export function mirrorSessionTouch(

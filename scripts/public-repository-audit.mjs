@@ -30,10 +30,16 @@ for (const name of readdirSync(root)) {
 }
 
 const skipDirs = new Set(["node_modules", ".git", ".expo", "android", "ios", "output", ".build-assets"]);
-const textExt = /\.(?:md|txt|json|js|mjs|cjs|ts|tsx|kt|java|sh|yml|yaml|toml|properties|gradle)$/i;
+const textExt = /\.(?:md|txt|json|js|mjs|cjs|ts|tsx|py|kt|java|sh|yml|yaml|toml|properties|gradle)$/i;
 const allowedAcknowledgementTermPatterns = [
   new RegExp(["sooper", "chargeforbots"].join(""), "i"),
   new RegExp(["splatty", "doesstuff"].join(""), "i"),
+];
+// Research may cite the public manufacturer and credited community projects.
+// Keep all credential, personal-data and retired infrastructure checks active.
+const allowedResearchCitationTermPatterns = [
+  ...allowedAcknowledgementTermPatterns,
+  new RegExp(["Tangible", "Future"].join(""), "i"),
 ];
 const forbiddenTermPatterns = [
   new RegExp(`\\b${["N", "AS"].join("")}\\b`, "i"),
@@ -91,7 +97,9 @@ function walk(dir) {
     for (const pattern of forbiddenTermPatterns) {
       const allowedPublicCredit = (rel === "ACKNOWLEDGEMENTS.md" || rel === "README.md") &&
         allowedAcknowledgementTermPatterns.some((allowed) => allowed.source === pattern.source);
-      if (allowedPublicCredit) continue;
+      const allowedResearchCitation = rel.startsWith("docs/research/") && rel.endsWith(".md") &&
+        allowedResearchCitationTermPatterns.some((allowed) => allowed.source === pattern.source);
+      if (allowedPublicCredit || allowedResearchCitation) continue;
       assert.doesNotMatch(content, pattern, `${rel} contains retired/private provenance term`);
     }
     if (content.includes(suspiciousVersionMarker)) {

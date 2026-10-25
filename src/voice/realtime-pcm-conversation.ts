@@ -1,3 +1,4 @@
+import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, inspectBehaviorVisual, publishBehaviorEvent } from "../behavior/behavior-events";
 import { AppState, Platform } from "react-native";
 import { isRealtimeCaptureReady } from "./audio-capture-profile";
 import { setIsAudioActiveAsync } from "expo-audio";
@@ -6,7 +7,7 @@ import { createObservation } from "../core/observation";
 import { markRobotInteraction } from "../core/robot-inactivity";
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { localMemoryDatabase } from "../memory/local-memory-database";
-import { mirrorSessionMessage, mirrorSessionTouch, retrieveConversationMemories } from "../memory/memory-service";
+import { isLocalMemoryMutationInProgress, mirrorSessionMessage, mirrorSessionTouch, retrieveConversationMemories } from "../memory/memory-service";
 import {
   createOpenAiRealtimeClientSecret,
   createOpenAiRealtimeEphemeralWebSocket,
@@ -111,6 +112,7 @@ export class RealtimePcmConversationService {
   private toolCallsInFlight = 0;
   private localPhysicalCommandInFlight = false;
   private localVisualCommandInFlight = false;
+  private visualRequestGeneration = 0;
   private generationActive = false;
   private playbackActive = false;
   private playbackInterrupted = false;
@@ -214,6 +216,7 @@ export class RealtimePcmConversationService {
 
   async start(detection?: WakewordDetection): Promise<void> {
     if (this.stopPromise) await this.stopPromise;
+    if (isLocalMemoryMutationInProgress()) return;
     if (this.active || this.stopping) return;
     if (Platform.OS === "web") throw new Error("Realtime PCM requires a native runtime");
 
@@ -285,6 +288,9 @@ export class RealtimePcmConversationService {
 
       const localSessionId = makeSessionId();
       this.sessionId = localSessionId;
+      beginBehaviorSession(localSessionId, () => {
+        if (this.active && this.sessionId === localSessionId) this.applySessionPreferences("behavior-context");
+      });
       store.setActiveSession(localSessionId);
       mirrorSessionTouch(localSessionId, "realtime");
 
@@ -304,7 +310,8 @@ export class RealtimePcmConversationService {
       const sessionUpdate = buildRealtimeSessionUpdate(
         useUserStore.getState().preferences,
         undefined,
-        this.sessionMemoryContext
+        this.sessionMemoryContext,
+        getBehaviorConversationContext(this.sessionId)
       );
       const sessionConfig = (sessionUpdate.session ?? {}) as Record<string, unknown>;
       const clientSecret = await createOpenAiRealtimeClientSecret(sessionConfig);
@@ -390,7 +397,7 @@ export class RealtimePcmConversationService {
   applySessionPreferences(source: string): void {
     if (!this.active || !this.webSocket) return;
     const preferences = useUserStore.getState().preferences;
-    this.send(buildRealtimeSessionUpdate(preferences, undefined, this.sessionMemoryContext));
+    this.send(buildRealtimeSessionUpdate(preferences, undefined, this.sessionMemoryContext, getBehaviorConversationContext(this.sessionId)));
     recordDiagnosticEvent("realtime", "pcm-session-preferences-updated", {
       source,
       listeningLanguage: preferences.listeningLanguage,
@@ -402,6 +409,7 @@ export class RealtimePcmConversationService {
 
   async interruptAndListen(source = "tap"): Promise<void> {
     if (!this.active) return;
+    publishBehaviorEvent({ type: "interrupt", reason: source, sessionId: this.sessionId ?? undefined });
     if (this.generationActive) this.send({ type: "response.cancel" });
     const playedDurationMs = this.stopAndTruncatePlayback(source);
     const store = useConversationStore.getState();
@@ -434,6 +442,8 @@ export class RealtimePcmConversationService {
   private async performStop(reason: string): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
+    this.visualRequestGeneration += 1;
+    if (this.sessionId) endBehaviorSession(this.sessionId);
     this.lifecycleGeneration += 1;
     const captureOwner = this.captureOwner;
     this.captureOwner = null;
@@ -798,6 +808,11 @@ export class RealtimePcmConversationService {
       return;
     }
     if (type === "input_audio_buffer.speech_started") {
+      if (this.localVisualCommandInFlight) {
+        this.visualRequestGeneration += 1;
+        this.localVisualCommandInFlight = false;
+      }
+      publishBehaviorEvent({ type: "user-speech-start", sessionId: this.sessionId ?? undefined });
       markRobotInteraction("realtime-pcm-speech-start");
       const duringOutput = this.playbackActive;
       if (duringOutput) {
@@ -820,6 +835,7 @@ export class RealtimePcmConversationService {
       return;
     }
     if (type === "input_audio_buffer.speech_stopped") {
+      publishBehaviorEvent({ type: "user-speech-end", sessionId: this.sessionId ?? undefined });
       const store = useConversationStore.getState();
       store.setUserSpeaking(false);
       store.setListening(false);
@@ -845,6 +861,9 @@ export class RealtimePcmConversationService {
 
         const physicalCommand = parseRealtimePhysicalCommand(transcript, useUserStore.getState().preferences);
         if (physicalCommand) {
+          this.visualRequestGeneration += 1;
+          this.localVisualCommandInFlight = false;
+          publishBehaviorEvent({ type: "interrupt", reason: "explicit-physical-command", sessionId: this.sessionId ?? undefined });
           this.localPhysicalCommandInFlight = true;
           if (this.playbackActive) {
             this.playbackInterrupted = true;
@@ -860,6 +879,7 @@ export class RealtimePcmConversationService {
         else {
           const visualCommand = parseRealtimeVisualCommand(transcript, useUserStore.getState().preferences);
           if (visualCommand) {
+            publishBehaviorEvent({ type: "interrupt", reason: "explicit-visual-command", sessionId: this.sessionId ?? undefined });
             this.localVisualCommandInFlight = true;
             if (this.playbackActive) {
               this.playbackInterrupted = true;
@@ -871,6 +891,8 @@ export class RealtimePcmConversationService {
             store.setProcessing(true);
             useUserStore.getState().setVoiceState("processing");
             void this.executeLocalVisualCommand(visualCommand, transcript);
+          } else if (this.sessionId) {
+            publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
           }
         }
       }
@@ -923,6 +945,7 @@ export class RealtimePcmConversationService {
 
   private async executeLocalVisualCommand(visualCommand: RealtimeVisualCommand, transcript: string): Promise<void> {
     const sessionId = this.sessionId;
+    const requestGeneration = ++this.visualRequestGeneration;
     const store = useConversationStore.getState();
     recordDiagnosticEvent("vision", "realtime-visual-command", {
       kind: visualCommand.kind,
@@ -933,7 +956,9 @@ export class RealtimePcmConversationService {
 
     try {
       const capture = await captureExplicitLookHereStill(visualCommand.cameraFacing);
-      if (!this.active || this.sessionId !== sessionId) return;
+      if (!this.active || this.sessionId !== sessionId || requestGeneration !== this.visualRequestGeneration) return;
+      const visualAdvice = sessionId ? await inspectBehaviorVisual(`data:${capture.mimeType};base64,${capture.base64}`, transcript, sessionId) : "";
+      if (!this.active || this.sessionId !== sessionId || requestGeneration !== this.visualRequestGeneration) return;
 
       this.send({
         type: "conversation.item.create",
@@ -943,7 +968,7 @@ export class RealtimePcmConversationService {
           content: [
             {
               type: "input_text",
-              text: `EXPLICIT LOOK-HERE SNAPSHOT: This is the newest ${capture.cameraFacing} camera image the user explicitly asked you to inspect. Answer the immediately preceding visual request using this image. Keep it available for follow-up discussion. For packaging, documents, labels, diagrams or other text-heavy content, inspect the image carefully. If text or details are not actually legible, say so instead of guessing.${capture.lowLightLikely ? " Camera exposure metadata suggests low light; if that limits legibility, explicitly ask the user for more light or a clearer rear-camera shot." : ""}`,
+              text: `EXPLICIT LOOK-HERE SNAPSHOT: This is the newest ${capture.cameraFacing} camera image the user explicitly asked you to inspect. Answer the immediately preceding visual request using this image. Keep it available for follow-up discussion. For packaging, documents, labels, diagrams or other text-heavy content, inspect the image carefully. If text or details are not actually legible, say so instead of guessing.${visualAdvice ? ` Behavior image assessment: ${visualAdvice}` : ""}${capture.lowLightLikely ? " Camera exposure metadata suggests low light; if that limits legibility, explicitly ask the user for more light or a clearer rear-camera shot." : ""}`,
             },
             {
               type: "input_image",
@@ -971,7 +996,7 @@ export class RealtimePcmConversationService {
       this.assistantContentIndex = 0;
       this.send({ type: "response.create" });
     } catch (error) {
-      if (!this.active || this.sessionId !== sessionId) return;
+      if (!this.active || this.sessionId !== sessionId || requestGeneration !== this.visualRequestGeneration) return;
       recordDiagnosticEvent("vision", "realtime-visual-command-failed", {
         kind: visualCommand.kind,
         error: error instanceof Error ? error.message : String(error),
@@ -990,7 +1015,7 @@ export class RealtimePcmConversationService {
         },
       });
     } finally {
-      if (this.sessionId === sessionId) {
+      if (this.sessionId === sessionId && requestGeneration === this.visualRequestGeneration) {
         if (!this.active) this.localVisualCommandInFlight = false;
         store.setUserSpeaking(false);
       }
@@ -999,6 +1024,7 @@ export class RealtimePcmConversationService {
 
   private markPlaybackStarted(): void {
     this.playbackActive = true;
+    if (this.sessionId) publishBehaviorEvent({ type: "assistant-start", sessionId: this.sessionId });
     this.playbackGainClippedSamples = 0;
     this.playbackGainTotalSamples = 0;
     const store = useConversationStore.getState();
@@ -1031,7 +1057,10 @@ export class RealtimePcmConversationService {
     if (!this.playbackInterrupted && transcript) {
       const store = useConversationStore.getState();
       store.addMessage({ role: "assistant", content: transcript });
-      if (this.sessionId) mirrorSessionMessage(this.sessionId, { role: "assistant", content: transcript });
+      if (this.sessionId) {
+        mirrorSessionMessage(this.sessionId, { role: "assistant", content: transcript });
+        publishBehaviorEvent({ type: "assistant-end", text: transcript, sessionId: this.sessionId });
+      }
     }
     recordDiagnosticEvent("realtime", "pcm-response-finished", {
       transcriptLength: transcript.length,
@@ -1089,9 +1118,13 @@ export class RealtimePcmConversationService {
         const query = String(args.query ?? "").trim();
         if (!query) throw new Error("query is required");
         const results = (await localMemoryDatabase.search(query)).slice(0, 6).map((result) => ({
+          id: result.id,
           memory: result.memory,
           score: result.score,
           category: result.metadata?.category,
+          origin: result.metadata?.origin ?? "unknown",
+          sourceSessionId: result.metadata?.sourceSessionId,
+          updatedAt: result.updatedAt,
         }));
         output = { ok: true, results };
       } else if (name === "remember") {
@@ -1099,7 +1132,8 @@ export class RealtimePcmConversationService {
         if (!note) throw new Error("note is required");
         await localMemoryDatabase.remember(
           [{ role: "user", content: note }],
-          createObservation(note, "voice", "note").metadata
+          { ...createObservation(note, "voice", "note").metadata, origin: "conversation", sourceSessionId: sessionId ?? undefined },
+          () => this.active && this.sessionId === sessionId
         );
         output = { ok: true, remembered: note };
       } else if (name === "set_language_preferences") {

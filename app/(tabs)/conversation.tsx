@@ -18,6 +18,8 @@ import { ChatBubble } from "@/src/ui/ChatBubble";
 import { DeviceShell, DeviceShellHeader } from "@/src/ui/DeviceShell";
 import { looiTheme } from "@/src/ui/looi-theme";
 import { useUiText } from "@/src/i18n/use-ui-text";
+import { tResearch } from "@/src/i18n/research-strings";
+import { tAgent } from "@/src/i18n/agent-strings";
 
 type LoadedMessages = Record<string, ChatMessage[]>;
 
@@ -98,7 +100,7 @@ export default function ConversationScreen() {
   const activeSessionId = useConversationStore((state) => state.activeSessionId);
   const activeMessages = useConversationStore((state) => state.messages);
   const [state, dispatch] = useReducer(historyReducer, initialHistoryState);
-  const { locale, t } = useUiText();
+  const { language, locale, t } = useUiText();
   const { sessions, expandedSessionId, loadedMessages, loading, refreshing, error } = state;
 
   const orderedSessions = useMemo(() => {
@@ -234,6 +236,21 @@ export default function ConversationScreen() {
           {activeSessionId ? t("history.localActive") : t("history.localStored")}
         </Text>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={tAgent(language, "title")}
+        onPress={() => router.push("/agent")}
+        style={styles.researchButton}
+      >
+        <Text style={styles.researchButtonText}>{tAgent(language, "title")}</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/research")}
+        style={styles.researchButton}
+      >
+        <Text style={styles.researchButtonText}>{tResearch(language, "title")}</Text>
+      </Pressable>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </>
   );
@@ -317,6 +334,22 @@ function formatClock(value: string, locale: string): string {
 }
 
 const styles = StyleSheet.create({
+  researchButton: {
+    minHeight: 44,
+    alignSelf: "flex-start",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: looiTheme.lineActive,
+    marginBottom: 16,
+  },
+  researchButtonText: {
+    color: looiTheme.cyan,
+    fontSize: 16,
+    fontWeight: "600",
+  },
   screen: {
     flex: 1,
   },

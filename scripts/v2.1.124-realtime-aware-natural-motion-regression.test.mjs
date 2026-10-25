@@ -39,8 +39,8 @@ assert.match(ambient, /lively: \[1_800, 3_200\]/, "lively mode should visibly st
 assert.match(ambient, /lively: \[2_500, 5_500\]/, "lively idle cadence should be much quicker than v2.1.123");
 assert.match(ambient, /context === "processing"/);
 assert.match(ambient, /context === "speaking"/);
-assert.match(ambient, /performLooiHeadGesture\("thinking"\)/);
-assert.match(ambient, /performLooiHeadGesture\("speaking_soft"\)/);
+assert.match(ambient, /performLooiHeadGesture\("thinking", 1, \{ priority: "ambient" \}\)/);
+assert.match(ambient, /performLooiHeadGesture\("speaking_soft", 1, \{ priority: "ambient" \}\)/);
 assert.match(ambient, /"ambient-motion-blocked"/);
 assert.match(ambient, /performLooiAmbientPivot\(direction, durationMs\)/);
 assert.doesNotMatch(ambient, /startLooiMotion|turnLooi|moveLooi/);

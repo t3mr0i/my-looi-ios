@@ -7,21 +7,29 @@ not authoritative source and must not be committed.
 ## Current status
 
 The source adaptation covers the application runtime and its native iOS
-implementations. The current work is source-only: builds and physical acceptance
-are deferred at the user's request and do not block source changes. TypeScript, native module
-discovery, Swift syntax parsing and JavaScript/Hermes export can be checked on
-Linux. Those checks do not compile or run the Swift/Objective-C modules. A
-successful macOS build and physical iPhone/robot acceptance are still required
-before this port can be described as working or release-ready.
+implementations. On 25 October 2026, the unsigned Debug ARM64 simulator build
+completed successfully on macOS with Xcode 27.1 and CocoaPods 1.16.2, after the
+deployment-target and ExpoModulesJSI fixes documented below. The current
+TypeScript/logic checks and iOS JavaScript/Hermes export also pass.
+
+This confirms native compilation and linking, not physical operation or release
+readiness. Visual simulator acceptance remains unverified because the local
+CoreSimulator framework is older than the installed Xcode requires. The user's
+target is iPhone 16; its iOS version and LOOI firmware are not yet recorded.
+Physical iPhone/robot acceptance remains required for BLE, audio/AEC, camera,
+interruption and lifecycle claims. See the dated
+[research and implementation report](research/my-looi-entscheidungsbericht.md#prüfprotokoll)
+for the executed checks and remaining gaps.
 
 The remaining-source pass added shared camera permissions, native iOS simulator
 constants, RSS/thermal diagnostics, capture-only compatibility through the shared
 PCM engine, and startup/suspend serialization. Logic tests cover competing audio
 clients, failed acquisition/teardown, denied permissions, missing runtime modules,
 event forwarding, suspended timers and a background transition during startup.
-The source regression run passes 55 of 59 scripts; the four Android baseline
-failures are listed below. No native build or new JavaScript bundle was run for
-this source-only pass.
+The latest independent regression inventory has 63 successful invocations out
+of 67; the only four failures are the Android baseline gaps listed below. Some
+checks appear in more than one test chain, so these are not 67 distinct test
+cases. The expanded `ios:check` chain passes TypeScript plus all 13 scripts.
 
 The primary conversation implementation is `RealtimePcmAudio`: one AVAudioEngine
 with VoiceProcessingIO, a 16 kHz mono PCM16 capture contract and app-owned 24 kHz
@@ -67,6 +75,15 @@ Do not substitute a different language model merely to make preparation pass.
 The Expo 56 native template is explicitly pinned to 56.0.38. During development
 the installed Expo package's embedded template advertised Expo 57; using the
 pinned SDK 56 template avoids silently switching the native project generation.
+
+The iOS plugin also raises older CocoaPods deployment targets to the app's 16.4
+minimum, without lowering a dependency's newer target. This fixes the
+ZIPFoundation privacy target's 12.0 setting, which Xcode 27.1 rejects.
+`expo-modules-jsi@56.0.12` has a version-bound pnpm patch for a Swift C-function
+pointer conversion error: the optional host-object setter uses explicit branches
+instead of a ternary conversion. The null-setter branch still reaches C++ as
+null. Keep the patch and lockfile together; remove it only after a verified
+upstream upgrade passes native compilation and read-only setter behavior.
 
 After building the development client, start Metro with:
 

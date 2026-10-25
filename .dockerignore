@@ -1,0 +1,7 @@
+**
+!services/
+!services/hermes/
+!services/hermes/**
+services/hermes/**/__pycache__/
+services/hermes/**/*.pyc
+services/hermes/tests/

@@ -287,14 +287,13 @@ class LocalFaceAttentionModule : Module() {
     val rotated = rotation == 90 || rotation == 270
     val width = max(1, if (rotated) rawHeight else rawWidth).toFloat()
     val height = max(1, if (rotated) rawWidth else rawHeight).toFloat()
-    val primary = faces.maxByOrNull { it.boundingBox.width().toLong() * it.boundingBox.height().toLong() }
-    val normalized = primary?.let { face ->
+    fun normalize(face: Face): Map<String, Float> {
       val rect = face.boundingBox
       val left = (rect.left / width).coerceIn(0f, 1f)
       val top = (rect.top / height).coerceIn(0f, 1f)
       val right = (rect.right / width).coerceIn(0f, 1f)
       val bottom = (rect.bottom / height).coerceIn(0f, 1f)
-      mapOf(
+      return mapOf(
         "left" to left,
         "top" to top,
         "right" to right,
@@ -305,11 +304,15 @@ class LocalFaceAttentionModule : Module() {
         "height" to (bottom - top).coerceAtLeast(0f)
       )
     }
+    val largestFirst = faces.sortedByDescending { it.boundingBox.width().toLong() * it.boundingBox.height().toLong() }
+    val normalizedFaces = largestFirst.take(8).map(::normalize)
+    val normalized = normalizedFaces.firstOrNull()
 
     sendEvent("onFaceFrame", mapOf(
       "timestampMs" to System.currentTimeMillis(),
       "faceCount" to faces.size,
-      "primary" to normalized
+      "primary" to normalized,
+      "faces" to normalizedFaces
     ))
   }
 

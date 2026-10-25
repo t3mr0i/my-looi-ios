@@ -17,6 +17,63 @@ During an active Realtime conversation, microphone audio and conversation contex
 
 My LOOI does not require a separate project-operated backend for normal voice conversation or memory storage.
 
+## On-demand web research
+
+The Web research page is opened from Conversations. It sends only the question
+you enter, together with fixed search instructions, to the OpenAI Responses API
+using your own saved API key. It does not include conversation history, memory,
+audio, photos or robot controls. Nothing is sent before you explicitly start a
+search. Search-tool and model usage is billed to your OpenAI account; the page
+shows a cost notice before the action.
+
+Requests use `store: false`. Search questions and answers are not written to the
+local memory database or diagnostics. OpenAI's service data policies still apply;
+this option is not a promise of zero retention across all service systems.
+Leaving the page, cancelling or backgrounding the app aborts the local request
+and ignores late results; it cannot undo work the service has already performed.
+Opening a cited source uses the system link handler and contacts that website.
+
+## Optional Hermes agent tasks
+
+Agent tasks is a separate, explicitly configured feature. The app sends the
+entered task text and selected language to the owner's HTTPS service. That
+service sends task/search context to its configured OpenAI model and search
+queries to DDGS/search engines. The app attaches no conversation history,
+personal memory, audio, photos or robot controls. Tasks are started from the
+Agent tasks screen; no scheduled jobs or push notifications are created.
+
+The connection token is held in SecureStore (Keychain on iOS), separately from
+the OpenAI key. An uncertain submission's UUID, query and language are retained
+locally in encrypted MMKV so a retry uses the same identity. Its encryption key
+is held in device-only SecureStore on iOS. Disconnecting removes the saved
+connection; it preserves uncertain admissions for that server and does not
+cancel remote work. Polling stops when the screen loses focus or the app enters
+the background. An admitted server task can continue independently.
+
+The service keeps task text, language, timestamps, status, answer and sources in
+SQLite on a Fly volume until the owner deletes the task. Terminal-task deletion
+removes its active database row; a minimal UUID/deletion-time receipt remains
+to prevent an old retry from executing again. SQLite storage, Fly snapshots
+(five-day retention in the initial pilot), already retrieved results and model
+provider records have separate lifecycles. Deletion does not recall those
+copies or undo already billed work. Server tokens and task contents are not
+included in app diagnostics or memory backups. See [Agent tasks](docs/hermes-agent.md).
+
+## Correcting and deleting facts
+
+The Memory page lets you search, correct and individually delete saved facts.
+A correction replaces that fact's text and updates its local search index. Its
+origin is marked as a user edit. Deletion removes the selected fact from the
+database, search and subsequently created backups. Changes close the current
+Realtime conversation before the database operation so its cached facts cannot
+continue into a new answer; the next conversation loads current memory.
+
+These actions do not delete the independent conversation history, already
+exported backup files or data previously sent to an external service. Restoring
+an older backup can restore an earlier fact. A source-session reference records
+where the app extracted a fact; it does not verify its truth or identify a
+speaker. Older records without provenance remain unknown.
+
 ## Camera attention
 
 Camera attention is optional and off by default. When enabled, My LOOI opens the front camera only during an active social interaction so the robot can orient its eyes, head, and body toward a visible face. Face detection uses a bundled on-device model. Camera frames are processed in memory, are not written to files or diagnostics, and are not sent to OpenAI or any other network service. The rest of the app receives only short-lived normalized face-position values needed for attention control. Camera capture is stopped when the social-attention window ends, when the feature is disabled, when the robot enters app sleep, or when the app is backgrounded.
@@ -50,3 +107,7 @@ Memory backup is written only to a folder explicitly selected by the user throug
 ## Voice loudness boost
 
 Voice loudness boost is local PCM16 amplitude scaling applied only to assistant playback after audio has been received from OpenAI. It does not upload additional data, alter microphone capture, or change the platform AcousticEchoCanceler.
+
+## Optional Decisions behavior
+
+Contextual behavior is off by default. Observe and Active send recent relevant speech transcripts, bounded local task/style state, robot/interaction status and temporary face-candidate metadata to OpenAI Decisions using the configured key. Observe incurs usage but does not alter movement or spoken behavior context. The separate image option sends only explicitly requested camera snapshots for task-quality assessment; it does not enable a continuous cloud camera stream. Images are not persisted by this layer. Local learned style/pending tasks and aggregate usage are stored on device. Clearing learned behavior keeps the budget/usage ledger. Requests stop or invalidate their results when the interaction ends, the app backgrounds, or the robot sleeps. Provider billing can still include interrupted requests. See [the behavior guide](docs/decisions-behavior.md).

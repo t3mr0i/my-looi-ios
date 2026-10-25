@@ -2,6 +2,8 @@ import { NativeModule, requireNativeModule } from "expo";
 import { Platform } from "react-native";
 
 export type LocalFaceRect = {
+  /** Ephemeral JS-side track label; it does not identify a person. */
+  trackingId?: string;
   left: number;
   top: number;
   right: number;
@@ -16,6 +18,8 @@ export type LocalFaceFrameEvent = {
   timestampMs: number;
   faceCount: number;
   primary: LocalFaceRect | null;
+  /** Bounded list for local multi-face target selection. Missing on legacy native builds. */
+  faces?: LocalFaceRect[];
 };
 
 

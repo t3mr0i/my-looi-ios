@@ -160,14 +160,16 @@ public final class LocalFaceAttentionModule: Module {
       try VNImageRequestHandler(cmSampleBuffer: sample, orientation: .up, options: [:]).perform([request])
       let faces = request.results ?? []
       frames += 1
-      let largest = faces.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
-      var primary: Any = NSNull()
-      if let face = largest {
+      let boundedFaces = faces.sorted {
+        $0.boundingBox.width * $0.boundingBox.height > $1.boundingBox.width * $1.boundingBox.height
+      }.prefix(5).map { face -> [String: CGFloat] in
         let r = face.boundingBox
-        primary = ["left": r.minX, "top": 1 - r.maxY, "right": r.maxX, "bottom": 1 - r.minY,
+        return ["left": r.minX, "top": 1 - r.maxY, "right": r.maxX, "bottom": 1 - r.minY,
           "centerX": r.midX, "centerY": 1 - r.midY, "width": r.width, "height": r.height]
       }
-      sendEvent("onFaceFrame", ["timestampMs": now * 1000, "faceCount": faces.count, "primary": primary])
+      let primary: Any = boundedFaces.first.map { $0 as Any } ?? NSNull()
+      sendEvent("onFaceFrame", ["timestampMs": now * 1000, "faceCount": faces.count,
+        "primary": primary, "faces": Array(boundedFaces)])
     } catch { sendEvent("onFaceAttentionError", ["stage": "analysis", "message": error.localizedDescription]) }
   }
   public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {

@@ -1,5 +1,23 @@
-const { withInfoPlist, withPodfileProperties, withDangerousMod } = require('expo/config-plugins');
+const { withInfoPlist, withPodfile, withPodfileProperties, withDangerousMod } = require('expo/config-plugins');
 const { stageIosVoskModels } = require('../scripts/stage-ios-vosk-models.cjs');
+
+function ensureMinimumPodDeploymentTarget(contents) {
+  const marker = '# My LOOI: align pod targets with the application deployment floor';
+  if (contents.includes(marker)) return contents;
+  const anchor = /react_native_post_install\([\s\S]*?\n    \)/;
+  if (!anchor.test(contents)) throw new Error('Could not locate React Native post_install in the iOS Podfile');
+  return contents.replace(anchor, (match) => `${match}
+    ${marker}
+    minimum_ios = Gem::Version.new(podfile_properties['ios.deploymentTarget'] || '16.4')
+    installer.pods_project.targets.each do |pod_target|
+      pod_target.build_configurations.each do |build_config|
+        current = build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if current.nil? || (current.match?(/\\A\\d+(?:\\.\\d+)*\\z/) && Gem::Version.new(current) < minimum_ios)
+          build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_ios.to_s
+        end
+      end
+    end`);
+}
 
 module.exports = function withLooiIos(config) {
   config = withPodfileProperties(config, (result) => {
@@ -22,8 +40,14 @@ module.exports = function withLooiIos(config) {
     };
     return result;
   });
+  config = withPodfile(config, (result) => {
+    result.modResults.contents = ensureMinimumPodDeploymentTarget(result.modResults.contents);
+    return result;
+  });
   return withDangerousMod(config, ['ios', async (result) => {
     stageIosVoskModels(result.modRequest.projectRoot);
     return result;
   }]);
 };
+
+module.exports.ensureMinimumPodDeploymentTarget = ensureMinimumPodDeploymentTarget;

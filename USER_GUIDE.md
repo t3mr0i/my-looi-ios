@@ -148,6 +148,33 @@ Open **Settings → Appearance** to choose a face style and color palette indepe
 
 Conversation history and durable extracted facts are stored locally in SQLite. Realtime sessions can preload bounded relevant memory and use targeted local search for deeper recall. My LOOI does not require a companion backend for normal operation.
 
+Open **Memory** to search the saved facts and filter by category. Each fact shows
+its recorded source, origin and time. **Edit** changes the selected fact; **Delete**
+asks for confirmation and removes it individually. Save or cancel an edit before
+changing filters. Corrections and deletion end the active conversation so its
+cached context cannot keep using an old fact. Start a new conversation afterward.
+Changes affect new memory searches and new backups; conversation history and
+previously exported backup files remain separate. A source session is provenance,
+not a guarantee that an extracted fact is correct or belongs to a known person.
+
+From **Conversations**, open **Web research** for a current question with sources.
+Enter the question and choose **Search the web** after reviewing the cost notice.
+This uses your saved OpenAI key for a separate Responses/Web Search request and
+does not send your conversation or memories. Click an inline citation or source
+to check it. Cancel or leave the page to stop the local request. Model/tool access
+depends on your OpenAI account; a successful Realtime session does not establish
+Web Search access. No search answer is automatically saved as a personal fact.
+
+For longer requests, open **Agent tasks** from Conversations. Enter your own
+HTTPS service URL and its LOOI access token, then choose **Save and verify
+connection**. This is separate from your OpenAI key. Enter a task and explicitly
+start it; you can return later to check status and expand its answer and sources.
+Load older tasks to browse earlier results. Cancel requests the server to stop;
+delete is available for terminal tasks. Leaving the page or disconnecting does
+not cancel server work. If sending had an unknown outcome, retry the same task
+to reuse its saved ID. Only entered task text is sent as user content, and the
+server retains that text and results. [Setup and limits](docs/hermes-agent.md).
+
 ## 14. Backup and restore
 
 Open **Settings → Advanced → Memory and backup**, then select a folder through Android's system document picker. You can create a backup, restore it, or forget/change the selected folder.

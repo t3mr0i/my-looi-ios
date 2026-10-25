@@ -129,11 +129,41 @@ function stripNaturalCommandLeadIns(command: string): string {
   return value;
 }
 
+const NEGATION_RE = /(?:^|\s)(?:не|ни|нет|нельзя|нема|not|never|no|none|dont|doesnt|didnt|cant|cannot|wont|shouldnt|wouldnt|couldnt|isnt|arent|wasnt|werent|havent|hasnt|hadnt)(?=$|\s)/iu;
+const QUESTION_FORM_RE = /(?:^|\s)(?:(?:can|could|would|will|should|shall|is|are|am|was|were|have|has|had|may|might|must|what|when|where|who|whom|whose|why|how|which|можешь|можете|может|мог|могла|могли|можно|будешь|будете|сможешь|сможете|смог|смогла|смогли|ли|что|куда|когда|почему|зачем|как|кто|чей|сколько|где|можеш|можете|може|можна|чи|що|куди|коли|чому|навіщо|хто|де|скільки)(?=$|\s)|(?:do|does|did)\s+(?:i|you|we|they|he|she|it)(?=$|\s))/iu;
+const REFERENCE_OR_CONDITIONAL_RE = /(?:^|\s)(?:if|when|unless|suppose|imagine|example|phrase|word|words|say|says|said|saying|mention|mentioned|repeat|repeating|quote|quoted|quotation|transcript|document|если|когда|допустим|представь|пример|фраза|слово|слова|скажи|сказать|скажу|сказал|говорил|цитата|цитируй|повтори|повторить|текст|якщо|коли|припустимо|уяви|приклад|фраза|слово|слова|скажи|сказати|скажу|сказав|казав|цитата|цитуй|повтори|повторити|текст)(?=$|\s)/iu;
+
+/**
+ * Speech recognition often drops question punctuation, so reject both explicit
+ * question marks and common question forms. Preserve the raw text for quote and
+ * punctuation checks because normalization intentionally removes punctuation.
+ */
+function hasNonCommandContext(text: string, command: string): boolean {
+  if (/[?？]/u.test(text)) return true;
+  if (/["“”„‟«»‹›‘]/u.test(text)) return true;
+  if (/(?:^|[\s([{])'[^'\r\n]*'(?=$|[\s.,!?;:)\]}])/u.test(text)) return true;
+  if (/(?:^|[\s([{])’[^’\r\n]*’(?=$|[\s.,!?;:)\]}])/u.test(text)) return true;
+
+  const normalizedCommand = normalizeMatchText(command);
+  return NEGATION_RE.test(normalizedCommand) ||
+    QUESTION_FORM_RE.test(normalizedCommand) ||
+    REFERENCE_OR_CONDITIONAL_RE.test(normalizedCommand);
+}
+
 export function parseExplicitRobotCommand(text: string, config?: ExplicitRobotCommandConfig): ExplicitRobotCommand | null {
   const addressed = splitAddressedCommand(text, config);
   if (!addressed) return null;
 
   const command = stripNaturalCommandLeadIns(addressed.command.trim().toLowerCase());
+
+  // STOP is deliberately evaluated before every ambiguity filter. The separate
+  // global emergency path remains responsible for unaddressed STOP utterances.
+  if (/(?:^|\s)(?:стоп|стой|остановись|останови\s+движение|стій|зупинись|зупини|stop|halt)(?=$|[\s.,!?])/iu.test(command)) {
+    return { kind: "move", direction: "stop" };
+  }
+
+  if (hasNonCommandContext(text, command)) return null;
+
   const customAction = customActionFor(command, config);
   if (customAction) return commandFromCustomAction(customAction, command);
 
@@ -147,10 +177,6 @@ export function parseExplicitRobotCommand(text: string, config?: ExplicitRobotCo
 
   if (/(?:^|\s)(?:потанцуй|станцуй|танцуй|потанцюй|станцюй|танцюй|dance|do\s+a\s+dance)(?=$|[\s.,!?])/iu.test(command)) {
     return { kind: "dance" };
-  }
-
-  if (/(?:^|\s)(?:стоп|стой|остановись|останови\s+движение|стій|зупинись|зупини|stop|halt)(?=$|[\s.,!?])/iu.test(command)) {
-    return { kind: "move", direction: "stop" };
   }
 
   if (

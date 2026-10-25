@@ -43,6 +43,9 @@ export interface MemoryResult {
     evidenceUri?: string;
     description?: string;
     placementFact?: string;
+    /** How this fact was obtained; legacy records may have no provenance. */
+    origin?: "conversation" | "user-edit" | "unknown";
+    sourceSessionId?: string;
   };
   score?: number;
 }

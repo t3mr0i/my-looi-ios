@@ -14,6 +14,7 @@ let physical = deferred();
 let nativeCapture = deferred();
 let startupMemory = deferred();
 let memoryRequested = false;
+let memoryMutationInProgress = false;
 const callbacks = {};
 const storeEvents = [];
 const sent = [];
@@ -24,6 +25,10 @@ const audio = {
 };
 const store = new Proxy({}, { get: (_, name) => (...args) => storeEvents.push([name, ...args]) });
 const dependencies = {
+  "../behavior/behavior-events": {
+    beginBehaviorSession() {}, endBehaviorSession() {}, getBehaviorConversationContext: () => "",
+    inspectBehaviorVisual: async () => "", publishBehaviorEvent() {},
+  },
   "react-native": { Platform: { OS: "ios" }, AppState: { currentState: "active" } },
   "./audio-capture-profile": { isRealtimeCaptureReady: () => true },
   "expo-audio": { async setIsAudioActiveAsync() {} }, "../core/observation": {},
@@ -31,6 +36,7 @@ const dependencies = {
   "../diagnostics/diagnostic-log": { recordDiagnosticEvent() {} },
   "../memory/local-memory-database": { localMemoryDatabase: { search: () => search.promise } },
   "../memory/memory-service": {
+    isLocalMemoryMutationInProgress: () => memoryMutationInProgress,
     mirrorSessionMessage: (...args) => storeEvents.push(["mirror", ...args]),
     mirrorSessionTouch() {},
     retrieveConversationMemories() { memoryRequested = true; return startupMemory.promise; },
@@ -124,6 +130,12 @@ assert.equal(service.configured, false);
 
 // A canceled start that fails later cannot stop the replacement conversation.
 service.active = false; service.stopping = false;
+memoryMutationInProgress = true;
+const beforeBlockedStart = storeEvents.length;
+await service.start();
+assert.equal(service.active, false, "a memory mutation must block acquiring a new conversation");
+assert.equal(storeEvents.length, beforeBlockedStart, "a blocked start must not alter voice state");
+memoryMutationInProgress = false;
 const startup = service.start();
 for (let index = 0; index < 10 && !memoryRequested; index++) await Promise.resolve();
 assert.equal(memoryRequested, true);

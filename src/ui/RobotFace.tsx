@@ -16,6 +16,7 @@ import { useUiText } from "@/src/i18n/use-ui-text";
 import { useCharacterReactionStore, type CharacterMood } from "@/src/character/character-reaction";
 import { recordDiagnosticEvent } from "@/src/diagnostics/diagnostic-log";
 import { useSocialAttentionStore } from "@/src/core/social-attention";
+import { useBehaviorStore } from "@/src/behavior/behavior-runtime";
 
 type RobotFaceMode = "fullscreen" | "avatar";
 
@@ -145,6 +146,7 @@ function ClassicRobotFace({
   const realtimeReadiness = useConversationStore((state) => state.realtimeReadiness);
   const conversationMode = useUserStore((state) => state.preferences.conversationMode);
   const characterMood = useCharacterReactionStore((state) => state.mood);
+  const behaviorPresentation = useBehaviorStore((state) => state.presentation);
   const { t } = useUiText();
   const characterReactionId = useCharacterReactionStore((state) => state.reactionId);
   const socialAttentionActive = useSocialAttentionStore((state) => state.active);
@@ -190,8 +192,8 @@ function ClassicRobotFace({
     (isRealtimeConversationMode(conversationMode) && voiceState === "listening")
   );
   const face = useMemo(
-    () => getFaceForState(voiceState, streamingText, characterReactionVisible ? characterMood : null),
-    [characterMood, characterReactionVisible, streamingText, voiceState]
+    () => getFaceForState(voiceState, streamingText, behaviorPresentation?.mood ?? (characterReactionVisible ? characterMood : null)),
+    [behaviorPresentation, characterMood, characterReactionVisible, streamingText, voiceState]
   );
 
   useEffect(() => {
@@ -223,7 +225,10 @@ function ClassicRobotFace({
   useEffect(() => {
     cancelAnimation(gaze);
     cancelAnimation(gazeY);
-    if (socialAttentionActive && socialFaceVisible) {
+    if (behaviorPresentation?.gaze) {
+      gaze.value = withTiming(Math.max(-1, Math.min(1, behaviorPresentation.gaze.x)), { duration: 180 });
+      gazeY.value = withTiming(Math.max(-1, Math.min(1, behaviorPresentation.gaze.y)), { duration: 180 });
+    } else if (socialAttentionActive && socialFaceVisible) {
       gaze.value = withTiming(socialGazeX, { duration: 110 });
       gazeY.value = withTiming(socialGazeY, { duration: 110 });
     } else if (voiceState === "processing") {
@@ -248,7 +253,7 @@ function ClassicRobotFace({
       cancelAnimation(gaze);
       cancelAnimation(gazeY);
     };
-  }, [gaze, gazeY, socialAttentionActive, socialFaceVisible, socialGazeX, socialGazeY, voiceState]);
+  }, [behaviorPresentation, gaze, gazeY, socialAttentionActive, socialFaceVisible, socialGazeX, socialGazeY, voiceState]);
 
   useEffect(() => {
     const duration = voiceState === "speaking" ? 520 : voiceState === "listening" ? 760 : 1700;

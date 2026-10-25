@@ -65,6 +65,8 @@ export function DeviceShell({
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
       <DeviceShellHeader title={title} eyebrow={eyebrow} onReturnHome={returnHome} />

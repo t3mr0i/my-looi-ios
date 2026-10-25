@@ -11,6 +11,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useUserStore } from '@/src/store/user';
+import { installBehaviorRuntime } from '@/src/behavior/behavior-runtime';
 import { markRobotInteraction, startRobotInactivityTimer, stopRobotInactivityTimer } from '@/src/core/robot-inactivity';
 import { recordDiagnosticEvent } from '@/src/diagnostics/diagnostic-log';
 import { startPerformanceMonitor, stopPerformanceMonitor } from '@/src/diagnostics/performance-monitor';
@@ -50,9 +51,11 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
+    const uninstallBehavior = installBehaviorRuntime();
     startRobotInactivityTimer();
     startPerformanceMonitor();
     return () => {
+      uninstallBehavior();
       stopRobotInactivityTimer();
       stopPerformanceMonitor();
     };

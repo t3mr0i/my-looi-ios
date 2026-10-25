@@ -33,7 +33,9 @@ assert.match(attention, /reason,\s*direction,\s*durationMs,\s*rawX:/);
 assert.match(attention, /smoothedX:/);
 assert.match(attention, /stableFrames/);
 assert.match(attention, /faceAgeMs/);
-assert.match(attention, /getAmbientMotionControllerState\(\)\.actionInFlight/);
+assert.match(attention, /const ambient = getAmbientMotionControllerState\(\)/);
+assert.match(attention, /ambient\.actionInFlight/);
+assert.match(attention, /channel !== "head" \|\| !ambientHeadGesture/);
 assert.match(attention, /holdAmbientMotionFor\(/);
 assert.doesNotMatch(attention, /startLooiMotion\(|moveLooi\("forward"|moveLooi\("back/);
 

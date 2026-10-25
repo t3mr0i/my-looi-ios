@@ -4,6 +4,7 @@ import { requestCameraAccess } from "@/src/permissions/camera";
 import Constants from "expo-constants";
 import { useFocusEffect } from "expo-router";
 
+import { BehaviorSettings } from "@/src/ui/BehaviorSettings";
 import { DeviceShell } from "@/src/ui/DeviceShell";
 import { looiTheme } from "@/src/ui/looi-theme";
 import { useUserStore, type ConversationMode, type CustomVoiceCommandAction, type FacePaletteId, type FaceStyleId, type VoiceCommandLanguage } from "@/src/store/user";
@@ -627,6 +628,7 @@ export default function SettingsScreen() {
             <SmallChoice selected={preferences.cameraAttentionEnabled} label={t("common.on")} onPress={() => void setCameraAttentionEnabled(true)} />
           </ButtonRow>
         </View>
+        <BehaviorSettings />
         {robotUi.candidates.map((candidate) => <Choice key={candidate.id} selected={candidate.selected} label={candidate.name} detail={`${candidate.rssi ?? "?"} dBm`} onPress={() => void connectRobot(candidate)} />)}
         {robotUi.saved ? <Action label={t("settings.forgetRobot")} onPress={forgetRobot} secondary /> : null}
         {robotUi.result ? <Text style={styles.result}>{robotUi.result}</Text> : null}

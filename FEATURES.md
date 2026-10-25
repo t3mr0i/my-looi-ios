@@ -36,6 +36,9 @@
 - Durable local facts extracted from conversation.
 - Bounded memory preload for Realtime sessions.
 - Targeted local memory search tool for deeper recall.
+- Search and filter the saved-fact list, correct individual facts, inspect recorded origin and delete a fact with confirmation.
+- Corrections, deletion and backup restore close the current Realtime session before changing facts; a new session loads the current memory.
+- Legacy facts keep an unknown origin. New conversation-derived facts can reference the source session; a user edit is identified separately.
 - User-selected local backup folder for memory backup/restore.
 
 ## Robot integration
@@ -63,6 +66,7 @@
 ## Privacy and diagnostics
 
 - No required My LOOI backend service.
+- Optional Hermes research tasks use an explicitly configured HTTPS service; entered task text and results are stored on that server. App connection credentials and encrypted admission recovery stay on the device. See [Agent tasks](docs/hermes-agent.md).
 - API key stored in Android SecureStore.
 - Hard sensitive-runtime suspend on background/screen-off.
 - Diagnostic export is explicit and user-triggered.
@@ -91,3 +95,13 @@
 
 - Android diagnostic exports include periodic PSS/RSS, Java/native heap and system-memory snapshots, previous process exit reasons, JS event-loop stalls, startup stage timings, and detailed Vosk model-load phase timings.
 - Optional Vosk/Offline-STT prewarm is delayed after boot to reduce contention with initial Realtime/microphone readiness; explicit driving-control preparation remains immediate.
+
+## Optional contextual behavior
+
+- Off/Observe/Active Decisions modes, local daily budget and recorded usage.
+- Contextual head/display cues, pending-task continuity, explicit corrections, style feedback and greeting rituals.
+- Attention policy selection and stable temporary multi-face targets; no identity or speaker localization claim.
+- Opt-in quality assessment of explicitly requested images; bounded 1–3 guessing game and optional candidate comparison.
+- Shared cancelable head writer preserving explicit-command and local safety priority.
+
+See [behavior details and boundaries](docs/decisions-behavior.md).

@@ -36,6 +36,33 @@ let frontNearEdgeClearTimer: ReturnType<typeof setTimeout> | null = null;
 let rearNearEdgeClearTimer: ReturnType<typeof setTimeout> | null = null;
 let motionSequenceAbortGeneration = 0;
 
+export type LooiHeadMotionPriority = "ambient" | "behavior" | "social" | "explicit";
+export type LooiHeadMotionOptions = {
+  priority?: LooiHeadMotionPriority;
+  /** Additional caller-owned validity check, evaluated before and after every write/wait. */
+  isCurrent?: () => boolean;
+};
+
+type HeadMotionOwner = {
+  id: number;
+  priority: LooiHeadMotionPriority;
+  reason: string;
+  connectionGeneration: number;
+  isCurrent?: () => boolean;
+  cancelled: boolean;
+};
+
+const HEAD_MOTION_PRIORITY: Record<LooiHeadMotionPriority, number> = {
+  ambient: 10,
+  behavior: 50,
+  social: 80,
+  explicit: 100,
+};
+
+let headMotionGeneration = 0;
+let activeHeadMotion: HeadMotionOwner | null = null;
+let headWriteQueue: Promise<void> = Promise.resolve();
+
 type LooiSensorSnapshot = {
   lastFed9Hex: string | null;
   lastFed9At: number | null;
@@ -140,6 +167,7 @@ const state: LooiRuntimeState = {
 
 /** Bind the platform-specific LOOI BLE transport. */
 export function configureLooiRobotTransport(transport: LooiTransport): void {
+  cancelLooiHeadMotion("transport-reconfigured");
   connectionGeneration += 1;
   state.transport = transport;
   state.robot = new LooiRobot(transport);
@@ -165,6 +193,7 @@ export function markLooiDriveControlNeedsRevalidation(reason: string): void {
 }
 
 export function handleLooiRobotTransportDisconnected(error?: unknown): void {
+  cancelLooiHeadMotion("transport-disconnected");
   connectionGeneration += 1;
   const message = error instanceof Error ? error.message : error ? String(error) : "BLE link disconnected";
   const previousDirection = state.activeDirection;
@@ -853,6 +882,7 @@ export async function startLooiMotion(direction: string) {
 /** Immediate best-effort motor stop. Safe to call repeatedly. */
 export async function stopLooiMotion(reason = "explicit"): Promise<void> {
   motionSequenceAbortGeneration += 1;
+  cancelLooiHeadMotion(reason);
   clearContinuousMotionDeadman();
   clearNearEdgeEscapeTimers();
   state.motionGeneration += 1;
@@ -891,61 +921,167 @@ export async function setLooiLight(enabled: boolean) {
   return { ok: true, enabled };
 }
 
-export async function setLooiHead(direction: string) {
-  const robot = await getRobot();
-  await robot.setHead(direction);
-  return { ok: true, direction };
+function beginHeadMotion(
+  priority: LooiHeadMotionPriority,
+  reason: string,
+  isCurrent?: () => boolean,
+): HeadMotionOwner | null {
+  const previous = activeHeadMotion;
+  const previousIsCurrent = previous ? headMotionIsCurrent(previous) : false;
+  if (previous && previousIsCurrent &&
+      HEAD_MOTION_PRIORITY[previous.priority] > HEAD_MOTION_PRIORITY[priority]) {
+    recordDiagnosticEvent("robot", "head-motion-rejected", {
+      reason,
+      priority,
+      owner: previous.reason,
+      ownerPriority: previous.priority,
+    });
+    return null;
+  }
+
+  if (previous && !previous.cancelled) {
+    previous.cancelled = true;
+    recordDiagnosticEvent("robot", "head-motion-preempted", {
+      previous: previous.reason,
+      previousPriority: previous.priority,
+      next: reason,
+      nextPriority: priority,
+    });
+  }
+
+  const owner: HeadMotionOwner = {
+    id: ++headMotionGeneration,
+    priority,
+    reason,
+    connectionGeneration,
+    isCurrent,
+    cancelled: false,
+  };
+  activeHeadMotion = owner;
+  return owner;
 }
 
-/** Head-only conversational gestures: no wheel movement. */
-export async function performLooiHeadGesture(gesture: string, repetitions = 1) {
-  const robot = await getRobot();
+function headMotionIsCurrent(owner: HeadMotionOwner, robot?: LooiRobot): boolean {
+  if (owner.cancelled || activeHeadMotion !== owner || owner.connectionGeneration !== connectionGeneration) return false;
+  if (robot && (state.robot !== robot || !state.connected)) return false;
+  if (!owner.isCurrent) return true;
+  try {
+    return owner.isCurrent();
+  } catch {
+    return false;
+  }
+}
+
+function releaseHeadMotion(owner: HeadMotionOwner): void {
+  if (activeHeadMotion === owner) activeHeadMotion = null;
+}
+
+/** Cancel every pending head sequence without issuing a corrective center write. */
+export function cancelLooiHeadMotion(reason: string): void {
+  const owner = activeHeadMotion;
+  if (owner) owner.cancelled = true;
+  activeHeadMotion = null;
+  headMotionGeneration += 1;
+  recordDiagnosticEvent("robot", "head-motion-cancelled", { reason, owner: owner?.reason ?? "none" });
+}
+
+/**
+ * Queue a physical head write behind any BLE write already in progress. The
+ * owner is checked when the write reaches the queue and again when BLE settles,
+ * so a preempted caller never treats another owner's write as its completion.
+ */
+function writeHeadForOwner(owner: HeadMotionOwner, robot: LooiRobot, direction: string): Promise<boolean> {
+  const write = headWriteQueue.then(async () => {
+    if (!headMotionIsCurrent(owner, robot)) return false;
+    await robot.setHead(direction);
+    return headMotionIsCurrent(owner, robot);
+  });
+  headWriteQueue = write.then(() => undefined, () => undefined);
+  return write;
+}
+
+async function runHeadSequence(
+  owner: HeadMotionOwner,
+  steps: readonly ({ direction: string } | { waitMs: number })[],
+): Promise<boolean> {
+  try {
+    const robot = await getRobot();
+    if (!headMotionIsCurrent(owner, robot)) return false;
+    for (const step of steps) {
+      if (!headMotionIsCurrent(owner, robot)) return false;
+      if ("direction" in step) {
+        if (!await writeHeadForOwner(owner, robot, step.direction)) return false;
+      } else {
+        await delay(step.waitMs);
+        if (!headMotionIsCurrent(owner, robot)) return false;
+      }
+    }
+    return headMotionIsCurrent(owner, robot);
+  } finally {
+    releaseHeadMotion(owner);
+  }
+}
+
+function headGestureSteps(gesture: string, repetitions: number): { steps: Array<{ direction: string } | { waitMs: number }>; count: number } {
   const count = Math.max(1, Math.min(5, Math.round(Number(repetitions) || 1)));
+  const steps: Array<{ direction: string } | { waitMs: number }> = [];
+  const write = (direction: string) => steps.push({ direction });
+  const wait = (waitMs: number) => steps.push({ waitMs });
   switch (gesture) {
     case "nod":
       for (let i = 0; i < count; i += 1) {
-        await robot.setHead("up");
-        await delay(280);
-        await robot.setHead("down");
-        await delay(390);
-        await robot.setHead("center");
-        await delay(i + 1 < count ? 240 : 140);
+        write("up"); wait(280); write("down"); wait(390); write("center"); wait(i + 1 < count ? 240 : 140);
       }
       break;
-    case "curious":
-      await robot.setHead("up");
-      await delay(420);
-      await robot.setHead("center");
-      break;
-    case "happy_bob":
-      await robot.setHead("up");
-      await delay(180);
-      await robot.setHead("down");
-      await delay(180);
-      await robot.setHead("up");
-      await delay(180);
-      await robot.setHead("center");
-      break;
-    case "sleepy":
-      await robot.setHead("down");
-      await delay(550);
-      await robot.setHead("center");
-      break;
-    case "thinking":
-      await robot.setHead("down");
-      await delay(300);
-      await robot.setHead("center");
-      break;
-    case "speaking_soft":
-      await robot.setHead("up");
-      await delay(150);
-      await robot.setHead("center");
-      break;
-    default:
-      throw new Error(`Unsupported LOOI head gesture: ${gesture}`);
+    case "curious": write("up"); wait(420); write("center"); break;
+    case "happy_bob": write("up"); wait(180); write("down"); wait(180); write("up"); wait(180); write("center"); break;
+    case "sleepy": write("down"); wait(550); write("center"); break;
+    case "thinking": write("down"); wait(300); write("center"); break;
+    case "speaking_soft": write("up"); wait(150); write("center"); break;
+    default: throw new Error(`Unsupported LOOI head gesture: ${gesture}`);
   }
-  recordDiagnosticEvent("robot", "head-gesture", { gesture, count: gesture === "nod" ? count : 1 });
-  return { ok: true, gesture, count: gesture === "nod" ? count : 1, wheelsUsed: false };
+  return { steps, count };
+}
+
+/** A single head position request preempts any lower- or same-priority sequence. */
+export async function setLooiHead(direction: string, options: LooiHeadMotionOptions = {}) {
+  const priority = options.priority ?? "explicit";
+  const owner = beginHeadMotion(priority, `set:${direction}`, options.isCurrent);
+  if (!owner) return { ok: false, direction, completed: false };
+  try {
+    const robot = await getRobot();
+    if (!headMotionIsCurrent(owner, robot)) return { ok: false, direction, completed: false };
+    const completed = await writeHeadForOwner(owner, robot, direction);
+    return { ok: completed, direction, completed };
+  } finally {
+    releaseHeadMotion(owner);
+  }
+}
+
+/** Head-only conversational gestures: no wheel movement. Defaults to explicit user intent for compatibility. */
+export async function performLooiHeadGesture(
+  gesture: string,
+  repetitions = 1,
+  options: LooiHeadMotionOptions = {},
+) {
+  const { steps, count } = headGestureSteps(gesture, repetitions);
+  const priority = options.priority ?? "explicit";
+  const owner = beginHeadMotion(priority, `gesture:${gesture}`, options.isCurrent);
+  if (!owner) return { ok: false, completed: false, gesture, count: gesture === "nod" ? count : 1, wheelsUsed: false };
+  const completed = await runHeadSequence(owner, steps);
+  if (completed) recordDiagnosticEvent("robot", "head-gesture", { gesture, count: gesture === "nod" ? count : 1 });
+  return { ok: completed, completed, gesture, count: gesture === "nod" ? count : 1, wheelsUsed: false };
+}
+
+/** Behavior cues share the head writer and remain cancelable by newer intents. */
+export async function performLooiBehaviorHeadGesture(
+  gesture: string,
+  isCurrent: () => boolean,
+): Promise<{ completed: boolean }> {
+  const { steps } = headGestureSteps(gesture, 1);
+  const owner = beginHeadMotion("behavior", `behavior:${gesture}`, isCurrent);
+  if (!owner) return { completed: false };
+  return { completed: await runHeadSequence(owner, steps) };
 }
 
 /** Character-layer body/head reaction names. No reaction may bypass the safety controller. */
@@ -968,6 +1104,17 @@ function assertSequencePrimitiveCompleted(
   throw new Error(`LOOI ${sequence} interrupted during ${step}`);
 }
 
+function assertHeadSequenceCompleted(
+  result: { completed?: boolean },
+  token: number,
+  sequence: string,
+  step: string,
+): void {
+  if (result.completed !== false && token === motionSequenceAbortGeneration) return;
+  recordDiagnosticEvent("character", "motion-sequence-cancelled", { sequence, step, reason: "head-owner-changed" });
+  throw new Error(`LOOI ${sequence} interrupted during ${step}`);
+}
+
 /**
  * Safe physical accents for UI character reactions. Head-only reactions never
  * start the wheels. Angry/victory body wiggles use the same directional cliff
@@ -980,18 +1127,17 @@ export async function performLooiCharacterReaction(reaction: LooiCharacterReacti
   try {
     switch (reaction) {
       case "startled":
-        await performLooiHeadGesture("curious");
+        assertHeadSequenceCompleted(await performLooiHeadGesture("curious"), sequenceToken, "character-startled", "head");
         assertMotionSequenceActive(sequenceToken, "character-startled", "head");
         break;
       case "pleased":
-        await performLooiHeadGesture("happy_bob");
+        assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, "character-pleased", "head");
         assertMotionSequenceActive(sequenceToken, "character-pleased", "head");
         break;
       case "annoyed": {
-        const robot = await getRobot();
-        await robot.setHead("down");
-        await delay(300);
-        await robot.setHead("center");
+        const owner = beginHeadMotion("explicit", "reaction:annoyed");
+        const completed = owner ? await runHeadSequence(owner, [{ direction: "down" }, { waitMs: 300 }, { direction: "center" }]) : false;
+        assertHeadSequenceCompleted({ completed }, sequenceToken, "character-annoyed", "head");
         assertMotionSequenceActive(sequenceToken, "character-annoyed", "head");
         break;
       }
@@ -1002,12 +1148,12 @@ export async function performLooiCharacterReaction(reaction: LooiCharacterReacti
         assertSequencePrimitiveCompleted(b, sequenceToken, "character-angry", "right");
         const c = await runBoundedMotion("left", 140, "manual-bounded", { characterReaction: reaction, step: 3 });
         assertSequencePrimitiveCompleted(c, sequenceToken, "character-angry", "left-2");
-        await performLooiHeadGesture("nod", 1);
+        assertHeadSequenceCompleted(await performLooiHeadGesture("nod", 1), sequenceToken, "character-angry", "head-finish");
         assertMotionSequenceActive(sequenceToken, "character-angry", "head-finish");
         break;
       }
       case "victory": {
-        await performLooiHeadGesture("happy_bob");
+        assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, "character-victory", "head-start");
         assertMotionSequenceActive(sequenceToken, "character-victory", "head-start");
         const a = await runBoundedMotion("left", 180, "manual-bounded", { characterReaction: reaction, step: 1 });
         assertSequencePrimitiveCompleted(a, sequenceToken, "character-victory", "left");
@@ -1054,28 +1200,28 @@ export async function performLooiDance(requestedStyle: LooiDanceStyle | "random"
   recordDiagnosticEvent("robot", "dance-started", { style, requestedStyle });
   try {
     if (style === "bounded-wiggle-v1") {
-      await performLooiHeadGesture("happy_bob");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, style, "head-start");
       assertMotionSequenceActive(sequenceToken, style, "head-start");
       const a = await turnLooi("left", 90);
       assertSequencePrimitiveCompleted(a, sequenceToken, style, "left-90");
-      await performLooiHeadGesture("nod", 1);
+      assertHeadSequenceCompleted(await performLooiHeadGesture("nod", 1), sequenceToken, style, "head-after-left");
       const b = await turnLooi("right", 180);
       assertSequencePrimitiveCompleted(b, sequenceToken, style, "right-180");
-      await performLooiHeadGesture("happy_bob");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, style, "head-after-right");
       const c = await turnLooi("left", 90);
       assertSequencePrimitiveCompleted(c, sequenceToken, style, "left-return");
-      await performLooiHeadGesture("nod", 2);
+      assertHeadSequenceCompleted(await performLooiHeadGesture("nod", 2), sequenceToken, style, "head-finish");
     } else if (style === "happy-sway-v1") {
-      await performLooiHeadGesture("happy_bob");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, style, "head-start");
       assertMotionSequenceActive(sequenceToken, style, "head-start");
       const a = await turnLooi("left", 90);
       assertSequencePrimitiveCompleted(a, sequenceToken, style, "left-90");
       const b = await turnLooi("right", 90);
       assertSequencePrimitiveCompleted(b, sequenceToken, style, "right-return");
-      await performLooiHeadGesture("happy_bob");
-      await performLooiHeadGesture("nod", 1);
+      assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, style, "head-after-turns");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("nod", 1), sequenceToken, style, "head-finish");
     } else {
-      await performLooiHeadGesture("curious");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("curious"), sequenceToken, style, "head-start");
       assertMotionSequenceActive(sequenceToken, style, "head-start");
       const a = await runBoundedMotion("left", 160, "manual-bounded", { danceStyle: style, step: 1 });
       assertSequencePrimitiveCompleted(a, sequenceToken, style, "left-1");
@@ -1083,7 +1229,7 @@ export async function performLooiDance(requestedStyle: LooiDanceStyle | "random"
       assertSequencePrimitiveCompleted(b, sequenceToken, style, "right");
       const c = await runBoundedMotion("left", 160, "manual-bounded", { danceStyle: style, step: 3 });
       assertSequencePrimitiveCompleted(c, sequenceToken, style, "left-2");
-      await performLooiHeadGesture("happy_bob");
+      assertHeadSequenceCompleted(await performLooiHeadGesture("happy_bob"), sequenceToken, style, "head-finish");
     }
     recordDiagnosticEvent("robot", "dance-finished", { style });
     return { ok: true, style, wheelsUsed: true, bounded: true, availableStyles: [...LOOI_DANCE_STYLES] };
@@ -1212,6 +1358,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
 function triggerSensorSafetyStop(reason: "cliff" | "obstacle", details: Record<string, unknown>): void {
   if (!state.motionActive) return;
   motionSequenceAbortGeneration += 1;
+  cancelLooiHeadMotion(`sensor-${reason}`);
   clearContinuousMotionDeadman();
   clearNearEdgeEscapeTimers();
   const direction = state.activeDirection;
