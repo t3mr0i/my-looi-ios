@@ -115,4 +115,18 @@ assert.equal(blocked.ok, false);
 assert.equal(blocked.reason, "background-suspended");
 assert.equal(connectCalls, 3, "background must not reconnect BLE");
 
+for (const value of [null, { id: 42, name: "LOOI" }, { id: "robot", name: {} }, { id: " ", name: "LOOI" }]) {
+  savedRaw = JSON.stringify(value);
+  assert.equal(await auto.getSavedLooiRobot(), null, "malformed stored robot data cannot reach the BLE manager");
+}
+appState.currentState = "active";
+const disconnectsBeforeSelection = disconnectCalls;
+await auto.connectSelectedLooiRobot({ id: "selected-robot", name: "Selected LOOI" });
+assert.equal(disconnectCalls - disconnectsBeforeSelection, 1, "a selection performs one teardown before connecting");
+assert.deepEqual(await auto.getSavedLooiRobot(), { id: "selected-robot", name: "Selected LOOI" });
+await robotMock.disconnectLooiRobot();
+const disconnectsBeforeRecovery = disconnectCalls;
+await auto.forceReconnectSavedLooiRobot();
+assert.equal(disconnectCalls - disconnectsBeforeRecovery, 1, "manual recovery must not disconnect twice");
+
 console.log("BLE autoconnect lifecycle behavioral tests passed");

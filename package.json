@@ -65,7 +65,7 @@
     "repo:public-audit": "node scripts/public-repository-audit.mjs",
     "voice:accept-device": "node scripts/run-voice-device-acceptance.mjs",
     "motion:safety-test": "node scripts/motion-deadman-behavior.test.mjs",
-    "ble:lifecycle-test": "node scripts/ble-autoconnect-behavior.test.mjs && node scripts/ble-cancellation-behavior.test.mjs",
+    "ble:lifecycle-test": "node scripts/ble-autoconnect-behavior.test.mjs && node scripts/ble-cancellation-behavior.test.mjs && node scripts/ble-discovery-behavior.test.mjs",
     "vosk:emergency-stop-test": "node scripts/vosk-emergency-stop-behavior.test.mjs",
     "motion:cliff-test": "node scripts/cliff-directional-safety.test.mjs",
     "ble:adoption-test": "node scripts/ble-existing-connection-adoption.test.mjs",
@@ -117,7 +117,7 @@
     "runtime:2.1.151-test": "node scripts/v2.1.151-public-release-regression.test.mjs",
     "ios:prepare": "bash scripts/prepare-ios.sh",
     "eas-build-pre-install": "if [ \"$EAS_BUILD_PLATFORM\" = \"ios\" ]; then bash scripts/download-vosk-command-models.sh && node scripts/stage-ios-vosk-models.cjs; fi",
-    "ios:check": "tsc --noEmit && node scripts/native-capture-profile.test.mjs && node scripts/vosk-emergency-stop-behavior.test.mjs && node scripts/ios-runtime-behavior.test.mjs && node scripts/realtime-session-isolation.test.mjs && node scripts/ble-cancellation-behavior.test.mjs && node scripts/ble-foreground-retry-behavior.test.mjs",
+    "ios:check": "tsc --noEmit && node scripts/native-capture-profile.test.mjs && node scripts/vosk-emergency-stop-behavior.test.mjs && node scripts/ios-runtime-behavior.test.mjs && node scripts/realtime-session-isolation.test.mjs && node scripts/ble-cancellation-behavior.test.mjs && node scripts/ble-foreground-retry-behavior.test.mjs && node scripts/ble-discovery-behavior.test.mjs",
     "ios:build-simulator": "bash scripts/build-ios-simulator.sh"
   },
   "private": true,

@@ -33,7 +33,7 @@ for (const platform of ["ios", "android"]) {
   const appState = { currentState: "active", addEventListener(_, callback) {
     this.onChange = callback; return { remove() {} };
   } };
-  const storedRobot = deferred();
+  let storedRobot = deferred();
   let reads = 0, configurations = 0, connections = 0, disconnections = 0, connected = false;
   let currentTransport;
   const auto = load("src/device-tools/looi-robot-autoconnect.ts", {
@@ -77,6 +77,17 @@ for (const platform of ["ios", "android"]) {
   assert.equal(disconnections, 0);
   assert.equal(connected, true);
   await auto.suspendLooiRobotAutoConnection();
+
+  // A late storage failure belongs to the cancelled startup as well. It cannot
+  // schedule retries or turn the replacement lifecycle into a failed connect.
+  storedRobot = deferred();
+  const readsBefore = reads;
+  const cancelledRead = auto.resumeLooiRobotAutoConnection();
+  await until(() => reads > readsBefore);
+  appState.currentState = "background";
+  appState.onChange("background");
+  storedRobot.reject(new Error("stale SecureStore read failed"));
+  assert.equal((await cancelledRead).reason, "superseded");
 }
 
 const sdk = load("packages/looi-sdk/src/index.ts", {});

@@ -8,7 +8,6 @@ import {
   getLooiRobotRuntimeState,
   handleLooiRobotTransportDisconnected,
   markLooiDriveControlNeedsRevalidation,
-  stopLooiMotion,
 } from "./looi-robot";
 
 export type SavedLooiRobot = {
@@ -67,7 +66,7 @@ function disconnectPendingConnection(): Promise<void> {
 }
 
 function clearReconnectTimer(): void {
-  if (!disconnectReconnectTimer) return;
+  if (disconnectReconnectTimer === null) return;
   clearTimeout(disconnectReconnectTimer);
   disconnectReconnectTimer = null;
 }
@@ -84,25 +83,7 @@ function scheduleForegroundReconnectRetry(reason: string, error?: unknown, initi
   const timer = setTimeout(() => {
     if (disconnectReconnectTimer !== timer) return;
     disconnectReconnectTimer = null;
-    if (!canConnect(generation) || getLooiRobotRuntimeState().connected) return;
-    recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-start", { reason, retry });
-    void startLooiRobotAutoConnection()
-      .then((result) => {
-        recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-finished", {
-          reason,
-          ok: result.ok,
-          skipped: "skipped" in result ? result.skipped : false,
-          skipReason: "reason" in result ? result.reason ?? "none" : "none",
-        });
-      })
-      .catch((retryError) => {
-        if (!canConnect(generation)) return;
-        recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-failed", {
-          reason,
-          error: retryError instanceof Error ? retryError.message : String(retryError),
-        });
-        scheduleForegroundReconnectRetry(reason, retryError);
-      });
+    void retryForegroundConnection(reason, generation, retry);
   }, delayMs);
   disconnectReconnectTimer = timer;
   recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-scheduled", {
@@ -113,6 +94,27 @@ function scheduleForegroundReconnectRetry(reason: string, error?: unknown, initi
   });
 }
 
+async function retryForegroundConnection(reason: string, generation: number, retry: number): Promise<void> {
+  if (!canConnect(generation) || getLooiRobotRuntimeState().connected) return;
+  recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-start", { reason, retry });
+  try {
+    const result = await startLooiRobotAutoConnection();
+    if (!canConnect(generation)) return;
+    recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-finished", {
+      reason,
+      ok: result.ok,
+      skipped: !result.ok,
+      skipReason: result.ok ? "none" : result.reason ?? "none",
+    });
+  } catch (error) {
+    if (!canConnect(generation)) return;
+    recordDiagnosticEvent("robot", "ble-foreground-reconnect-retry-failed", {
+      reason, error: error instanceof Error ? error.message : String(error),
+    });
+    scheduleForegroundReconnectRetry(reason, error);
+  }
+}
+
 function ensureMotionSafetyLifecycle(): void {
   if (motionSafetySubscription || Platform.OS === "web") return;
   motionSafetySubscription = AppState.addEventListener("change", (nextState) => {
@@ -121,9 +123,8 @@ function ensureMotionSafetyLifecycle(): void {
     // time to release audio/BLE. This closes the link-loss auto-reconnect race.
     autoConnectionSuspended = true;
     invalidateConnectionAttempts();
-    void stopLooiMotion("app-background").catch((error) => {
-      console.warn("[LOOI BLE] Emergency stop on app background failed", error);
-    });
+    // disconnectLooiRobot issues STOP before its first await. A separate stop
+    // here would send the same command twice and race two failure recoveries.
     void disconnectPendingConnection().catch((error) => {
       console.warn("[LOOI BLE] Cancelling background connection failed", error);
     });
@@ -149,9 +150,7 @@ export function startLooiRobotAutoConnection(): Promise<AutoConnectionResult> {
     const attempt = enqueueConnection(() => connectSavedRobot(generation));
     connectionPromise = attempt;
     const releaseAttempt = () => {
-      // v1.1.37 retained the resolved promise forever. After an explicit BLE
-      // disconnect a later auto-connect could therefore return stale success
-      // without starting a new connection. Always release completed attempts.
+      // Settled results cannot describe a future physical BLE connection.
       if (connectionPromise === attempt) connectionPromise = null;
     };
     void attempt.then(releaseAttempt, releaseAttempt);
@@ -213,7 +212,7 @@ export async function forceReconnectSavedLooiRobot(): Promise<AutoConnectionResu
     if (!saved) return { ok: false, skipped: true, reason: "no-saved-robot" };
     recordDiagnosticEvent("robot", "ble-force-reconnect-start", { robotId: saved.id });
     markLooiDriveControlNeedsRevalidation("force-reconnect");
-    const result = await configureAndConnect(saved, generation);
+    const result = await connectRobot(saved, generation);
     recordDiagnosticEvent("robot", "ble-force-reconnect-finished", { robotId: saved.id });
     return result;
   });
@@ -250,7 +249,7 @@ export async function connectSelectedLooiRobot(robot: SavedLooiRobot): Promise<{
   const teardown = disconnectPendingConnection();
   return enqueueConnection(async () => {
     await teardown;
-    const result = await configureAndConnect(robot, generation);
+    const result = await connectRobot(robot, generation);
     assertCanConnect(generation);
     await saveSelectedLooiRobot(robot);
     assertCanConnect(generation);
@@ -262,8 +261,10 @@ export async function getSavedLooiRobot(): Promise<SavedLooiRobot | null> {
   const raw = await SecureStore.getItemAsync(SAVED_ROBOT_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<SavedLooiRobot>;
-    if (!parsed.id || !parsed.name) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedLooiRobot> | null;
+    if (!parsed) return null;
+    if (typeof parsed.id !== "string" || !parsed.id.trim()) return null;
+    if (typeof parsed.name !== "string" || !parsed.name.trim()) return null;
     return { id: parsed.id, name: parsed.name };
   } catch {
     return null;
@@ -279,22 +280,22 @@ export async function clearSavedLooiRobot(): Promise<void> {
 
 async function connectSavedRobot(generation: number): Promise<AutoConnectionResult> {
   if (!canConnect(generation)) return { ok: false, skipped: true, reason: "superseded" };
-  const saved = await getSavedLooiRobot();
-  if (!canConnect(generation)) return { ok: false, skipped: true, reason: "superseded" };
-  if (!saved) return { ok: false, skipped: true, reason: "no-saved-robot" };
   try {
-    return await configureAndConnect(saved, generation);
+    const saved = await getSavedLooiRobot();
+    assertCanConnect(generation);
+    if (!saved) return { ok: false, skipped: true, reason: "no-saved-robot" };
+    await disconnectLooiRobot();
+    assertCanConnect(generation);
+    return await connectRobot(saved, generation);
   } catch (error) {
     if (!canConnect(generation)) return { ok: false, skipped: true, reason: "superseded" };
     throw error;
   }
 }
 
-async function configureAndConnect(robot: SavedLooiRobot, generation: number): Promise<{ ok: true; connected: true }> {
+async function connectRobot(robot: SavedLooiRobot, generation: number): Promise<{ ok: true; connected: true }> {
   assertCanConnect(generation);
   const { ReactNativeBleLooiTransport } = await import("./react-native-ble-transport");
-  assertCanConnect(generation);
-  await disconnectLooiRobot();
   assertCanConnect(generation);
   configureLooiRobotTransport(new ReactNativeBleLooiTransport({
     deviceId: robot.id,
@@ -304,11 +305,7 @@ async function configureAndConnect(robot: SavedLooiRobot, generation: number): P
       if (!canConnect(generation)) return;
       handleLooiRobotTransportDisconnected(error);
       connectionPromise = null;
-      // A real BLE link loss invalidates GATT and sensor state. Retry only while
-      // the app is foregrounded and lifecycle reconnects are explicitly enabled.
-      if (!autoConnectionSuspended && AppState.currentState === "active") {
-        scheduleForegroundReconnectRetry("link-loss", error, 700);
-      }
+      scheduleForegroundReconnectRetry("link-loss", error, 700);
     },
   }));
 
