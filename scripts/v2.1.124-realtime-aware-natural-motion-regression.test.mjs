@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 
@@ -57,10 +59,11 @@ assert.ok(storedVersion >= 8);
 assert.ok(savedVersion >= 8);
 
 const settings = read("app/(tabs)/settings.tsx");
-assert.match(settings, /ambientMotionLevel === "lively"/);
-assert.match(settings, /ambientMotionLevel: "lively"/);
+assert.match(settings, /id: "lively" as const/);
+assert.match(settings, /value=\{preferences\.ambientMotionLevel\}/);
+assert.match(settings, /updatePreferences\(\{ ambientMotionLevel: id \}\)/);
 
 const strings = read("src/i18n/ui-strings.ts");
-assert.equal((strings.match(/"settings\.ambientMotionLively":/g) ?? []).length, 3);
+assert.equal((strings.match(/"settings\.ambientMotionLively":/g) ?? []).length, uiLanguageCount);
 
 console.log("v2.1.124 realtime-aware natural motion regression: PASS");

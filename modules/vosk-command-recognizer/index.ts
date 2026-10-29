@@ -71,6 +71,39 @@ export type VoskRecognizerStateEvent = {
   processingMs: number;
 };
 
+export type VoskAssistantRecognitionWord = {
+  word: string;
+  /** Response-relative time from final Vosk endpoint alignment. */
+  startMs: number;
+  endMs: number;
+  confidence: number;
+};
+
+export type VoskAssistantRecognitionEvent = {
+  responseId: string;
+  /** Native output-recognizer generation fence returned by beginAssistantOutput. */
+  generation: number;
+  language: string;
+  words: VoskAssistantRecognitionWord[];
+  /** False marks bounded Vosk partial words; they may retire a prior mood but never set one. */
+  endpoint: boolean;
+  /** End of submitted 24 kHz response PCM; excludes native endpoint flush silence. */
+  audioDurationMs: number;
+};
+
+export type VoskAssistantRecognitionErrorEvent = {
+  responseId: string;
+  generation: number;
+  language: string;
+  stage: string;
+  message: string;
+};
+
+export type VoskAssistantOutputStart = {
+  ready: boolean;
+  generation: number;
+};
+
 type VoskCommandRecognizerEvents = {
   onCommandResult(event: VoskCommandEvent): void;
   onEmergencyStop(event: VoskEmergencyStopEvent): void;
@@ -79,6 +112,8 @@ type VoskCommandRecognizerEvents = {
   onModelReady(event: VoskModelReadyEvent): void;
   onRecognizerError(event: VoskErrorEvent): void;
   onRecognizerState(event: VoskRecognizerStateEvent): void;
+  onAssistantRecognition(event: VoskAssistantRecognitionEvent): void;
+  onAssistantRecognitionError(event: VoskAssistantRecognitionErrorEvent): void;
 };
 
 export type VoskCommandRecognizerStatus = {
@@ -97,6 +132,11 @@ export type VoskCommandRecognizerStatus = {
 
 declare class VoskCommandRecognizerModule extends NativeModule<VoskCommandRecognizerEvents> {
   prepare(language: string, assetDir: string, grammarJson: string, emergencyGrammarJson: string): Promise<void>;
+  beginAssistantOutput(language: string, responseId: string): Promise<VoskAssistantOutputStart>;
+  /** Returns false if the response is stale or the bounded native queue is full. */
+  feedAssistantPcm24(responseId: string, pcm24Base64: string): boolean;
+  endAssistantOutput(responseId: string): void;
+  cancelAssistantOutput(responseId: string): void;
   setGrammar(grammarJson: string): Promise<void>;
   feedSamples(samples: number[]): void;
   armEmergency(reason: string): Promise<boolean>;

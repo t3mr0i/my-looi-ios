@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Allow My LOOI to see a scene you explicitly ask it to look at and optionally detect faces on-device.",
+    "NSMicrophoneUsageDescription": "Allow My LOOI to hear wake phrases, safety commands and your conversations.",
+    "NSBluetoothAlwaysUsageDescription": "Allow My LOOI to connect to your LOOI robot.",
+    "NSLocalNetworkUsageDescription": "Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer."
+  }
+}

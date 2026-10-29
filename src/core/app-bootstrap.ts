@@ -38,7 +38,47 @@ export function bootstrapApp(): Promise<void> {
 
 function runtimeShouldBeActive(): boolean {
   return desiredForegroundActive && AppState.currentState === "active"
-    && !useUserStore.getState().robotSleeping;
+    && !useUserStore.getState().robotSleeping && !voiceRuntime.isMediaExternallyOwned;
+}
+
+/** Transfer camera/audio to a robot app while keeping its BLE control alive. */
+export async function acquireExternalMediaOwnership(
+  owner: string,
+  signal: AbortSignal,
+  options: { allowWhileSleeping?: boolean } = {}
+): Promise<void> {
+  const sleepBlocksAcquire = () => !options.allowWhileSleeping && useUserStore.getState().robotSleeping;
+  if (signal.aborted || AppState.currentState !== "active" || sleepBlocksAcquire()) throw new Error("Robot media is suspended");
+  voiceRuntime.blockForExternalMedia(owner);
+  try {
+    await enqueueRuntimeLifecycle(async () => {
+      if (signal.aborted || AppState.currentState !== "active" || sleepBlocksAcquire()) throw new Error("Robot media was cancelled");
+      await stopRuntimeComponents("external-robot-app", false, true);
+      await setIsAudioActiveAsync(false);
+      if (signal.aborted || AppState.currentState !== "active" || sleepBlocksAcquire()) throw new Error("Robot media was cancelled");
+      recordDiagnosticEvent("runtime", "external-media-acquired", { owner });
+    });
+  } catch (error) {
+    await releaseExternalMediaOwnership(owner);
+    throw error;
+  }
+}
+
+export async function releaseExternalMediaOwnership(owner: string): Promise<void> {
+  voiceRuntime.releaseExternalMedia(owner);
+  await enqueueRuntimeLifecycle(async () => {
+    if (!bootstrapped || !runtimeShouldBeActive()) return;
+    paused = false;
+    await setIsAudioActiveAsync(true);
+    if (!runtimeShouldBeActive()) return;
+    const { kwsAudioFeeder } = await import("../voice/kws-audio-feeder");
+    if (!runtimeShouldBeActive()) return;
+    kwsAudioFeeder.setAppCaptureAllowed(true);
+    await startRuntimePerceivers();
+    if (!runtimeShouldBeActive()) return;
+    startAmbientMotionController("external-media-released");
+    startSocialAttentionController("external-media-released");
+  });
 }
 
 async function performBootstrapApp(): Promise<void> {
@@ -68,11 +108,15 @@ async function performBootstrapApp(): Promise<void> {
   });
 
   const bootSleeping = useUserStore.getState().robotSleeping;
-  if (bootSleeping || !runtimeShouldBeActive()) {
+  if (bootSleeping || !desiredForegroundActive || AppState.currentState !== "active") {
     paused = true;
     desiredForegroundActive = false;
     useUserStore.getState().setVoiceState("sleeping");
     recordDiagnosticEvent("app", bootSleeping ? "sleep-mode-restored-on-boot" : "bootstrap-deferred-until-foreground");
+  } else if (voiceRuntime.isMediaExternallyOwned) {
+    // The external owner will start the normal runtime when it releases media.
+    paused = false;
+    recordDiagnosticEvent("app", "bootstrap-deferred-for-robot-media");
   } else {
     try {
       await setIsAudioActiveAsync(true);
@@ -155,7 +199,7 @@ export async function resumeAppRuntime(): Promise<void> {
   desiredForegroundActive = true;
 
   return enqueueRuntimeLifecycle(async () => {
-    if (!desiredForegroundActive || !paused || useUserStore.getState().robotSleeping) return;
+    if (!desiredForegroundActive || !paused || useUserStore.getState().robotSleeping || voiceRuntime.isMediaExternallyOwned) return;
     // A queued pause must tear down an in-progress resume as well as a fully
     // resumed runtime, including cancellation while audio activation is pending.
     paused = false;
@@ -210,29 +254,34 @@ function enqueueRuntimeLifecycle(task: () => Promise<void>): Promise<void> {
   return queued;
 }
 
-async function stopRuntimeComponents(reason: string): Promise<void> {
+async function stopRuntimeComponents(reason: string, suspendRobot = true, requireMediaRelease = false): Promise<void> {
+  const failures: unknown[] = [];
+  const stop = (component: string, action: () => unknown) => stopRuntimeComponent(component, reason, action, failures);
   // Peripheral teardown starts immediately, independently of loading the capture
   // facade. Every stop settles before the audio session is deactivated.
   const peripheralStops = [
-    stopRuntimeComponent("ambient-motion", reason, () => stopAmbientMotionController(reason)),
-    stopRuntimeComponent("social-attention", reason, () => stopSocialAttentionController(reason)),
-    stopRuntimeComponent("robot", reason, () => suspendLooiRobotAutoConnection(reason)),
+    stop("ambient-motion", () => stopAmbientMotionController(reason)),
+    stop("social-attention", () => stopSocialAttentionController(reason)),
+    ...(suspendRobot ? [stop("robot", () => suspendLooiRobotAutoConnection(reason))] : []),
   ];
   const feeder = await closeCaptureIngress(reason);
   recordDiagnosticEvent("audio", "capture-release-start", { feederRunning: feeder?.isRunning ?? null });
   await Promise.all([
     ...peripheralStops,
-    stopRuntimeComponent("perceivers", reason, () => perceiverManager.stopAll()),
-    stopRuntimeComponent("microphone", reason, () => feeder?.stop()),
-    stopRuntimeComponent("speech-recognition", reason, () => getLoadedSttModule()
+    stop("perceivers", () => perceiverManager.stopAll()),
+    stop("microphone", () => feeder?.stop()),
+    stop("speech-recognition", () => getLoadedSttModule()
       ?.then(({ sttService }) => sttService.cancel({ resumeWakeword: false }))),
-    stopRuntimeComponent("speech-output", reason, () => getLoadedTtsModule()
+    stop("speech-output", () => getLoadedTtsModule()
       ?.then(({ ttsService }) => ttsService.stop())),
   ]);
   recordDiagnosticEvent("audio", "capture-release-finished", {
     feederRunning: feeder?.isRunning ?? null,
     feederDesired: feeder?.diagnosticStatus.desiredRunning ?? null,
   });
+  if (requireMediaRelease && (failures.length > 0 || !feeder || feeder.isRunning)) {
+    throw new Error("Existing camera/audio could not be released for the robot app");
+  }
 }
 
 async function closeCaptureIngress(reason: string) {
@@ -246,9 +295,9 @@ async function closeCaptureIngress(reason: string) {
   }
 }
 
-async function stopRuntimeComponent(component: string, reason: string, stop: () => unknown): Promise<void> {
+async function stopRuntimeComponent(component: string, reason: string, stop: () => unknown, failures?: unknown[]): Promise<void> {
   try { await stop(); }
-  catch (error) { recordStopFailure(component, reason, error); }
+  catch (error) { failures?.push(error); recordStopFailure(component, reason, error); }
 }
 
 function recordStopFailure(component: string, reason: string, error: unknown): void {

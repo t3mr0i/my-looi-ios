@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { loadTypeScript } from "./helpers/load-typescript.mjs";
+const { chooseObjectAttentionGaze: choose } = loadTypeScript("src/core/object-attention-gaze.ts");
+const scene = { userSpeaking: false, assistantSpeaking: false, person: { x: -.6, y: .2 }, object: { x: .8, y: -.3 }, tracking: true, showLoss: false };
+assert.deepEqual(choose(scene), { source: "object", gaze: scene.object });
+assert.deepEqual(choose({ ...scene, userSpeaking: true }), { source: "person", gaze: scene.person });
+assert.deepEqual(choose({ ...scene, userSpeaking: true, person: null }), { source: "neutral", gaze: { x: 0, y: 0 } });
+assert.equal(choose({ ...scene, assistantSpeaking: true }), null, "assistant speech retains the existing conversational gaze policy");
+assert.deepEqual(choose({ ...scene, tracking: false, showLoss: true }), { source: "neutral", gaze: { x: 0, y: 0 } });
+assert.equal(choose({ ...scene, tracking: false, showLoss: false }), null, "loss settles back to the existing expression policy");
+assert.deepEqual(choose({ ...scene, activityAttention: "person" }), { source: "person", gaze: scene.person }, "the linked activity returns attention to the person between glances");
+assert.deepEqual(choose({ ...scene, activityAttention: "object" }), { source: "object", gaze: scene.object }, "only the existing selected region supplies the object glance");
+assert.deepEqual(choose({ ...scene, activityAttention: "object", assistantSpeaking: true }), { source: "person", gaze: scene.person }, "audible speech preempts even a stale object-glance projection");
+assert.deepEqual(choose({ ...scene, activityAttention: "person", person: null }), { source: "neutral", gaze: { x: 0, y: 0 } }, "missing person is not a fabricated gaze target");
+assert.deepEqual(choose({ ...scene, activityAttention: "object", object: null }), { source: "neutral", gaze: { x: 0, y: 0 } }, "a lost linked target cannot borrow an unrelated target");
+console.log("Object attention gaze: selected region, actual speech priority, missing person, loss and settling PASS");

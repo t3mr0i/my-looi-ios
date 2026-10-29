@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 const patchVersion = Number(pkg.version.split(".")[2]);
@@ -46,7 +48,7 @@ assert.ok(/FACE_SKINS/.test(face) || /FACE_STYLES/.test(face));
 assert.match(face, /renderedMouth/);
 
 const strings = read("src/i18n/ui-strings.ts");
-assert.equal((strings.match(/"settings\.appearance":/g) ?? []).length, 3, "appearance must exist in all UI languages");
+assert.equal((strings.match(/"settings\.appearance":/g) ?? []).length, uiLanguageCount, "appearance must exist in all UI languages");
 
 // Guard the accepted movement/audio architecture: this feature is UI/prompt/parser metadata only.
 assert.equal(realtime.includes("movement tool"), true);

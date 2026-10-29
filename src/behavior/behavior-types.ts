@@ -1,4 +1,7 @@
 import type { DecisionQuestion, DecisionResult } from "../openai/decisions";
+import type { CompanionAction, CompanionActionResult, CompanionSnapshot } from "./behavior-companion";
+import type { SharedActivity } from "./shared-activity";
+import type { ConversationTone } from "../character/companion-personality";
 
 export type BehaviorMode = "off" | "shadow" | "active";
 export type BehaviorPosture = "attend" | "reflect" | "yield" | "settle";
@@ -10,9 +13,13 @@ export interface BehaviorSettings {
   dailyBudgetUsd: number;
   visualEnabled: boolean;
   candidateScoring: boolean;
+  /** A single optional question after an explicitly requested image; never background speech. */
+  curiosityEnabled?: boolean;
 }
 
 export interface BehaviorEnvironment {
+  responseLanguage?: string;
+  robotName?: string;
   foreground: boolean;
   focused: boolean;
   sleeping: boolean;
@@ -35,11 +42,32 @@ export interface BehaviorFace {
 export interface BehaviorCue {
   id: string;
   gesture: BehaviorGesture;
-  mood: "startled" | "pleased" | null;
+  mood: "curious" | "startled" | "pleased" | null;
   posture: BehaviorPosture;
   gaze?: { x: number; y: number };
   expiresAt: number;
   generation: number;
+  /** Input-side reaction uses the screen; one physical beat is reserved for the heard outcome. */
+  presentationOnly?: boolean;
+}
+
+/** Temporary user association of a selected region, never a recognized identity. */
+export interface BehaviorObjectReference {
+  sessionId: string;
+  taskId: string;
+  episodeId: string;
+  title: string;
+  referenceVersion: number;
+  trackId: string;
+  /** JavaScript monotonic tracking deadline; this reference is never persisted. */
+  expiresAt: number;
+}
+
+export interface BehaviorMoment {
+  phase: "settled" | "attending" | "reflecting" | "speaking" | "reacting";
+  changedAt: number;
+  userText: string;
+  assistantText: string;
 }
 
 export interface PendingIntention {
@@ -53,11 +81,13 @@ export interface PendingIntention {
   updatedAt: number;
   expiresAt: number;
   version: number;
+  /** One confirmed object trial; its milestones share this task's lifecycle. */
+  activity?: SharedActivity;
 }
 
 export interface BehaviorGameState {
   kind: "guess_number";
-  status: "active" | "won" | "stopped" | "expired";
+  status: "active" | "paused" | "won" | "stopped" | "expired";
   secretAnswer: 1 | 2 | 3;
   attemptsLeft: number;
   round: number;
@@ -71,6 +101,7 @@ export interface BehaviorStylePreferences {
   scope: "device";
   suppressNod: boolean;
   livelyWhenPlayful: boolean;
+  conversationTone: ConversationTone;
   greetingRitual: "nod" | "curious" | "happy_bob" | "off" | null;
   greetingRitualSource: "explicit_user_request" | null;
   maxCuesPerTurn: number;
@@ -127,7 +158,10 @@ export interface BehaviorState {
   game: BehaviorGameState | null;
   style: BehaviorStylePreferences;
   visualAdvice: VisualAdvice | null;
+  objectReference?: BehaviorObjectReference | null;
   repairRequired: boolean;
+  moment: BehaviorMoment;
+  companion: CompanionSnapshot;
   metrics: BehaviorMetrics;
   traces: BehaviorTrace[];
 }
@@ -142,6 +176,7 @@ export type BehaviorEvent =
   | { type: "assistant-end"; text?: string; sessionId: string }
   | { type: "interrupt"; reason: string; sessionId?: string }
   | { type: "faces"; faces: BehaviorFace[]; timestampMs?: number }
+  | { type: "object-reference"; sessionId: string; trackId: string; reference: BehaviorObjectReference | null }
   | { type: "visual"; imageDataUrl: string; taskText?: string; sessionId: string; lowLightLikely?: boolean }
   | { type: "game-command"; action: "start" | "stop"; sessionId?: string }
   | { type: "correction"; sessionId?: string; correctedReference?: string }
@@ -183,8 +218,21 @@ export interface BehaviorEngine {
   setEnvironment(environment: Partial<BehaviorEnvironment>): void;
   dispatch(event: BehaviorEvent): void;
   inspectVisual(imageDataUrl: string, taskText: string, sessionId: string): Promise<string>;
+  companionAction(action: CompanionAction): CompanionActionResult;
+  /** A direct settings action disables only this episode's chosen ritual. */
+  disablePersonalRitual(id: string): boolean;
+  acceptStartSignal(kind: "voice" | "open_palm"): boolean;
+  forgetExperience(id: string): void;
+  tick(): void;
   getState(): BehaviorState;
+  hasPendingReturnConfirmation(): boolean;
   getConversationContext(): string;
+  /** Character-only seam: no tasks, tools, gestures, or session activation. */
+  getPersonalityContext(userText?: string): string;
+  acceptPersonalityTurn(text: string, sessionId: string): void;
+  notePersonalitySpeech(text: string | null, sessionId: string): void;
+  /** Local face-stroke input only; returns a presentation duration, never motor authority. */
+  noteFriendlyStroke(): { durationMs: number } | null;
   serialize(): string;
   restore(serialized: string): void;
   resetLearning(): void;

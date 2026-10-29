@@ -56,5 +56,7 @@ fetch_model "UA" "vosk-model-uk-v3-lgraph" "vosk-command-uk" \
   "https://alphacephei.com/vosk/models/vosk-model-uk-v3-lgraph.zip"
 fetch_model "EN" "vosk-model-en-us-0.22-lgraph" "vosk-command-en" \
   "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22-lgraph.zip"
+fetch_model "DE" "vosk-model-small-de-0.15" "vosk-command-de" \
+  "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip"
 
 echo "Vosk command models ready."

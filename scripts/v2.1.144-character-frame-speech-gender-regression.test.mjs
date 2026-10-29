@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { getStoredPreferencesVersionInfo } from "./helpers/stored-preferences-version.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const pkg = JSON.parse(read("package.json"));
@@ -14,13 +15,21 @@ assert.ok(app.expo.android.versionCode >= 144);
 const user = read("src/store/user.ts");
 assert.match(user, /export type SpeechGender = "masculine" \| "feminine"/);
 assert.match(user, /speechGender: "masculine"/);
-assert.match(user, /version: (?:16|17)/);
+const preferenceVersions = getStoredPreferencesVersionInfo(user);
+assert.ok(preferenceVersions.currentVersion >= 18);
+assert.equal(preferenceVersions.migrationVersion, preferenceVersions.currentVersion);
+assert.ok(preferenceVersions.supportedVersions.includes(preferenceVersions.currentVersion));
+for (const version of [16, 17]) {
+  assert.ok(preferenceVersions.supportedVersions.includes(version), `stored preferences version ${version} remains supported`);
+}
 assert.match(user, /normalizeSpeechGender/);
 
 const settings = read("app/(tabs)/settings.tsx");
 assert.match(settings, /settings\.speechGender/);
-assert.match(settings, /speechGender === "masculine"/);
-assert.match(settings, /speechGender === "feminine"/);
+assert.match(settings, /id: "masculine" as const/);
+assert.match(settings, /id: "feminine" as const/);
+assert.match(settings, /value=\{preferences\.speechGender\}/);
+assert.match(settings, /updatePreferences\(\{ speechGender: id \}\)/);
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of [

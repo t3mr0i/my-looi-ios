@@ -1,5 +1,5 @@
 import { voiceRuntime } from "../perceivers/voice-runtime";
-import { isRealtimeConversationMode, useUserStore } from "../store/user";
+import { isManagedConversationMode, useUserStore } from "../store/user";
 import { useConversationStore } from "../store/conversation";
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { getRuntimeProfile } from "./runtime-profile";
@@ -56,7 +56,7 @@ function wakewordExpected(): boolean {
 function realtimeOwnsVoiceRuntime(context: RecoveryContext): boolean {
   if (context.realtime.isActive) return true;
   const conversation = useConversationStore.getState();
-  return isRealtimeConversationMode(useUserStore.getState().preferences.conversationMode)
+  return isManagedConversationMode(useUserStore.getState().preferences.conversationMode)
     && (conversation.isListening || conversation.isProcessing || conversation.isSpeaking);
 }
 

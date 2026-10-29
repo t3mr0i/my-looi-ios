@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 
@@ -76,7 +78,7 @@ assert.match(settings, /parseRealtimeVisualCommand\(testText, preferences\)/);
 assert.match(settings, /settings\.voiceAction\.look_here/);
 
 const strings = read("src/i18n/ui-strings.ts");
-assert.equal((strings.match(/"settings\.voiceAction\.look_here":/g) ?? []).length, 3);
+assert.equal((strings.match(/"settings\.voiceAction\.look_here":/g) ?? []).length, uiLanguageCount);
 
 const privacy = read("PRIVACY.md");
 assert.match(privacy, /## Explicit visual look/);

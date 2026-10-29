@@ -26,5 +26,7 @@ jobs:
       - run: corepack enable
       - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm run ios:check
-      - name: Compile without signing
+      - name: Build locally signed simulator app
         run: corepack pnpm run ios:build-simulator
+      - name: Verify isolated Vosk framework ABI
+        run: corepack pnpm run ios:vosk-check

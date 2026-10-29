@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Дозволь My LOOI бачити сцену на твоє пряме прохання та за бажанням розпізнавати обличчя на пристрої.",
+    "NSMicrophoneUsageDescription": "Дозволь My LOOI чути слова активації, команди безпеки та твої розмови.",
+    "NSBluetoothAlwaysUsageDescription": "Дозволь My LOOI підключатися до твого робота LOOI через Bluetooth.",
+    "NSLocalNetworkUsageDescription": "Expo Dev Launcher використовує локальну мережу для пошуку серверів розробки на твоєму комп’ютері та підключення до них."
+  }
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { getStoredPreferencesVersionInfo } from "./helpers/stored-preferences-version.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const pkg = JSON.parse(read("package.json"));
@@ -15,7 +16,13 @@ const user = read("src/store/user.ts");
 assert.match(user, /export type VoiceOutputGain = 1 \| 1\.15 \| 1\.3 \| 1\.45/);
 assert.match(user, /voiceOutputGain: 1,/);
 assert.match(user, /wakeWordEnabled: true,/);
-assert.match(user, /version: (?:15|16|17)/);
+const preferenceVersions = getStoredPreferencesVersionInfo(user);
+assert.ok(preferenceVersions.currentVersion >= 17);
+assert.equal(preferenceVersions.migrationVersion, preferenceVersions.currentVersion);
+assert.ok(preferenceVersions.supportedVersions.includes(preferenceVersions.currentVersion));
+for (const version of [15, 16, 17]) {
+  assert.ok(preferenceVersions.supportedVersions.includes(version), `stored preferences version ${version} remains supported`);
+}
 
 const settings = read("app/(tabs)/settings.tsx");
 assert.doesNotMatch(settings, /<Section title=\{t\("settings\.conversation"\)\}>/);

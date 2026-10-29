@@ -1,0 +1,13 @@
+services:
+  agent:
+    # The proxy connects over the existing private network; no host port is published.
+    ports: !reset []
+    networks:
+      proxy:
+        aliases:
+          - looi-agent
+
+networks:
+  proxy:
+    external: true
+    name: ${LOOI_PROXY_NETWORK:?Set LOOI_PROXY_NETWORK to the name of an existing private proxy network}

@@ -375,9 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   actionButtonDestructive: {
-    borderWidth: 1,
-    borderColor: "rgba(255, 92, 122, 0.55)",
-    backgroundColor: "rgba(255, 92, 122, 0.08)",
+    backgroundColor: "transparent",
   },
   actionText: {
     color: "#041319",
@@ -391,6 +389,7 @@ const styles = StyleSheet.create({
   },
   actionTextDestructive: {
     color: looiTheme.danger,
+    fontWeight: "600",
   },
   errorText: {
     color: looiTheme.danger,

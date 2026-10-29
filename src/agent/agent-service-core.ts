@@ -1,4 +1,5 @@
 import type { InterfaceLanguage } from "../i18n/ui-language";
+import type { NousProvider } from "./agent-nous";
 import { createAgentClient, type AgentPageOptions, type AgentRequestOptions } from "./agent-client";
 import { AgentError, normalizeAgentConnection, validateAgentQuery, validateAgentTaskId, type AgentConnection, type PendingAgentTask } from "./agent-protocol";
 
@@ -51,14 +52,22 @@ export function createAgentService(storage: AgentStorage, client = createAgentCl
       const config = await accessStorage(() => storage.readConnection());
       return { url: config?.url ?? "", configured: Boolean(config) };
     },
-    configureAgentConnection: (url: string, token: string) => serialize(async () => {
+    configureAgentConnection: (url: string, token: string, options: AgentRequestOptions = {}) => serialize(async () => {
+      if (options.signal?.aborted) throw new AgentError("cancelled");
       const config = normalizeAgentConnection(url, token);
-      await client.verify(config);
+      await client.verify(config, options);
+      if (options.signal?.aborted) throw new AgentError("cancelled");
       await accessStorage(() => storage.writeConnection(config));
     }),
     disconnectAgent: () => serialize(() => accessStorage(() => storage.writeConnection(null))),
     async verifyAgentConnection(options: AgentRequestOptions = {}) {
       await client.verify(await connection(), options);
+    },
+    async getNousConnections(options: AgentRequestOptions = {}) {
+      return client.nousConnections(await connection(), options);
+    },
+    async startNousConnection(provider: NousProvider, subject: string, options: AgentRequestOptions = {}) {
+      return client.startNousConnection(await connection(), provider, subject, options);
     },
     async listAgentTasks(options: AgentRequestOptions = {}) {
       return (await client.listPage(await connection(), options)).tasks;
@@ -77,7 +86,7 @@ export function createAgentService(storage: AgentStorage, client = createAgentCl
       const config = await connection();
       if (options.signal?.aborted) throw new AgentError("cancelled");
       if (await accessStorage(() => storage.readPending(config.url))) throw new AgentError("pending_submission");
-      if (!["en", "ru", "uk"].includes(language)) throw new AgentError("invalid_query");
+      if (!["en", "ru", "uk", "de"].includes(language)) throw new AgentError("invalid_query");
       const pending = { id: validateAgentTaskId(makeId()), query: validateAgentQuery(query), language };
       // This write must succeed before any request can reach the server.
       await accessStorage(() => storage.writePending(config.url, pending));

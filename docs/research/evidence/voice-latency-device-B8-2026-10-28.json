@@ -1,0 +1,38 @@
+{
+  "preparedAt": "2026-10-28T20:23:23.388383+00:00",
+  "variant": "B8 regular Budget + native SVG + early input attention",
+  "bundleVersion": "2.1.151 (41)",
+  "bundleIdentifier": "io.github.razor79.mylooi",
+  "bundleSha256": "c22e3ceeb5b6f14d885ab1f4e25e3cf9ce49b953287fe015cda3e7057acc694b",
+  "bundleBytes": 8296757,
+  "nativeExecutableSha256": "7fac00ea7bb270ab938c449cbe78a194cc375ded1b2ec0a7f141054ef532232b",
+  "bundleFormat": "Hermes bytecode v98",
+  "frozenSourceFiles": 240,
+  "sourceSnapshotSha256": "59383a4843a7f339b3ff5bf0ed2a777b6cf053e0bb6f3fbc736230d4b480555a",
+  "nativeInputsSha256": "ebf4b288538f66a0cf085290d56be5d0cd0292415c048823bb4f72d9a58ef70f",
+  "sourceAndNativeInputsUnchangedAfterBuild": true,
+  "nativeSvgClassCount": 87,
+  "signature": "codesign --verify --deep --strict passed",
+  "regularPackage": true,
+  "knownBenchmarkAndProbeMarkersAbsent": true,
+  "earlyInputAttentionIncluded": true,
+  "validation": {
+    "nativeReleaseBuild": "passed",
+    "TypeScript": "passed",
+    "fullIosCheck": "passed after test-native boundaries updated",
+    "inputAttentionRuntimeAndComponent": "passed"
+  },
+  "buildLogSha256": "9e91dba19013c15af548103c625213c4b600cf41945cc5e2d854988cfe59f105",
+  "iosCheckLogSha256": "821c0e634f444e2aacf58def06a41964d9e4c91b5c961d3a50de17b8a6efa284",
+  "appPath": "/private/tmp/looi-latency-2026-10-28/B8.app",
+  "deviceResponseValidation": false,
+  "externalAcousticValidation": false,
+  "limits": [
+    "Configuration bounds are not measured microphone-to-pixel times.",
+    "No valid physical iPhone response comparison or human quality/interruption series."
+  ],
+  "installation": "success",
+  "launch": "success",
+  "startupEvidence": "voice-latency-device-B8-startup-2026-10-28.json",
+  "supersededBy": "B9 healthy listening tap fix"
+}

@@ -47,7 +47,7 @@ const service = createAgentService({
     const raw = pendingStorage.getString(url);
     if (!raw) return null;
     const value: unknown = JSON.parse(raw);
-    if (!isRecord(value) || typeof value.query !== "string" || !["en", "ru", "uk"].includes(String(value.language))) throw new Error("Invalid pending task");
+    if (!isRecord(value) || typeof value.query !== "string" || !["en", "ru", "uk", "de"].includes(String(value.language))) throw new Error("Invalid pending task");
     return { id: validateAgentTaskId(value.id), query: validateAgentQuery(value.query), language: value.language } as PendingAgentTask;
   },
   async writePending(url, value) {
@@ -57,5 +57,5 @@ const service = createAgentService({
   },
 }, createAgentClient({ fetcher: expoFetch as unknown as typeof fetch }), Crypto.randomUUID);
 
-export const { getAgentSettings, configureAgentConnection, disconnectAgent, verifyAgentConnection, listAgentTasks, listAgentTaskPage, getAgentTask, getPendingAgentTask, submitAgentTask, retryPendingAgentTask, cancelAgentTask, deleteAgentTask } = service;
+export const { getAgentSettings, configureAgentConnection, disconnectAgent, verifyAgentConnection, listAgentTasks, listAgentTaskPage, getAgentTask, getPendingAgentTask, submitAgentTask, retryPendingAgentTask, cancelAgentTask, deleteAgentTask, getNousConnections, startNousConnection } = service;
 export { getAgentErrorCode } from "./agent-protocol";

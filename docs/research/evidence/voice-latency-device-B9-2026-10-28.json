@@ -1,0 +1,51 @@
+{
+  "preparedAt": "2026-10-28T20:38:01.877208+00:00",
+  "variant": "B9 regular Budget with continuous healthy input on quiet tap",
+  "bundleVersion": "2.1.151 (41)",
+  "bundleIdentifier": "io.github.razor79.mylooi",
+  "bundleSha256": "ca017785dd8e6d77e7100a1eb872a2fc3d4d49ca0714a08f815af271463dc505",
+  "bundleBytes": 8297568,
+  "bundleFormat": "Hermes bytecode v98",
+  "nativeExecutableSha256": "b9b8d52596cc26f5795bb1fe2f6671828fa076189c3a30b0a21067916f782867",
+  "nativeTextSectionSha256": "784e3096ed68029e59a05948f2cd066969102dc48fa67d20f0758e9fb9738735",
+  "nativeTextSectionIdenticalToB8": true,
+  "nativeCodeReusedFromB8": true,
+  "assetGraphReusedFromB8": true,
+  "sourceSnapshotSha256": "1923ecb9e27b33335104412fb3bd5a28ccedcfd5555a8b703b2410f23fe6344d",
+  "frozenSourceFiles": 240,
+  "productionDeltaFromB8": [
+    "src/voice/budget-conversation.ts: retain healthy listening recorder, pending VAD and samples; renew idle timer"
+  ],
+  "signature": "codesign --verify --deep --strict passed",
+  "knownBenchmarkAndProbeMarkersAbsent": true,
+  "earlyInputAttentionIncluded": true,
+  "installation": "success",
+  "launch": "success",
+  "installedAppUrlSuffix": "/B9.app/",
+  "validation": {
+    "TypeScript": "passed as part of ios:check",
+    "fullIosCheck": "passed",
+    "listeningTapRegression": "red on B8 behavior, green with B9",
+    "pendingVadAndIdleTimer": "passed",
+    "staleInputRepair": "passed",
+    "confirmedSpeechFinish": "passed",
+    "outputInterruption": "passed in Budget runtime suite"
+  },
+  "iosCheckLogSha256": "ee226595b0efd51d80f03f18aeefbe0664cf7a4335c4f8216d8f8cbd8754f8ce",
+  "bundleLogSha256": "4bec64deb6deb97b256a485bd367692d74810968282bfa357aca87deaa793b93",
+  "receiptSha256": {
+    "install-B9.json": "4f43c341194e1a4453021f75525860686a1d50e77dd2ab52001ff45f19f9f46e",
+    "launch-B9.json": "68e29b53a84b86ffcc1b941b02a0e0aecf7809c5520a604da6a3e28438c797e0"
+  },
+  "deviceResponseValidation": false,
+  "externalAcousticValidation": false,
+  "appPath": "/private/tmp/looi-latency-2026-10-28/B9.app",
+  "limits": [
+    "The physical tap blackout baseline was measured on B8; absence of B9 input blackouts on actual repeated taps is not yet verified.",
+    "The early cue is installed but has no microphone-to-visible-pixel timing proof.",
+    "No valid controlled physical before/after speech-response series or human quality/interruption acceptance."
+  ],
+  "startupEvidence": "voice-latency-device-B9-startup-2026-10-28.json",
+  "installedAppListVerified": true,
+  "modeObserved": "budget"
+}

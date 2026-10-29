@@ -1,0 +1,100 @@
+{
+  "preparedAt": "2026-10-28T16:18:39.644317+00:00",
+  "sourceSnapshotSha256": "9635a446d6b7a27d09b153e6bb66c779177d5bc3db96f593d87d9de29761ba3c",
+  "bundleVersion": "2.1.151 (41)",
+  "nativeCode": "A2/B2 share pre-patch native code; B5 and realtime pilots include the AudioStudio interval patch.",
+  "difference": "A/B were intended to differ only by the completed-segment fast path. Export inspection found Expo 56 export:embed does not forward its --config option in the direct bundle path; the custom frozen-source transformer was not applied. These packages are not an admitted controlled A/B pair.",
+  "variants": {
+    "A2": {
+      "bundleSha256": "238ef2b4963711ee9c581be340ae2e54462b1e4147922f0a18ecf3a0c8b059e1",
+      "bytes": 7986811,
+      "budgetEntryFix": true,
+      "status": "invalid round: user clarified that no spoken response had worked"
+    },
+    "B2": {
+      "bundleSha256": "4060a673e10edcd425c3b26f0bb498b194e3075ffe0a7771d4725f94834212a9",
+      "bytes": 7989176,
+      "budgetEntryFix": true,
+      "status": "prepared but not used for a valid comparison"
+    },
+    "B3": {
+      "bundleSha256": "313fa611a27e68ab0200c4ef0d78bb075a63100ecc9d5f8112d9f2aaf7ae5621",
+      "bytes": 8020971,
+      "budgetEntryFix": true,
+      "completedSegmentFastPath": true,
+      "inputHealthMetadata": true
+    },
+    "B4": {
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 1000,
+      "status": "native profile verified, response verification failed"
+    },
+    "B5": {
+      "bundleSha256": "8a401a2bce065f84ba1e19d574d64b6687fe17bc6797807a0dfc803ff4a12c91",
+      "bytes": 8062666,
+      "nativeAudioStudioPatch": "147d3b63eedfe2149155c5fe7396479a49649a87f1515c4ed1e75edb7e5c0d8f",
+      "budgetEntryFix": true,
+      "completedSegmentFastPath": true,
+      "status": "native reported interval=100ms, sampled blocks100\u2013200ms; one complete internal playing callback, no external acoustic or human confirmation"
+    },
+    "B6": {
+      "bundleSha256": "6bddf8406e6b6911b586b1674e5cca338806e39978acf8757d7382d49a02842d",
+      "bundleBytes": 8078176,
+      "sourceSnapshotSha256": "75de35453bc7e64e54bad20d983e2d79121fbc5d370e719e4b4f15f845e838eb",
+      "nativeCodeSha256ExcludingSignature": "011ddb85db022c945bd056fea1f45271e16a51b0400396a40088c07c9a5e6bd7",
+      "signature": "codesign --verify --deep --strict passed",
+      "deviceValidation": false,
+      "status": "signed Release/Hermes package prepared; not installed; first-chunk-before-EOF verified with mocks only"
+    },
+    "B7": {
+      "bundleSha256": "8694a8c50815beb919bd4531fc441e1deb9dd8c503a7731ecfc7d3d942847ab8",
+      "nativeTextSectionSha256": "f4112283498954117842ea451df38aeca8625f2b9c8b6546b5987fcb60d78280",
+      "status": "regular package installed and launched; Budget and interval100 reported; app backgrounded before a valid response trial",
+      "signature": "codesign --verify --deep --strict passed",
+      "deviceValidation": false,
+      "installationEvidence": "voice-latency-device-B7-startup-2026-10-28.json"
+    },
+    "B8": {
+      "bundleSha256": "c22e3ceeb5b6f14d885ab1f4e25e3cf9ce49b953287fe015cda3e7057acc694b",
+      "status": "B8 regular Budget + native SVG + early input attention; installed and launched; no controlled response series",
+      "signature": "codesign --verify --deep --strict passed",
+      "deviceValidation": false,
+      "evidence": "voice-latency-device-B8-2026-10-28.json"
+    },
+    "B9": {
+      "bundleSha256": "ca017785dd8e6d77e7100a1eb872a2fc3d4d49ca0714a08f815af271463dc505",
+      "status": "B9 regular Budget with continuous healthy input on quiet tap; installed and launched; no controlled response series",
+      "signature": "codesign --verify --deep --strict passed",
+      "deviceValidation": false,
+      "evidence": "voice-latency-device-B9-2026-10-28.json"
+    }
+  },
+  "initialSourceSnapshotSha256": "3f7b3cd9d0658828be32edeb18dc309e72835424151d620284d08171dc48c10b",
+  "initialVariants": {
+    "A": {
+      "bundleSha256": "635e669e3114786e6a37190010359e8cc9b264d7aeef40742228a44a2b9254d0",
+      "bytes": 7928249
+    },
+    "B": {
+      "bundleSha256": "e9340b4132681f625241a19fdd80dfdf7677850f2a3be4d16624c563575317b6",
+      "bytes": 7928527
+    }
+  },
+  "initialVariantsStatus": "Round A failed at pre-existing Budget entry gate; not valid speech-response data",
+  "currentStatus": "Regular B9 installed and launched, Budget observed. B8 native build and full B8/B9 ios:check passed. Early input cue installed. B9 preserves healthy capture on quiet tap after B8 showed an approximately one-second input blackout. Controlled conversation comparison, physical cue timing and human quality acceptance remain open.",
+  "frozenSourceClaimRetracted": true,
+  "preAudioStudioPatchNativeCodeSha256ExcludingSignature": "757a7f0ff1caa6782e4a26bb02913e8ef75cdf0745643a8239b9a4a3c8f28361",
+  "correctedRealtimePilot": {
+    "sourceSnapshotSha256": "44b8637a70b12d0c2cd837bd069ee51745a4542e6a1884d3bac4d26fd338c6d8",
+    "frozenSourceFiles": 236,
+    "configDelivery": "EXPO_OVERRIDE_METRO_CONFIG; --config is ignored by Expo56 direct export",
+    "embeddedMarkerVerified": true,
+    "nativeMachOSha256ExcludingSignature": "7b3b4846b2c9514ca3c06a4b38de9114e59803c11cd7d995f1a539d520c00b30",
+    "bundles": {
+      "fixed": "6ca93953f0adac690ea500ab812b1591a242d929f74fb75f9d4ca0b0d91e2dfd",
+      "semantic": "f95c22863374a68cfc74b639163907e8ebed12b0816d5b96f55e259ade75e0fa",
+      "restoreBudget": "0e3160c39005de6a8de4afe2644ff1bb261b8f0df5339062e0f0bdad4005c4e5"
+    },
+    "status": "corrected fixed test had never launched (Locked). Regular B7 restoration now completed; Budget observed. No valid Realtime comparison."
+  }
+}

@@ -1,0 +1,54 @@
+The following is a diff from the previous accessibility tree for Window: "LOOI Expression Review" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 103-155
+~					56 button Description: Zurück, Secondary Actions: Cancel
+~					57 heading Description: Roboterverbindung und Diagnose, Secondary Actions: Cancel
+~					58 text Description: Teste die LOOI-Steuerung und die Sensorsicherheit, ohne den Roboter vor dir zu haben., Secondary Actions: Cancel
+~					59 text Description: Diagnosemodus, Secondary Actions: Cancel
+~					60 text Secondary Actions: Cancel, Description: Nur im Simulationsmodus werden Bewegungen nachgestellt. OpenAI-Anfragen können weiterhin Kosten verursachen.
+~					61 text Description: Manuelle Tests funktionieren ohne API-Schlüssel und Mikrofon., Secondary Actions: Cancel
+~					62 text Description: Verbindungsmodus, Secondary Actions: Cancel
+~					63 button (selected) Description: Verbindungsmodus: Hardware, Secondary Actions: Cancel
+~					64 button Description: Verbindungsmodus: Simulierter Roboter, Secondary Actions: Cancel
+~					65 button Description: Verbindungsmodus: Getrennt, Secondary Actions: Cancel
+~					66 text Description: Verbindungsstatus, Secondary Actions: Cancel
+~					67 text Description: Nicht verbunden, Secondary Actions: Cancel
+~					68 text Description: Im Hardwaremodus wird die konfigurierte LOOI-Verbindung verwendet., Secondary Actions: Cancel
+~					69 text Secondary Actions: Cancel, Description: FunctionCallException: Calling the 'getValueWithKeyAsync' function has failed (at ExpoModulesCore/AsyncFunctionDefinition.swift:123)
+→ Caused by: KeyChainException: A required entitlement isn't present. (at ExpoSecureStore/SecureStoreModule.swift:168)
+~					70 text Description: Aktueller Roboterstatus, Secondary Actions: Cancel
+~					71 text Description: Kopf, Secondary Actions: Cancel
+~					72 text Description: Von der Hardware nicht gemeldet, Secondary Actions: Cancel
+~					73 text Description: Antrieb, Secondary Actions: Cancel
+~					74 text Description: Von der Hardware nicht gemeldet, Secondary Actions: Cancel
+~					75 text Description: Licht, Secondary Actions: Cancel
+~					76 text Description: Von der Hardware nicht gemeldet, Secondary Actions: Cancel
+~					77 text Description: Bewegungssicherheit, Secondary Actions: Cancel
+~					78 text Description: Unbekannt, Secondary Actions: Cancel
+~					79 text Description: Grund, Secondary Actions: Cancel
+~					80 text Description: fed9-never-seen, Secondary Actions: Cancel
+~					81 text Description: Sensorszenario, Secondary Actions: Cancel
+~					82 button (disabled) Description: Sensorszenario: Freier Boden, Secondary Actions: Cancel
+~					83 button (disabled) Description: Sensorszenario: Kante vorn, Secondary Actions: Cancel
+~					84 button (disabled) Description: Sensorszenario: Kante hinten, Secondary Actions: Cancel
+~					85 button (disabled) Description: Sensorszenario: Hindernis voraus, Secondary Actions: Cancel
+~					86 button (disabled) Description: Sensorszenario: Unbekannte Sensorwerte, Secondary Actions: Cancel
+~					87 button Description: Offline-Verhalten testen, Öffnen, Secondary Actions: Cancel
+~					88 button Description: Live-Test der Decisions API, Öffnen, Secondary Actions: Cancel
+~					89 text Description: Manuelle Steuerung, Secondary Actions: Cancel
+~					90 text Secondary Actions: Cancel, Description: Bewegungsbefehle sind zeitlich begrenzt und durchlaufen dieselben Sicherheitsprüfungen wie das Verhalten des Roboters.
+~					91 button (disabled) Description: Robotertest in der Simulation ausführen: Nicken, Secondary Actions: Cancel
+~					92 button (disabled) Description: Robotertest in der Simulation ausführen: Nach oben schauen, Secondary Actions: Cancel
+~					93 button (disabled) Description: Robotertest in der Simulation ausführen: Kopf mittig ausrichten, Secondary Actions: Cancel
+~					94 button (disabled) Description: Robotertest in der Simulation ausführen: Nach unten schauen, Secondary Actions: Cancel
+~					95 button (disabled) Description: Robotertest in der Simulation ausführen: Vorwärts · 500 ms, Secondary Actions: Cancel
+~					96 button (disabled) Description: Robotertest in der Simulation ausführen: Nach links drehen · 350 ms, Secondary Actions: Cancel
+~					97 button (disabled) Description: Robotertest in der Simulation ausführen: Licht einschalten, Secondary Actions: Cancel
+~					98 button (disabled) Description: Bewegung des simulierten Roboters anhalten, Secondary Actions: Cancel
+~					99 text Description: Die manuelle Steuerung ist nur verfügbar, wenn der simulierte Roboter verbunden ist., Secondary Actions: Cancel
+~					100 button (disabled) Description: Aktivitätsprotokoll des simulierten Roboters löschen, Secondary Actions: Cancel
+~					101 text Description: Letzte Aktivitäten, Secondary Actions: Cancel
+~					102 text Description: Aktivitäten sind verfügbar, wenn der Simulationsmodus ausgewählt ist., Secondary Actions: Cancel
+Selected:
+	7 row (selected)
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

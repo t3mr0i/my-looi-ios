@@ -15,11 +15,15 @@ public final class RealtimePcmAudioModule: Module {
   private var failedIngressGeneration: Int?
 
   private var capturing = false
+  private var voiceProcessingEnabled = false
   private var tapInstalled = false
   private var captureGeneration = 0
   private var chunks = 0
   private var capturedFrames = 0
   private var playbackGeneration = 0
+  // Stable output owner survives the player's drain/error generation change.
+  // Protected by ingressLock when read by notification callbacks.
+  private var outputOnlyGeneration: Int?
   private var playing = false
   private var finishing = false
   private var completedFrames: Int64 = 0
@@ -39,7 +43,7 @@ public final class RealtimePcmAudioModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("RealtimePcmAudio")
-    Events("onAudioData", "onCaptureError", "onPlaybackDrained", "onPlaybackError")
+    Events("onAudioData", "onCaptureError", "onPlaybackDrained", "onPlaybackError", "onPlaybackStarted")
     OnCreate {
       self.engine.attach(self.player)
       self.engine.connect(self.player, to: self.engine.mainMixerNode, format: self.playbackFormat)
@@ -54,10 +58,17 @@ public final class RealtimePcmAudioModule: Module {
         forName: .AVAudioEngineConfigurationChange, object: self.engine, queue: nil
       ) { [weak self] _ in
         guard let self else { return }
-        self.ingressLock.lock(); let generation = self.ingressGeneration; self.ingressLock.unlock()
+        self.ingressLock.lock()
+        let generation = self.ingressGeneration
+        let outputGeneration = self.outputOnlyGeneration
+        self.ingressLock.unlock()
         self.worker.async { [weak self] in
-          guard let self, let generation, !self.engine.isRunning else { return }
-          self.failCapture("route-change", "Audio configuration changed; restart the conversation", generation: generation)
+          guard let self, !self.engine.isRunning else { return }
+          if let generation {
+            self.failCapture("route-change", "Audio configuration changed; restart the conversation", generation: generation)
+          } else if let outputGeneration, self.outputOnlyGeneration == outputGeneration {
+            self.playbackFailure("Audio output configuration changed")
+          }
         }
       }
     }
@@ -68,7 +79,14 @@ public final class RealtimePcmAudioModule: Module {
       self.worker.sync { self.stopCapture(); return self.status() }
     }
     AsyncFunction("getStatus") { self.worker.sync { self.status() } }
-    Function("beginPlayback") { self.worker.sync { self.beginPlayback() } }
+    Function("getMonotonicTimeMs") { self.monotonicMs() }
+    Function("beginPlayback") { self.worker.sync { self.beginPlayback(); return self.playbackGeneration } }
+    AsyncFunction("beginOutputPlayback") { () throws -> Int in
+      try self.worker.sync { try self.beginOutputPlayback(); return self.playbackGeneration }
+    }
+    AsyncFunction("stopOutputPlayback") { (generation: Int) in
+      self.worker.sync { self.stopOutputPlayback(generation) }
+    }
     Function("enqueuePlayback") { (base64: String) in self.worker.sync { self.enqueue(base64) } }
     Function("finishPlayback") { self.worker.sync { self.finishing = true; self.drainIfReady() } }
     Function("getPlayedDurationMs") { self.worker.sync { self.playedDuration() } }
@@ -87,6 +105,7 @@ public final class RealtimePcmAudioModule: Module {
 
   private func startCapture() throws {
     if capturing { return }
+    if let outputGeneration = outputOnlyGeneration { stopOutputPlayback(outputGeneration) }
     guard AVAudioSession.sharedInstance().recordPermission == .granted else {
       throw looiError("Microphone permission is required")
     }
@@ -94,6 +113,7 @@ public final class RealtimePcmAudioModule: Module {
     engine.stop()
     let input = engine.inputNode
     try input.setVoiceProcessingEnabled(true)
+    voiceProcessingEnabled = true
     let format = input.outputFormat(forBus: 0)
     guard format.sampleRate > 0, format.channelCount > 0,
       let output = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: false),
@@ -106,9 +126,12 @@ public final class RealtimePcmAudioModule: Module {
     capturedFrames = 0
     capturing = true
     ingressLock.lock(); ingressGeneration = generation; failedIngressGeneration = nil; ingressLock.unlock()
-    input.installTap(onBus: 0, bufferSize: 960, format: format) { [weak self] buffer, _ in
+    input.installTap(onBus: 0, bufferSize: 960, format: format) { [weak self] buffer, when in
       guard let self, buffer.frameLength > 0 else { return }
       let duration = Double(buffer.frameLength) / buffer.format.sampleRate
+      let captureStartMs = when.isHostTimeValid
+        ? AVAudioTime.seconds(forHostTime: when.hostTime) * 1000
+        : self.monotonicMs() - duration * 1000
       self.ingressLock.lock()
       guard self.ingressGeneration == generation, self.failedIngressGeneration != generation else {
         self.ingressLock.unlock(); return
@@ -143,7 +166,8 @@ public final class RealtimePcmAudioModule: Module {
       self.worker.async { [weak self] in
         guard let self else { return }
         defer { self.releaseIngress(duration) }
-        self.emitCapture(copy, generation: generation)
+        self.emitCapture(copy, generation: generation, captureStartMs: captureStartMs,
+          captureDurationMs: duration * 1000, captureTimeSource: when.isHostTimeValid ? "audio-host-time" : "tap-receipt-estimate")
       }
     }
     tapInstalled = true
@@ -151,7 +175,12 @@ public final class RealtimePcmAudioModule: Module {
     catch { stopCapture(); throw error }
   }
 
-  private func emitCapture(_ input: AVAudioPCMBuffer, generation: Int) {
+  private func monotonicMs() -> Double {
+    AVAudioTime.seconds(forHostTime: mach_absolute_time()) * 1000
+  }
+
+  private func emitCapture(_ input: AVAudioPCMBuffer, generation: Int, captureStartMs: Double,
+    captureDurationMs: Double, captureTimeSource: String) {
     guard capturing, generation == captureGeneration, let converter else { return }
     let capacity = AVAudioFrameCount(ceil(Double(input.frameLength) * 16000 / input.format.sampleRate) + 64)
     guard let output = AVAudioPCMBuffer(pcmFormat: converter.outputFormat, frameCapacity: capacity) else { return }
@@ -171,10 +200,13 @@ public final class RealtimePcmAudioModule: Module {
     capturedFrames += frames
     sendEvent("onAudioData", ["pcm16Base64": data.base64EncodedString(), "sampleRate": 16000,
       "frames": frames, "rms": sqrt(energy / Double(frames)), "sequence": chunks,
-      "timestampMs": ProcessInfo.processInfo.systemUptime * 1000])
+      "timestampMs": ProcessInfo.processInfo.systemUptime * 1000,
+      "captureStartMs": captureStartMs, "captureDurationMs": captureDurationMs,
+      "nativeEmittedAtMs": monotonicMs(), "captureTimeSource": captureTimeSource])
   }
 
   private func stopCapture() {
+    if let outputGeneration = outputOnlyGeneration { stopOutputPlayback(outputGeneration) }
     _ = stopPlayback()
     ingressLock.lock(); ingressGeneration = nil; ingressLock.unlock()
     capturing = false; captureGeneration += 1
@@ -188,9 +220,15 @@ public final class RealtimePcmAudioModule: Module {
   }
 
   private func captureFailure(_ stage: String, _ message: String) {
-    ingressLock.lock(); let generation = ingressGeneration; ingressLock.unlock()
-    guard let generation else { return }
-    worker.async { [weak self] in self?.failCapture(stage, message, generation: generation) }
+    ingressLock.lock()
+    let generation = ingressGeneration
+    let outputGeneration = outputOnlyGeneration
+    ingressLock.unlock()
+    worker.async { [weak self] in
+      guard let self else { return }
+      if let generation { self.failCapture(stage, message, generation: generation) }
+      else if let outputGeneration, self.outputOnlyGeneration == outputGeneration { self.playbackFailure(message) }
+    }
   }
 
   // Only invoked on the worker. Old route/converter callbacks must not tear
@@ -206,6 +244,37 @@ public final class RealtimePcmAudioModule: Module {
     segments = []; nextSegmentId = 0; nextPlaybackFrame = 0
     completedFrames = 0; pending = 0; lastPlayedMs = 0
     finishing = false; playing = true
+  }
+
+  private func beginOutputPlayback() throws {
+    guard !capturing, !tapInstalled else { throw looiError("Microphone capture must be released before cloud speech") }
+    if let outputGeneration = outputOnlyGeneration { stopOutputPlayback(outputGeneration) }
+    engine.stop()
+    if voiceProcessingEnabled {
+      try engine.inputNode.setVoiceProcessingEnabled(false)
+      voiceProcessingEnabled = false
+    }
+    let session = AVAudioSession.sharedInstance()
+    try session.setCategory(.playback, mode: .default, options: [])
+    try session.setActive(true)
+    do {
+      engine.prepare()
+      try engine.start()
+    } catch {
+      engine.stop()
+      try? session.setActive(false, options: .notifyOthersOnDeactivation)
+      throw error
+    }
+    beginPlayback()
+    ingressLock.lock(); outputOnlyGeneration = playbackGeneration; ingressLock.unlock()
+  }
+
+  private func stopOutputPlayback(_ generation: Int) {
+    guard outputOnlyGeneration == generation else { return }
+    ingressLock.lock(); outputOnlyGeneration = nil; ingressLock.unlock()
+    _ = stopPlayback()
+    engine.stop()
+    try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
   }
 
   private func playerFrame() -> Int64 {
@@ -260,7 +329,31 @@ public final class RealtimePcmAudioModule: Module {
         self.drainIfReady()
       }
     }
-    if !player.isPlaying { player.play() }
+    if !player.isPlaying {
+      player.play()
+      reportPlaybackStart(generation: generation, attempt: 0)
+    }
+  }
+
+  // A render-clock estimate is distinct from an acoustic measurement at the
+  // speaker. Keep its clock and route latency explicit in diagnostic metadata.
+  private func reportPlaybackStart(generation: Int, attempt: Int) {
+    guard playing, generation == playbackGeneration else { return }
+    if let render = player.lastRenderTime, render.isHostTimeValid,
+      let time = player.playerTime(forNodeTime: render), time.isSampleTimeValid, time.sampleRate > 0,
+      time.sampleTime > 0 {
+      let renderStartMs = AVAudioTime.seconds(forHostTime: render.hostTime) * 1000
+        - Double(time.sampleTime) / time.sampleRate * 1000
+      let session = AVAudioSession.sharedInstance()
+      sendEvent("onPlaybackStarted", ["generation": generation, "renderStartMs": renderStartMs,
+        "estimatedAudibleStartMs": renderStartMs + (session.outputLatency + session.ioBufferDuration) * 1000,
+        "outputLatencyMs": session.outputLatency * 1000, "ioBufferDurationMs": session.ioBufferDuration * 1000])
+      return
+    }
+    guard attempt < 100 else { return }
+    worker.asyncAfter(deadline: .now() + .milliseconds(10)) { [weak self] in
+      self?.reportPlaybackStart(generation: generation, attempt: attempt + 1)
+    }
   }
 
   private func playedDuration() -> Int {
@@ -282,14 +375,19 @@ public final class RealtimePcmAudioModule: Module {
   }
 
   private func playbackFailure(_ message: String) {
-    _ = stopPlayback()
-    sendEvent("onPlaybackError", ["message": message])
+    let generation = playbackGeneration
+    if let outputGeneration = outputOnlyGeneration { stopOutputPlayback(outputGeneration) }
+    else { _ = stopPlayback() }
+    sendEvent("onPlaybackError", ["message": message, "generation": generation])
   }
 
   private func drainIfReady() {
     guard playing, finishing, pending == 0 else { return }
-    let ms = playedDuration(); _ = stopPlayback()
-    sendEvent("onPlaybackDrained", ["playedDurationMs": ms])
+    let generation = playbackGeneration
+    let ms = playedDuration()
+    if let outputGeneration = outputOnlyGeneration { stopOutputPlayback(outputGeneration) }
+    else { _ = stopPlayback() }
+    sendEvent("onPlaybackDrained", ["playedDurationMs": ms, "generation": generation])
   }
 
   private func status() -> [String: Any] {

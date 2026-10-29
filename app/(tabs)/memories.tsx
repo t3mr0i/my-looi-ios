@@ -5,6 +5,7 @@ import {
   Alert,
   Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   StyleSheet,
   Text,
@@ -385,7 +386,13 @@ export default function MemoriesScreen() {
         ) : null}
       </View>
 
-      <View style={styles.filterRow}>
+      <ScrollView
+        horizontal
+        keyboardShouldPersistTaps="handled"
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
         {CATEGORIES.map((category) => {
           const active = selectedCategory === category.value;
           return (
@@ -403,7 +410,7 @@ export default function MemoriesScreen() {
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </>
   );
 
@@ -651,11 +658,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
+  filterScroll: {
+    flexGrow: 0,
+    marginBottom: 14,
+  },
   filterRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
-    marginBottom: 14,
   },
   chip: {
     minHeight: 44,

@@ -67,11 +67,20 @@ assert.match(keySource, /Authorization: `Bearer \$\{key\}`/);
 assert.match(keySource, /isRealtimeConversationModelId/);
 
 const preview = readFileSync("src/openai/openai-voice-preview.ts", "utf8");
-assert.match(preview, /https:\/\/api\.openai\.com\/v1\/audio\/speech/);
-assert.match(preview, /gpt-4o-mini-tts/);
-assert.match(preview, /response_format: "wav"/);
-assert.match(preview, /voice: voiceId/);
-assert.match(preview, /createAudioPlayer/);
+assert.match(preview, /getTtsPreviewText\(language\)/);
+assert.match(preview, /isSupportedRealtimeVoiceId\(voiceId\)/);
+assert.match(preview, /speakOpenAiText\(/, "the Settings preview must use the shared speech request and player");
+assert.doesNotMatch(preview, /createAudioPlayer|setIsAudioActiveAsync|\/v1\/audio\/speech/,
+  "the preview wrapper must not own a second audio player or request path");
+
+const speech = readFileSync("src/openai/openai-speech.ts", "utf8");
+assert.match(speech, /https:\/\/api\.openai\.com\/v1\/audio\/speech/);
+assert.match(speech, /OPENAI_SPEECH_MODEL = "gpt-4o-mini-tts"/);
+assert.match(speech, /OPENAI_SPEECH_SHUTDOWN_DATE = "2027-01-06"/);
+assert.match(speech, /response_format: "wav"/);
+assert.match(speech, /voice: options\.voiceId/);
+assert.match(speech, /createAudioPlayer/);
+assert.match(speech, /speakOpenAiText\(/);
 
 const voices = readFileSync("src/voice/tts-voices.ts", "utf8");
 for (const voice of ["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"]) {

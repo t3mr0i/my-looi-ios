@@ -37,6 +37,12 @@ const navItems = [
     symbol: { ios: "brain.head.profile", android: "psychology" },
   },
   {
+    href: "/apps",
+    matchPath: "/apps",
+    labelKey: "nav.apps" as UiStringKey,
+    symbol: { ios: "square.grid.2x2.fill", android: "apps" },
+  },
+  {
     href: "/settings",
     matchPath: "/settings",
     labelKey: "nav.settings" as UiStringKey,

@@ -1,0 +1,56 @@
+name: Robot bridge
+on:
+  pull_request:
+    paths:
+      - 'app/_layout.tsx'
+      - 'app/robot-apps.tsx'
+      - 'app/(tabs)/apps.tsx'
+      - 'app/(tabs)/_layout.tsx'
+      - 'app/(tabs)/index.tsx'
+      - 'src/ui/DeviceShell.tsx'
+      - 'src/i18n/ui-strings.ts'
+      - 'app/(tabs)/settings.tsx'
+      - 'app/onboarding.tsx'
+      - 'src/ui/RobotAppsScreen.tsx'
+      - 'src/ui/RobotAppsShell.tsx'
+      - 'src/ui/RobotAppsGlyph*.tsx'
+      - 'src/ui/RobotAppSkillsPanel.tsx'
+      - 'src/i18n/robot-app-skill-strings.ts'
+      - 'src/i18n/robot-app-strings.ts'
+      - 'src/voice/robot-app-skill-*.ts'
+      - 'src/voice/realtime-config.ts'
+      - 'src/voice/realtime-conversation.ts'
+      - 'src/voice/realtime-pcm-conversation.ts'
+      - 'src/voice/budget-conversation.ts'
+      - 'src/openai/budget-conversation.ts'
+      - 'src/core/app-bootstrap.ts'
+      - 'src/perceivers/voice-runtime.ts'
+      - 'scripts/runtime-lifecycle-behavior.test.mjs'
+      - 'src/robot-bridge/**'
+      - 'src/device-tools/looi-robot.ts'
+      - 'services/robot-bridge/**'
+      - 'scripts/robot-bridge-*.test.mjs'
+      - 'scripts/robot-app-skill*.test.mjs'
+      - 'scripts/behavior-companion-voice.test.mjs'
+      - 'scripts/budget-text-client.test.mjs'
+      - 'scripts/budget-conversation-runtime.test.mjs'
+      - 'scripts/helpers/load-typescript-tree.mjs'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/robot-bridge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile --ignore-scripts
+      - run: corepack pnpm exec tsc --noEmit
+      - run: corepack pnpm run robot:bridge:test

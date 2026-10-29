@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 
@@ -102,7 +104,7 @@ for (const key of [
   "settings.openAiBilling",
   "settings.openUserGuide",
 ]) {
-  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, 3, `${key} must exist in all UI languages`);
+  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, uiLanguageCount, `${key} must exist in all UI languages`);
 }
 
 assert.ok(fs.existsSync("USER_GUIDE.md"));

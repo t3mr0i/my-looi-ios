@@ -1,4 +1,4 @@
-export type WakePhraseId = "ru" | "uk" | "en";
+export type WakePhraseId = "ru" | "uk" | "en" | "de";
 
 export type WakePhraseDefinition = {
   id: WakePhraseId;
@@ -37,6 +37,12 @@ export const WAKE_PHRASES: readonly WakePhraseDefinition[] = [
     keywordLabel: "LOOI",
     keywordAliases: ["LOOI_PALATALIZED"],
   },
+  {
+    id: "de",
+    displayText: "Louis",
+    keywordLabel: "LOOI",
+    keywordAliases: ["LOOI_PALATALIZED"],
+  },
 ] as const;
 
 const PHRASE_PATTERNS: Record<WakePhraseId, RegExp> = {
@@ -44,6 +50,7 @@ const PHRASE_PATTERNS: Record<WakePhraseId, RegExp> = {
   ru: /(?:^|\s)(?:луи|луин|луй|лу\s+и|луе|лує|лоуи|руи|уи|уй|макс|max|робот|louie|loui|looi|louis|wooi|wui)(?=\s|$)/u,
   uk: /(?:^|\s)(?:луї|луїн|луі|луин|луй|лу\s+и|лує|луе|лоуї|луи|уи|уй|макс|max|робот|louie|loui|looi|louis|wooi|wui)(?=\s|$)/u,
   en: /(?:^|\s)(?:looi|louie|loui|louis|wooi|wui|луи|луин|луй|лу\s+и|луї|луі|лує|луе|уи|уй|макс|max|робот)(?=\s|$)/u,
+  de: /(?:^|\s)(?:louis|louie|loui|looi|lui|luie|lu\s+i|луи|луй)(?=\s|$)/u,
 };
 
 export function normalizeWakePhraseTranscript(transcript: string): string {
@@ -52,7 +59,7 @@ export function normalizeWakePhraseTranscript(transcript: string): string {
     .toLocaleLowerCase()
     .replace(/ё/g, "е")
     .replace(/[’'`]/g, "")
-    .replace(/[^a-zа-яіїєґ\s]/giu, " ")
+    .replace(/[^a-zäöüßа-яіїєґ\s]/giu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

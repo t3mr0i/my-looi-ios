@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import {
   getLocalFaceAttentionModule,
+  setLocalInteractionSignalsEnabled,
   type LocalFaceRect,
   type LocalFaceFrameEvent,
 } from "../../modules/local-face-attention";
@@ -109,6 +110,93 @@ let searchAttemptedAt = 0;
 let searchRearmUsed = false;
 let faceSeenSinceSearch = false;
 let externalMotionHoldUntil = 0;
+let interactionSignalRequest: ((event: LocalFaceFrameEvent) => void) | null = null;
+let interactionSignalsSupported = false;
+let localInteractionSignalsEnabled: boolean | null = false;
+let interactionSignalsReconcilePromise: Promise<void> | null = null;
+let objectAttentionLease: { id: string; ended: (reason: string) => void } | null = null;
+let objectTrackingSupported = false;
+
+/** Reuses the existing camera owner; an external media owner cannot be bypassed. */
+export async function acquireSocialObjectAttention(id: string, ended: (reason: string) => void): Promise<boolean> {
+  if (!id || !canUseAttention() || interactionSignalRequest || objectAttentionLease) return false;
+  objectAttentionLease = { id, ended };
+  searchGeneration += 1;
+  activate("selected-object", false);
+  await ensureNativeStarted();
+  const acquired = objectAttentionLease?.id === id && canUseAttention() && nativeStarted && objectTrackingSupported;
+  if (!acquired) releaseSocialObjectAttention(id);
+  return acquired;
+}
+
+export function releaseSocialObjectAttention(id: string): void {
+  if (objectAttentionLease?.id !== id) return;
+  objectAttentionLease = null;
+  searchGeneration += 1;
+  if (!interactionStateActive() && !interactionSignalRequest) scheduleRelease(0);
+}
+
+function endObjectAttentionLease(reason: string): void {
+  const lease = objectAttentionLease;
+  objectAttentionLease = null;
+  try { lease?.ended(reason); } catch { /* Camera teardown must continue. */ }
+}
+
+/** A short, explicitly armed interaction reuses this camera's existing owner. */
+export function setSocialInteractionSignalRequest(listener: ((event: LocalFaceFrameEvent) => void) | null): void {
+  if (interactionSignalRequest === listener) return;
+  interactionSignalRequest = listener;
+  if (listener && objectAttentionLease) endObjectAttentionLease("ritual-preempted");
+  searchGeneration += 1;
+  if (!listener || !canUseAttention()) {
+    void reconcileInteractionSignalLease();
+    if (!listener && attentionActive && !interactionStateActive()) scheduleRelease();
+    return;
+  }
+  activate("agreed-start-signal", false);
+  void ensureNativeStarted().then(() => reconcileInteractionSignalLease());
+}
+
+function wantsLocalInteractionSignals(): boolean {
+  return !!interactionSignalRequest && nativeStarted && interactionSignalsSupported && attentionActive && canUseAttention();
+}
+
+/** Serializes native toggles and reconciles the current lease after each await. */
+function reconcileInteractionSignalLease(): Promise<void> {
+  if (interactionSignalsReconcilePromise) return interactionSignalsReconcilePromise;
+
+  const reconcile = async () => {
+    while (typeof setLocalInteractionSignalsEnabled === "function") {
+      const desired = wantsLocalInteractionSignals();
+      if (desired === localInteractionSignalsEnabled) return;
+      try {
+        const supported = await setLocalInteractionSignalsEnabled(desired);
+        if (desired) {
+          interactionSignalsSupported = supported;
+          localInteractionSignalsEnabled = supported;
+        } else {
+          localInteractionSignalsEnabled = false;
+        }
+      } catch (error) {
+        localInteractionSignalsEnabled = null;
+        recordDiagnosticEvent("character", "social-attention-signal-toggle-failed", {
+          enabled: desired,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // A lease may have changed while the native call was pending. Give its
+        // latest desired value one serialized attempt before leaving the queue.
+        if (desired !== wantsLocalInteractionSignals()) continue;
+        return;
+      }
+    }
+  };
+
+  const promise = reconcile().finally(() => {
+    if (interactionSignalsReconcilePromise === promise) interactionSignalsReconcilePromise = null;
+  });
+  interactionSignalsReconcilePromise = promise;
+  return promise;
+}
 
 /** Allow the behavior layer to guide attention without coupling it to camera or BLE lifecycle. */
 export function configureSocialBehaviorPolicy(policy: null | (() => SocialAttentionBehaviorPolicy)): void {
@@ -182,22 +270,25 @@ async function ensureNativeStarted(): Promise<void> {
     });
   });
 
-  const generation = nativeLifecycleGeneration;
   const startPromise = (async () => {
     try {
       const status = await module.start();
-      if (generation !== nativeLifecycleGeneration || !attentionActive || !canUseAttention()) {
+      if (!attentionActive || !canUseAttention()) {
         if (status.running) await module.stop().catch(() => undefined);
         return;
       }
       nativeStarted = status.running;
+      interactionSignalsSupported = status.signalAnalysisSupported === true;
+      objectTrackingSupported = status.objectTrackingSupported === true;
+      if (!status.running) localInteractionSignalsEnabled = false;
       recordDiagnosticEvent("character", "social-attention-camera-started", {
         running: status.running,
         permissionGranted: status.permissionGranted,
         lensFacing: status.lensFacing,
       });
+      void reconcileInteractionSignalLease();
     } catch (error) {
-      if (generation !== nativeLifecycleGeneration) return;
+      if (!attentionActive || !canUseAttention()) return;
       nativeStarted = false;
       recordDiagnosticEvent("character", "social-attention-camera-start-failed", {
         error: error instanceof Error ? error.message : String(error),
@@ -245,8 +336,22 @@ function resetTrackingState(): void {
 }
 
 async function stopNative(reason: string): Promise<void> {
-  nativeLifecycleGeneration += 1;
+  // Invalidate callbacks and clear all observable state synchronously. Native
+  // teardown below may wait on a hand-analysis toggle or reject.
+  const stopGeneration = ++nativeLifecycleGeneration;
+  interactionSignalRequest = null;
+  endObjectAttentionLease(reason);
+  attentionActive = false;
+  const hadNativeWork = nativeStarted || nativeStartPromise !== null;
+  nativeStarted = false;
   resetTrackingState();
+
+  await reconcileInteractionSignalLease();
+
+  // A newer conversation or explicitly armed signal may have restarted the
+  // camera while the serialized hand-analysis toggle was pending. This stale
+  // teardown no longer owns the native camera in that case.
+  if (stopGeneration !== nativeLifecycleGeneration || attentionActive || interactionSignalRequest || objectAttentionLease || nativeStarted) return;
 
   if (lastHeadPosition !== "center") {
     headCommandInFlight = false;
@@ -260,13 +365,12 @@ async function stopNative(reason: string): Promise<void> {
     } else lastHeadPosition = "center";
   }
 
-  const hadNativeWork = nativeStarted || nativeStartPromise !== null;
-  nativeStarted = false;
   if (!hadNativeWork) return;
 
   const module = getLocalFaceAttentionModule();
   try {
     await module?.stop();
+    localInteractionSignalsEnabled = false;
     recordDiagnosticEvent("character", "social-attention-camera-stopped", { reason });
   } catch (error) {
     recordDiagnosticEvent("character", "social-attention-camera-stop-failed", {
@@ -280,7 +384,7 @@ function scheduleRelease(delayMs = RELEASE_GRACE_MS): void {
   clearTimer(releaseTimer);
   releaseTimer = setTimeout(() => {
     releaseTimer = null;
-    if (interactionStateActive()) return;
+    if (interactionStateActive() || interactionSignalRequest || objectAttentionLease) return;
     attentionActive = false;
     void stopNative("interaction-grace-finished");
   }, delayMs);
@@ -326,7 +430,7 @@ function handleConversationChange(): void {
     return;
   }
 
-  if (interactionStateActive()) {
+  if (interactionStateActive() || interactionSignalRequest || objectAttentionLease) {
     // Raw server VAD may come from nearby speech or a TV. It may warm the local
     // camera so visual gaze is ready, but physical correction waits for an
     // accepted transcript or for assistant speech that confirms a real turn.
@@ -379,6 +483,7 @@ function maybeRearmSearch(now: number): void {
 
 function handleFaceFrame(event: LocalFaceFrameEvent): void {
   if (!attentionActive || !canUseAttention()) return;
+  interactionSignalRequest?.(event);
   const now = Date.now();
   const primary = event.primary;
   const detectedFaces: FaceTargetRect[] = event.faces?.length
@@ -457,6 +562,7 @@ function handleFaceFrame(event: LocalFaceFrameEvent): void {
 }
 
 function motionCorrectionAllowed(channel: "body" | "head" = "body"): boolean {
+  if (interactionSignalRequest || objectAttentionLease) return false;
   if (!attentionActive || !motionArmed || !canUseAttention()) return false;
   if (readBehaviorPolicy()?.attention === "release") return false;
   if (Date.now() < externalMotionHoldUntil) return false;
@@ -601,6 +707,8 @@ function maybeCorrectTowardFace(rawFace: FacePoint, filteredFace: FacePoint): vo
 }
 
 function maybeStartFaceSearch(): void {
+  if (objectAttentionLease) return;
+  if (interactionSignalRequest) return;
   const policy = readBehaviorPolicy();
   if (policy && policy.attention !== "search") return;
   if (!motionArmed || searchInFlight || searchAttempted || !attentionActive || !canUseAttention()) return;
@@ -651,7 +759,7 @@ async function runFaceSearch(generation: number): Promise<void> {
 
 function searchStillNeeded(generation: number): boolean {
   const policy = readBehaviorPolicy();
-  return (!policy || policy.attention === "search") &&
+  return !objectAttentionLease && (!policy || policy.attention === "search") &&
     generation === searchGeneration &&
     attentionActive &&
     motionArmed &&
@@ -679,6 +787,7 @@ export function startSocialAttentionController(source = "runtime"): void {
 export async function stopSocialAttentionController(reason = "runtime"): Promise<void> {
   if (!running && !nativeStarted) return;
   running = false;
+  interactionSignalRequest = null;
   attentionActive = false;
   clearTimer(releaseTimer);
   clearTimer(noteHoldTimer);
@@ -709,6 +818,9 @@ export function getSocialAttentionControllerState() {
     attentionActive,
     motionArmed,
     nativeStarted,
+    interactionSignalsSupported,
+    objectTrackingSupported,
+    objectAttentionActive: objectAttentionLease !== null,
     faceVisible: useSocialAttentionStore.getState().faceVisible,
     lastFaceAgeMs,
     faces,

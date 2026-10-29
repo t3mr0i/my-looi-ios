@@ -35,27 +35,53 @@ Opening a cited source uses the system link handler and contacts that website.
 
 ## Optional Hermes agent tasks
 
-Agent tasks is a separate, explicitly configured feature. The app sends the
-entered task text and selected language to the owner's HTTPS service. That
+The assistant's example page uses invented emails and calendar entries. Its local
+drafts and workflow states live only on that screen; it does not call a model,
+connect Google accounts or store examples in memory, task history or diagnostics.
+The setup page accepts a private credential code. Pasting it and reviewing the
+target address does not contact the server. Confirming the displayed connection
+verifies the existing task protocol and saves the credential as described below.
+The code grants the same single-owner access as its underlying server token; it
+does not establish individual users or separate Google permissions.
+
+The optional **Connect through Nous** page deliberately checks the selected
+Hermes service's Nous account identity, offered Google connectors and account
+connection metadata. It does not read messages or events. The service uses its
+existing regular Nous login; Nous credentials are not returned to the phone.
+Before connecting, the app shows that Nous identity and asks the person to confirm
+it is theirs. A requested authorization link opens only after a separate action
+in the system browser; Nous and its integration provider handle account consent.
+The app sends no LOOI access token in that browser URL or browser headers.
+Link creation alone is not treated as successful authorization. Actual status is
+checked again through the service. Screen account metadata and links are cleared
+when the app is backgrounded; they are not added to memory or diagnostics.
+Other Hermes apps may share the same Nous provider connection, so managing or
+revoking it in Nous can affect those apps too. Provider-side retention applies.
+
+Agent tasks uses a separately configured service. The app sends the explicitly
+submitted task text and selected language to the owner's HTTPS service. That
 service sends task/search context to its configured OpenAI model and search
 queries to DDGS/search engines. The app attaches no conversation history,
-personal memory, audio, photos or robot controls. Tasks are started from the
-Agent tasks screen; no scheduled jobs or push notifications are created.
+personal memory, audio, photos or robot controls. A spoken task can itself contain
+personal information: when explicitly requested during a Realtime conversation,
+the app sends the complete current spoken transcript as the task text. Previous
+turns are not automatically included. No scheduled jobs or push notifications
+are created.
 
 The connection token is held in SecureStore (Keychain on iOS), separately from
 the OpenAI key. An uncertain submission's UUID, query and language are retained
 locally in encrypted MMKV so a retry uses the same identity. Its encryption key
 is held in device-only SecureStore on iOS. Disconnecting removes the saved
 connection; it preserves uncertain admissions for that server and does not
-cancel remote work. Polling stops when the screen loses focus or the app enters
-the background. An admitted server task can continue independently.
+cancel remote work. Screen polling stops when that screen loses focus or the app
+enters the background. An admitted server task can continue independently.
 
 The service keeps task text, language, timestamps, status, answer and sources in
-SQLite on a Fly volume until the owner deletes the task. Terminal-task deletion
-removes its active database row; a minimal UUID/deletion-time receipt remains
-to prevent an old retry from executing again. SQLite storage, Fly snapshots
-(five-day retention in the initial pilot), already retrieved results and model
-provider records have separate lifecycles. Deletion does not recall those
+SQLite on the configured server's persistent volume until the owner deletes the
+task. Terminal-task deletion removes its active database row; a minimal
+UUID/deletion-time receipt remains to prevent an old retry from executing again.
+SQLite storage, server backups, historical Fly snapshots, already retrieved
+results and model provider records have separate lifecycles. Deletion does not recall those
 copies or undo already billed work. Server tokens and task contents are not
 included in app diagnostics or memory backups. See [Agent tasks](docs/hermes-agent.md).
 
@@ -110,4 +136,12 @@ Voice loudness boost is local PCM16 amplitude scaling applied only to assistant 
 
 ## Optional Decisions behavior
 
-Contextual behavior is off by default. Observe and Active send recent relevant speech transcripts, bounded local task/style state, robot/interaction status and temporary face-candidate metadata to OpenAI Decisions using the configured key. Observe incurs usage but does not alter movement or spoken behavior context. The separate image option sends only explicitly requested camera snapshots for task-quality assessment; it does not enable a continuous cloud camera stream. Images are not persisted by this layer. Local learned style/pending tasks and aggregate usage are stored on device. Clearing learned behavior keeps the budget/usage ledger. Requests stop or invalidate their results when the interaction ends, the app backgrounds, or the robot sleeps. Provider billing can still include interrupted requests. See [the behavior guide](docs/decisions-behavior.md).
+Contextual behavior defaults to Active when no preference has been saved; a previously saved Off or Observe choice is preserved. Observe and Active send recent relevant speech transcripts, bounded local task/style state, robot/interaction status and temporary face-candidate metadata to OpenAI Decisions using the configured key. Observe incurs usage but does not execute adaptive movement or add adaptive task context; stored character tone and familiarity remain available in both speech modes. The separate image option sends only explicitly requested camera snapshots for task-quality assessment; it does not enable a continuous cloud camera stream. Images are not persisted by this layer. Local learned style/pending tasks and aggregate usage are stored on device. Clearing learned behavior keeps the budget/usage ledger. Requests stop or invalidate their results when the interaction ends, the app backgrounds, or the robot sleeps. Provider billing can still include interrupted requests. See [the behavior guide](docs/decisions-behavior.md).
+
+Slowly learned interests are stored with their confirmed shared episode and at most three short user feedback quotes, session IDs and timestamps. Contextual feedback can additionally retain one short preceding user or completed audible robot quote with its source and time. That conversational reference must be from the same session and at most 90 seconds earlier. Temporary conversational reactions are not persisted. Character direction and relevant activity labels can enter voice-model context; this creates no additional image capture. Forgetting the episode or clearing learned behavior removes its linked interest and evidence.
+
+An optional personal touch in a reply to a simple greeting can use an established activity label after quiet time. The device retains the last completed audible personal-greeting time to enforce its daily cadence across restarts. Preparing a reply does not update that time, and the robot's own wording creates no learning evidence. Clearing learned behavior also clears this timestamp.
+
+The device also stores a fixed gentle-curious temperament and up to 32 relationship-day records. Each day contains its time, whether an actual local face stroke was recognized, and IDs of up to eight confirmed episodes with explicit positive feedback. One rolling 24-hour interval contributes at most one day; repeated strokes do not accelerate familiarity. No additional transcript, face identity, touch recording or image is stored for this history. Forgetting an episode removes its relationship references; clearing learned behavior clears the whole history. Absence does not reduce familiarity. This is one shared device profile, not recognition of an individual person.
+
+Short-term symbolic energy and the last accepted conversation, stroke and enjoyable-activity times are retained to keep restarts consistent. Time expires these temporary effects and permits recovery. They are not hardware battery measurements or claims about human emotions. Only coarse temperament, familiarity and current expression direction enter voice/Decisions context; the relationship-day records and touch times are not sent as part of that character context. Off and Observe preserve the profile for speech but do not add relationship evidence.

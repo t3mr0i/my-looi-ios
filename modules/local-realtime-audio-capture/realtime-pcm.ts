@@ -10,6 +10,19 @@ export type RealtimePcmAudioDataEvent = {
   rms: number;
   sequence: number;
   timestampMs: number;
+  /** iOS audio host clock; never subtract these from JS performance.now(). */
+  captureStartMs?: number;
+  captureDurationMs?: number;
+  nativeEmittedAtMs?: number;
+  captureTimeSource?: "audio-host-time" | "tap-receipt-estimate";
+};
+
+export type RealtimePcmPlaybackStartedEvent = {
+  generation: number;
+  renderStartMs: number;
+  estimatedAudibleStartMs: number;
+  outputLatencyMs: number;
+  ioBufferDurationMs: number;
 };
 
 export type RealtimePcmCaptureErrorEvent = {
@@ -19,10 +32,12 @@ export type RealtimePcmCaptureErrorEvent = {
 
 export type RealtimePcmPlaybackEvent = {
   playedDurationMs: number;
+  generation?: number;
 };
 
 export type RealtimePcmPlaybackErrorEvent = {
   message: string;
+  generation?: number;
 };
 
 export type RealtimePcmAudioStatus = {
@@ -47,13 +62,18 @@ type Events = {
   onCaptureError(event: RealtimePcmCaptureErrorEvent): void;
   onPlaybackDrained(event: RealtimePcmPlaybackEvent): void;
   onPlaybackError(event: RealtimePcmPlaybackErrorEvent): void;
+  onPlaybackStarted(event: RealtimePcmPlaybackStartedEvent): void;
 };
 
 declare class RealtimePcmAudioNativeModule extends NativeModule<Events> {
   startCapture(): Promise<RealtimePcmAudioStatus>;
   stopCapture(): Promise<RealtimePcmAudioStatus>;
   getStatus(): Promise<RealtimePcmAudioStatus>;
-  beginPlayback(): void;
+  getMonotonicTimeMs(): number;
+  beginPlayback(): number;
+  /** iOS output without acquiring microphone capture; absent in older builds. */
+  beginOutputPlayback(): Promise<number>;
+  stopOutputPlayback(generation: number): Promise<void>;
   enqueuePlayback(pcm24Base64: string): void;
   finishPlayback(): void;
   stopPlayback(): { playedDurationMs: number };

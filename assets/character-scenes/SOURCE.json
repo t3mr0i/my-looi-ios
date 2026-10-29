@@ -1,0 +1,1206 @@
+{
+  "lucideCommit": "c2dd25753da3f25d9ddc351ddb0ee72332189692",
+  "tablerCommit": "ed177a085b652fe04ec4f37ced867c94621e7840",
+  "assets": [
+    {
+      "id": "drink",
+      "icon": "cup-soda",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cup-soda.svg",
+      "sha256": "30a13d8d625d19458457b207759f1145256c96ebfe609ce5e01026b893d51b43"
+    },
+    {
+      "id": "coffee",
+      "icon": "coffee",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/coffee.svg",
+      "sha256": "970595bdafac0df42c00b847d53fd00c2283ecc3b83881274de2aa7dbce2bbc8"
+    },
+    {
+      "id": "snack",
+      "icon": "cookie",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cookie.svg",
+      "sha256": "5e4f1c0b38be7530fbbe8fb413f0fcd87b84309b1915c0d88c1e442ea10c0b82"
+    },
+    {
+      "id": "tea",
+      "icon": "tabler:teapot",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/teapot.svg",
+      "sha256": "4494ccd6f301cf96aad756b2e234907611a2e520012e36970a6f11f9dd2fa9b2"
+    },
+    {
+      "id": "breakfast",
+      "icon": "egg-fried",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/egg-fried.svg",
+      "sha256": "e862be5ccafb347cfa060195646f6781c8bd31549309730d9dfb278fcfd652ef"
+    },
+    {
+      "id": "lunch",
+      "icon": "utensils",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/utensils.svg",
+      "sha256": "9b5eb803bc342b8503b6a154ff63a0f754ba52a13fa24c2e270d2ab89c70f76a"
+    },
+    {
+      "id": "dinner",
+      "icon": "cooking-pot",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cooking-pot.svg",
+      "sha256": "f44a2639fb86ad9e3b0284a87b6083f6656491fd9e09f6c5e173b81f98b8c090"
+    },
+    {
+      "id": "soup",
+      "icon": "soup",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/soup.svg",
+      "sha256": "e8272ad08bf70332ce5f8f8b60d821a1347dfadcf57a95ce932ab4861cb9d5ef"
+    },
+    {
+      "id": "pizza",
+      "icon": "pizza",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/pizza.svg",
+      "sha256": "6ef052b3d1fee883d6c8526545661f6e87b0f3e45db8a4beab92413f2c958c41"
+    },
+    {
+      "id": "cake",
+      "icon": "cake-slice",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cake-slice.svg",
+      "sha256": "c390127e7b3297f0f2340f8ff8dbb9d410094abdd10388b2dd0eff3bd998c0e4"
+    },
+    {
+      "id": "ice-cream",
+      "icon": "ice-cream-cone",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/ice-cream-cone.svg",
+      "sha256": "22809ab31cd8440f62f54bfc89d5ab32d19ef6d6229649bdaeef326a21c5af7c"
+    },
+    {
+      "id": "apple",
+      "icon": "apple",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/apple.svg",
+      "sha256": "55ae3426d521764c769c295a02a5bf11323068e6abf46c89a4b418b75e7e0f54"
+    },
+    {
+      "id": "banana",
+      "icon": "banana",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/banana.svg",
+      "sha256": "10cac7a65ff3eefedca4724e4ef1db777da7297d08c2e355d1f67414c5cb960c"
+    },
+    {
+      "id": "sandwich",
+      "icon": "sandwich",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sandwich.svg",
+      "sha256": "89783ac79df6bd3ef7ef4613c1141cecb0e5df4812fa26fc597bbb5b78a43724"
+    },
+    {
+      "id": "salad",
+      "icon": "salad",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/salad.svg",
+      "sha256": "d68314fb83e26cd9e1a7a9b1ef3a121fbb293969088248bffb3556b25cefb95b"
+    },
+    {
+      "id": "popcorn",
+      "icon": "popcorn",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/popcorn.svg",
+      "sha256": "4bcf2d930fed98a4ce810286759d72bff7863c14747e0e4e50478ff41c483b85"
+    },
+    {
+      "id": "toast",
+      "icon": "tabler:bread",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/bread.svg",
+      "sha256": "c6891eb8ec00351fb42a16702716e207385b7a3c536d029b5d8f650eb5a8e2f0"
+    },
+    {
+      "id": "cooking",
+      "icon": "chef-hat",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/chef-hat.svg",
+      "sha256": "aaf78c326e3f73b727fc029efcd5fb651b4059540ad81552210dbd3d785b25be"
+    },
+    {
+      "id": "baking",
+      "icon": "croissant",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/croissant.svg",
+      "sha256": "bb4f209ce8f19463c71490d564d4463e3a5f73b37dbdec6fb2b7d8061301da43"
+    },
+    {
+      "id": "water-bottle",
+      "icon": "tabler:bottle",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/bottle.svg",
+      "sha256": "839ed1a7cf6a84d1e3ddb906122e275c861afe0f4f8456a8490a979ef5aaff75"
+    },
+    {
+      "id": "joy",
+      "icon": "sun",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sun.svg",
+      "sha256": "a3955c8b0425fcc5c9ba12d2bdd77fe53b2cd5dd05e7742a56f342e996fb2ef8"
+    },
+    {
+      "id": "affection",
+      "icon": "heart-handshake",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/heart-handshake.svg",
+      "sha256": "4b891b9c7f394643f540f9ff96fb8054bc6891a6aee427b0227743ec3098a82e"
+    },
+    {
+      "id": "gratitude",
+      "icon": "hand-heart",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/hand-heart.svg",
+      "sha256": "3b771b097487bf83f5f6d5a07845eb7e4fd3bad8e5dc0bfbfee08c6cd045868a"
+    },
+    {
+      "id": "pride",
+      "icon": "medal",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/medal.svg",
+      "sha256": "19a93f0d070d0a04283e2bee11799d3fd73de214936224c5d4141ebe3e119756"
+    },
+    {
+      "id": "celebration",
+      "icon": "party-popper",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/party-popper.svg",
+      "sha256": "b5335d39d785b14bad5fcd3b3ce3c176a131a357825223b4b7e1ed4b478b02be"
+    },
+    {
+      "id": "surprise",
+      "icon": "sparkles",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sparkles.svg",
+      "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8"
+    },
+    {
+      "id": "curiosity",
+      "icon": "telescope",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/telescope.svg",
+      "sha256": "ef9c953964649dd84764478de5396aaab3c924927e522a74f4ccfdeef381b023"
+    },
+    {
+      "id": "doubt",
+      "icon": "circle-question-mark",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/circle-question-mark.svg",
+      "sha256": "975db087da041530dbf59ba1e61a7b99c3519fad43dae6375e42ccc74ba63924"
+    },
+    {
+      "id": "confusion",
+      "icon": "waypoints",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/waypoints.svg",
+      "sha256": "97f4eefc2548f3886749778befcdfb0620c8d9619799cbe3f1d2bb566b67dea9"
+    },
+    {
+      "id": "sadness",
+      "icon": "cloud-drizzle",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-drizzle.svg",
+      "sha256": "1d19c1c62d82734241a9d8d5b3585a2c93ff70cb9d8cf47127cb1a18aa6c54b4"
+    },
+    {
+      "id": "comfort",
+      "icon": "heart-plus",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/heart-plus.svg",
+      "sha256": "8007270cede6615595e3485b4e7f1280fd7d366de90b10a9514150ca963211b1"
+    },
+    {
+      "id": "sympathy",
+      "icon": "flower",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/flower.svg",
+      "sha256": "52d9db5e1448d213e81954d8fbd331ca2bb8849a4be5adf9426e5683e7ee8b85"
+    },
+    {
+      "id": "frustration",
+      "icon": "cloud-alert",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-alert.svg",
+      "sha256": "54a81ea9367c151bb1bb572879988048ffff5f072feee467da54bde97117ef2a"
+    },
+    {
+      "id": "anger",
+      "icon": "flame",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/flame.svg",
+      "sha256": "cede1462a46a7a3b3daf9d101f0b59484b1d882a4c42a75670810a6d4f8d42fb"
+    },
+    {
+      "id": "overwhelmed",
+      "icon": "waves-horizontal",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/waves-horizontal.svg",
+      "sha256": "b31f6534ef601e7c138922e99b0557ae61db7e5704c1a05806ecb78b2eaad443"
+    },
+    {
+      "id": "shy",
+      "icon": "shell",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shell.svg",
+      "sha256": "ba7395aff18e9cf9c3a9ec5362bcbb22a548f0be415af695ca34895f5ecbd09d"
+    },
+    {
+      "id": "patience",
+      "icon": "hourglass",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/hourglass.svg",
+      "sha256": "76475d4ca3299fa243ef83de602b78621487daad45ca54fea2e3718bfba5ef2c"
+    },
+    {
+      "id": "relief",
+      "icon": "feather",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/feather.svg",
+      "sha256": "11752dce3362876c82df0eb4da5372e74792f8e96b1ff4c83c4e847106d5c9ba"
+    },
+    {
+      "id": "hope",
+      "icon": "sprout",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sprout.svg",
+      "sha256": "cf4cd97166b3239348dfe2a94dad045bf788883c32292b16fd8c953f619a4f7b"
+    },
+    {
+      "id": "apology",
+      "icon": "flower-2",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/flower-2.svg",
+      "sha256": "692f8bf23db876d6b9526b6e4335cfec6a3227a32bdc52db2704a01a0f259a9e"
+    },
+    {
+      "id": "greeting",
+      "icon": "hand",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/hand.svg",
+      "sha256": "fe3771fa2f0a9a3c7736164c9a855beefacc02548084ac1d6fc8da8a8a9180b0"
+    },
+    {
+      "id": "welcome-back",
+      "icon": "door-open",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/door-open.svg",
+      "sha256": "1bddb273d0893f65778e2a58aa1af66c8129d8d7634a3552d95be66191ea7526"
+    },
+    {
+      "id": "goodbye",
+      "icon": "signpost",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/signpost.svg",
+      "sha256": "9d611730cd28566263eff7df6d31e41df27fe6d6253c0cdb6da9ba7a912dd339"
+    },
+    {
+      "id": "listening",
+      "icon": "ear",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/ear.svg",
+      "sha256": "e21daec5f858b1825a8d8a3cc5558562fd9852ede4f09c5787a6950fbf026145"
+    },
+    {
+      "id": "thinking",
+      "icon": "brain",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/brain.svg",
+      "sha256": "91830115f859daa12e7f2f63fc072311329e363bb8b0b4707f510bcb60c2ab18"
+    },
+    {
+      "id": "idea",
+      "icon": "lightbulb",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/lightbulb.svg",
+      "sha256": "e33bbec15b1e64cca958e086850f951c0dc2201cd5778bb3695fda3cb6ea457d"
+    },
+    {
+      "id": "explaining",
+      "icon": "presentation",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/presentation.svg",
+      "sha256": "5d15abfdfca21e40abe3b8daead5e8f6a7d38e623fb1a4dd8890448c79e75342"
+    },
+    {
+      "id": "question",
+      "icon": "message-circle-question-mark",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/message-circle-question-mark.svg",
+      "sha256": "2414cc1a2aca33d215aa5c550457eea81a997d10a9339ac219cabd06830ac059"
+    },
+    {
+      "id": "clarification",
+      "icon": "messages-square",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/messages-square.svg",
+      "sha256": "97733c58b74f8beddd569927f8453c86bca4afa394e6aad606db1acff4bd8355"
+    },
+    {
+      "id": "understood",
+      "icon": "check-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/check-check.svg",
+      "sha256": "2b08c34edf3177ef80d523ad4ec3ebbd9efb92c581a48b6765044464e7e373f9"
+    },
+    {
+      "id": "story",
+      "icon": "book-open-text",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/book-open-text.svg",
+      "sha256": "a73c44b3e7586317a1766b529e345a2c94cdd70d838a61c7b05432737b81eb7f"
+    },
+    {
+      "id": "joke",
+      "icon": "drama",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/drama.svg",
+      "sha256": "71902204ac1039f32b1257dbd99705c074161fedbf9c893bdf4ae187b56fc072"
+    },
+    {
+      "id": "secret",
+      "icon": "key-round",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/key-round.svg",
+      "sha256": "f8cdea843754ed360e36b04bf6aa2c2b3610935dd39ffc685a36c4d0a05be248"
+    },
+    {
+      "id": "agreement",
+      "icon": "handshake",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/handshake.svg",
+      "sha256": "f58638064a1884e256895720c9a665d9e98cfc6935c52e14782ce0e84ecdad02"
+    },
+    {
+      "id": "disagreement",
+      "icon": "split",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/split.svg",
+      "sha256": "7b8bebfea5419548e9fed898c8c8cfa7b4ddd910628eab44d3903ccce077dd73"
+    },
+    {
+      "id": "remembering",
+      "icon": "notebook-tabs",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/notebook-tabs.svg",
+      "sha256": "bd7366677f9b6a1b5c245029b48144176c236c11956a3b90e2b5a8c1cf996fba"
+    },
+    {
+      "id": "searching",
+      "icon": "search",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/search.svg",
+      "sha256": "283d371c2e433817bb9c0c8310caa6c77fa4177c0f4f1168d9c83b97af7389dc"
+    },
+    {
+      "id": "comparing",
+      "icon": "scale",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/scale.svg",
+      "sha256": "a7faa238b153311b18aaffb14ade8989128eaac35a92482edb7a7ee04c7333de"
+    },
+    {
+      "id": "planning",
+      "icon": "map",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/map.svg",
+      "sha256": "41300a8ef2c2a4cf36ec3f8a730bcb4754543889eb23b98e7435de7a0757752d"
+    },
+    {
+      "id": "pause-conversation",
+      "icon": "pause",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/pause.svg",
+      "sha256": "f122ec4ea7f5693a0b1baafa9c708b53980dc87b4aacb297c6e6f71c1a4c115c"
+    },
+    {
+      "id": "read",
+      "icon": "book-open",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/book-open.svg",
+      "sha256": "9b9bed0ff057283d5c5c5a1c71f8d3e927db26a56639603a92fdf7b25961510e"
+    },
+    {
+      "id": "writing",
+      "icon": "pen-line",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/pen-line.svg",
+      "sha256": "43c431457784ab409341b549119257111385e5af0a36dee08f37c91259c08799"
+    },
+    {
+      "id": "notes",
+      "icon": "notepad-text",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/notepad-text.svg",
+      "sha256": "046e0a770756ff1578bdfb43477a2f9b3710bf33aabb28c758c7951772199a45"
+    },
+    {
+      "id": "checklist",
+      "icon": "list-checks",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/list-checks.svg",
+      "sha256": "08d26ab05aaf724222c4c0cd5a19d5eae753b2a5fff0eb2d81759dde11bac6b6"
+    },
+    {
+      "id": "focus",
+      "icon": "focus",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/focus.svg",
+      "sha256": "d52fde05ccbd7bf629e05daeb8eadf824c85333aeca78e674db01493bc8b1f10"
+    },
+    {
+      "id": "study",
+      "icon": "graduation-cap",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/graduation-cap.svg",
+      "sha256": "326b4a1c18429509a697cbc0c49fdfcf9316da34bcf581569c2fc73cc772b86f"
+    },
+    {
+      "id": "homework",
+      "icon": "notebook-pen",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/notebook-pen.svg",
+      "sha256": "56705c35e839977bd6f133d7ca4e9c93a6eea563c89e4be125efd0a32e1fa041"
+    },
+    {
+      "id": "math",
+      "icon": "calculator",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/calculator.svg",
+      "sha256": "a6b191250b1ffabdf9fc9536662309f1b0f65336aa681d75bae9f1708baaefd0"
+    },
+    {
+      "id": "language",
+      "icon": "languages",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/languages.svg",
+      "sha256": "ae9048feb2c7b19855da9a8f5414f68125573039777a89b9c253cceed5dc5075"
+    },
+    {
+      "id": "translation",
+      "icon": "book-a",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/book-a.svg",
+      "sha256": "7dec01f5abda629509d2e2ce2300255485734e2ba3c0012a22710221175be3f4"
+    },
+    {
+      "id": "research",
+      "icon": "microscope",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/microscope.svg",
+      "sha256": "72fab65c4fdd0a7d784485dc7aaa8bf8c4fba9a4dc9ae38a6538e58bdd8b5f42"
+    },
+    {
+      "id": "coding",
+      "icon": "code-xml",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/code-xml.svg",
+      "sha256": "a6d2110227be375be21da7324d3c09262c1bf019d06bdeab356d515342ab7cce"
+    },
+    {
+      "id": "fixing",
+      "icon": "wrench",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/wrench.svg",
+      "sha256": "b5f3bf792743edb9e81b543dd1b13ccc26d3afe1d33500a1cd8dee2e052d6197"
+    },
+    {
+      "id": "experiment",
+      "icon": "flask-conical",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/flask-conical.svg",
+      "sha256": "a2ce857c159bef4c128a6d9f0b6dcbd6504ecf1a2a670ee220efd14fd032b561"
+    },
+    {
+      "id": "exam",
+      "icon": "clipboard-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/clipboard-check.svg",
+      "sha256": "e2bac86a6b24caa0d7d0dcc2719ec6b7870ec5eef2d21afae498d8cb5eefda96"
+    },
+    {
+      "id": "finished",
+      "icon": "circle-check-big",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/circle-check-big.svg",
+      "sha256": "25f075fd621df48282ace8326680a4cd165965e61458d2fd0cc1303cefc179ac"
+    },
+    {
+      "id": "deadline",
+      "icon": "calendar-clock",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/calendar-clock.svg",
+      "sha256": "864c14f4f305bcfb3796b86bdfd21e5218ced8eccb6ccf42f799fe1283bcbb2c"
+    },
+    {
+      "id": "meeting",
+      "icon": "users-round",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/users-round.svg",
+      "sha256": "8b41ee3ada1609e25a410d64056aa333952cf27d770f0c379a100065270de7f7"
+    },
+    {
+      "id": "presentation",
+      "icon": "projector",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/projector.svg",
+      "sha256": "656b7ea37c25a5b5b4181dd81e95cc04eb4074963e503f4246c5b312d0fc98a0"
+    },
+    {
+      "id": "achievement",
+      "icon": "badge-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/badge-check.svg",
+      "sha256": "a83b36e35ed35be896c5e5d39d0a63ba4368735ac22f09a26a31726259467775"
+    },
+    {
+      "id": "music",
+      "icon": "list-music",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/list-music.svg",
+      "sha256": "e86c9d93aab1828013afca1ecc679f9eea432881ea373f97064801b5768d2580"
+    },
+    {
+      "id": "headphones",
+      "icon": "headphones",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/headphones.svg",
+      "sha256": "7719585dafa921805aefc21fc3262bbcc621507610a653b84e1632236650b35a"
+    },
+    {
+      "id": "singing",
+      "icon": "mic-vocal",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mic-vocal.svg",
+      "sha256": "571cafe82376ae0950eab5a709c3c9195aa466c9043462ea83f26e125e027d47"
+    },
+    {
+      "id": "guitar",
+      "icon": "guitar",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/guitar.svg",
+      "sha256": "ca2026598763ff4c8991912524f8050326e24307ea241ea2a0735af529f7e67f"
+    },
+    {
+      "id": "piano",
+      "icon": "piano",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/piano.svg",
+      "sha256": "acdb781a29f075c0afb4abf48b6ca46420e22684ff5c98e3e05838a6d586c2d4"
+    },
+    {
+      "id": "drumming",
+      "icon": "drum",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/drum.svg",
+      "sha256": "bd334f14dd0489e22ebd3b531605da25b39c54c0e16fb00a8dcaeda2201053e9"
+    },
+    {
+      "id": "dance",
+      "icon": "disc-3",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/disc-3.svg",
+      "sha256": "93b3102c857a46d590ffc268a8d9ea740abf9bfb30f76de42b9899e34bbba438"
+    },
+    {
+      "id": "drawing",
+      "icon": "pencil-ruler",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/pencil-ruler.svg",
+      "sha256": "5768abf6372740f2e7d9002d9aaa4312ad0e46df6370a9fc833ab40254e7e600"
+    },
+    {
+      "id": "painting",
+      "icon": "palette",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/palette.svg",
+      "sha256": "8e7d3fde990cffd10469ba351f27c50202b057a9bb9af5626322e53fd3abc78c"
+    },
+    {
+      "id": "craft",
+      "icon": "scissors",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/scissors.svg",
+      "sha256": "4c831fc2c903825f68565c28ffab945c34b2c60b6c564e2ae54250e1099fa550"
+    },
+    {
+      "id": "photography",
+      "icon": "camera",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/camera.svg",
+      "sha256": "ebbb3178dd80dfd942770a2237fe7bfc3515c55c7daa9d3666933a656d2790e3"
+    },
+    {
+      "id": "movie",
+      "icon": "clapperboard",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/clapperboard.svg",
+      "sha256": "e4d78946cda7812f13c431c68b6d4d0077a92217c7f468667a203f237e247d7e"
+    },
+    {
+      "id": "gaming",
+      "icon": "gamepad-2",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/gamepad-2.svg",
+      "sha256": "b0671de7afbebdafc4d655d867d9851947170b906fb187e749410039df867509"
+    },
+    {
+      "id": "dice",
+      "icon": "dices",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/dices.svg",
+      "sha256": "7f171acfe9219b4c8365107ed35f26cf5c83b293f96892f524d38a838358e531"
+    },
+    {
+      "id": "puzzle",
+      "icon": "puzzle",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/puzzle.svg",
+      "sha256": "6d80d0c3b214c96945ed0f1c6ee0e4c4ea3911c6cc91c75751fdba08c31eab02"
+    },
+    {
+      "id": "chess",
+      "icon": "chess-knight",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/chess-knight.svg",
+      "sha256": "e42ca482c0eb0b329f555b68b4c2b0152cdebba0bc36596771182d3fd2d3f0da"
+    },
+    {
+      "id": "magic",
+      "icon": "wand-sparkles",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/wand-sparkles.svg",
+      "sha256": "d73067ff2463118d4f11f9c532e7162be45f96835b966b4fc89977ca47a7317d"
+    },
+    {
+      "id": "balloon",
+      "icon": "balloon",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/balloon.svg",
+      "sha256": "b16e67e64a92024cda638c25e9538fbaced0041bfc644b6cd25496069562686b"
+    },
+    {
+      "id": "blocks",
+      "icon": "blocks",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/blocks.svg",
+      "sha256": "2bab1f7d783686678219b8f38667025d81a536430271214db73684647a53a2d8"
+    },
+    {
+      "id": "origami",
+      "icon": "origami",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/origami.svg",
+      "sha256": "b79724cf03bccfbe1b367911fa04922fa4088522d5e2ccf889dde2b3e38cd1d3"
+    },
+    {
+      "id": "walk",
+      "icon": "footprints",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/footprints.svg",
+      "sha256": "09ddd9fd4ac7cebfdc91e1096f7b75db019a42fffc493c4adb128a49e1dba04f"
+    },
+    {
+      "id": "running",
+      "icon": "route",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/route.svg",
+      "sha256": "fc169fd38a9963b016ad6d60fd72baa2b0ea8e0cec085bbc53287297c3d8121a"
+    },
+    {
+      "id": "cycling",
+      "icon": "bike",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bike.svg",
+      "sha256": "eb129250bb946117fce7ecb22f33f89dcb64c6d69a4b86724f6f75b363c91e76"
+    },
+    {
+      "id": "hiking",
+      "icon": "mountain",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mountain.svg",
+      "sha256": "fced3dd3ffb1472e62a13d92e72633e9c68a4655da3d8aa801bc65a041fe64be"
+    },
+    {
+      "id": "exercise",
+      "icon": "dumbbell",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/dumbbell.svg",
+      "sha256": "058a51e1fd42319d7eee4988a68bee4a23bc94fc69cb8aa1450835246126382d"
+    },
+    {
+      "id": "yoga",
+      "icon": "tabler:yoga",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/yoga.svg",
+      "sha256": "7bb814b1729dcc43ac2da4f8484f23e401ef3d308f2616a393f68b4110b347d6"
+    },
+    {
+      "id": "swimming",
+      "icon": "waves-ladder",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/waves-ladder.svg",
+      "sha256": "43f83c606b8f7dc85d240e8b5c952176adffe5bf6ef5358922400517d7db81c9"
+    },
+    {
+      "id": "football",
+      "icon": "volleyball",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/volleyball.svg",
+      "sha256": "483a620360e9e7a7378d08f8d32a4fb0ca34caca04a00ec1bdb9f92bb7c15942"
+    },
+    {
+      "id": "tennis",
+      "icon": "tabler:ping-pong",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/ping-pong.svg",
+      "sha256": "d6768b2d68685f512b7e7cd536aca9b5cdca2cb80e9a6fda3e101216cfaed9b1"
+    },
+    {
+      "id": "target",
+      "icon": "target",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/target.svg",
+      "sha256": "96a6b16628825a1a207a77e9a5818f74c3e74ea3664783ff5c2a44e6347b90df"
+    },
+    {
+      "id": "packing",
+      "icon": "backpack",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/backpack.svg",
+      "sha256": "239fdca9bfe7d550be2dbbbe40f3c62f748a96235cde509d15dd32596e982f95"
+    },
+    {
+      "id": "suitcase",
+      "icon": "luggage",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/luggage.svg",
+      "sha256": "b0cb9548912ec4bae26f2441eda91197759ac85e37aa10721f07e0f8496051a8"
+    },
+    {
+      "id": "car",
+      "icon": "car",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/car.svg",
+      "sha256": "6d70bc146ca53b9c140a859319df471616c1ee6758bfb31a346d549d1fe92211"
+    },
+    {
+      "id": "train",
+      "icon": "train-front",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/train-front.svg",
+      "sha256": "27757ea510a6d1d6258cb838a72a7b239c96f3724923adb5d529a25c3ee8e2eb"
+    },
+    {
+      "id": "bus",
+      "icon": "bus",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bus.svg",
+      "sha256": "653d2c106ea719f34aa1c703fda450367d536477d61dab42723256c001d267bc"
+    },
+    {
+      "id": "flight",
+      "icon": "plane",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/plane.svg",
+      "sha256": "4c775a62a524be78fe20aed8544933d4bd3802c5eca17cd6923509f87671d6d6"
+    },
+    {
+      "id": "boat",
+      "icon": "sailboat",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sailboat.svg",
+      "sha256": "5e772794ba3157558622aae62e808bf95a29a5f507e8a625f7df35736cb01f40"
+    },
+    {
+      "id": "navigation",
+      "icon": "compass",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/compass.svg",
+      "sha256": "c5a4d147bf48424f48b514712dd61c1b07cb689612a7baef87c88870092c1659"
+    },
+    {
+      "id": "destination",
+      "icon": "map-pin",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/map-pin.svg",
+      "sha256": "16f1042a62f1bda20ebab8bfc1cb79c0be285c980dea6c2c733a17902631405b"
+    },
+    {
+      "id": "camping",
+      "icon": "tent-tree",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/tent-tree.svg",
+      "sha256": "c0ded288a36ce712cea5632bd65e8dc4c79fb8dca65cb9b8b47451874f35152b"
+    },
+    {
+      "id": "sunny",
+      "icon": "sun-medium",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sun-medium.svg",
+      "sha256": "6e4ba404e99515a2856269cf281abb2f03f635307d0627147dadd34e72d669a3"
+    },
+    {
+      "id": "cloudy",
+      "icon": "cloud",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud.svg",
+      "sha256": "28a34022ed00177eb1f218eea5d2b7af30d09b529187fe32219e4dd8ea2b9740"
+    },
+    {
+      "id": "rain",
+      "icon": "cloud-rain",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-rain.svg",
+      "sha256": "4230ba9d28d0a02c088ec0b21079b63aed9f2b7ee8493588adf34ee144bc307b"
+    },
+    {
+      "id": "thunder",
+      "icon": "cloud-lightning",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-lightning.svg",
+      "sha256": "9966e87d16d255878fd34efa1174cf1756fb5755c1f63e7ff1df4db5d2fefc36"
+    },
+    {
+      "id": "snow",
+      "icon": "snowflake",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/snowflake.svg",
+      "sha256": "9b77c3f6fbd49a7669cc530f8e9d6216ff652457c16e27b2c4eb4d81ac7c4bdd"
+    },
+    {
+      "id": "windy",
+      "icon": "wind",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/wind.svg",
+      "sha256": "eb35f6f00125b779a993c21ee761432faf8fc3210272c94448f63e2196d419b7"
+    },
+    {
+      "id": "rainbow",
+      "icon": "rainbow",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/rainbow.svg",
+      "sha256": "34a658a3d1a2f2d661a42f0765fe7be229237315f14055241fc4d672e19bd28e"
+    },
+    {
+      "id": "fog",
+      "icon": "cloud-fog",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-fog.svg",
+      "sha256": "68a247163f7501be38045284660b2c19b957e197d510e8169313075309da879a"
+    },
+    {
+      "id": "hot",
+      "icon": "thermometer-sun",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/thermometer-sun.svg",
+      "sha256": "e7725bb266a9035a7ccdce41850b518f90f34cbe515e8dbfbcea0ae5ab184567"
+    },
+    {
+      "id": "cold",
+      "icon": "thermometer-snowflake",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/thermometer-snowflake.svg",
+      "sha256": "ae1fa14b3a2ed8058cd0369f6761ae8200c2ebcfe2aa61b6a9ff73c9162b89eb"
+    },
+    {
+      "id": "sunrise",
+      "icon": "sunrise",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sunrise.svg",
+      "sha256": "0ca8d5d0b0eda9f79c87c07b04cfcdbd968fda13d942668b4ddfba36817ed8e1"
+    },
+    {
+      "id": "sunset",
+      "icon": "sunset",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sunset.svg",
+      "sha256": "c15d0c8fdf886a57c33b06e326375e556c54d26280d777bb674439147d8c7698"
+    },
+    {
+      "id": "night-sky",
+      "icon": "moon-star",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/moon-star.svg",
+      "sha256": "276b71e005c4dbb7fffdfe05d0e66628675b48f4f56bfb88aed59261f3b61e56"
+    },
+    {
+      "id": "forest",
+      "icon": "trees",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/trees.svg",
+      "sha256": "5bd0ff178d40b8c81dd38180dae0683aa9bc89c71b204167e06d2a3a0d506563"
+    },
+    {
+      "id": "garden",
+      "icon": "shovel",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shovel.svg",
+      "sha256": "5a2407e1f1610c1fcb5feaaf49bd3869544e452326a79367927568dba655a6e1"
+    },
+    {
+      "id": "watering",
+      "icon": "droplets",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/droplets.svg",
+      "sha256": "7cc0e91aa44f42f9c39e566f87dd0affd621cf4c103ad5fdbc69a475170917ae"
+    },
+    {
+      "id": "plant",
+      "icon": "leaf",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/leaf.svg",
+      "sha256": "ac2b65d8d35b5038c9388cd1f161e74570fce6ef6a4c3d99a6b0c2bd68e0cb28"
+    },
+    {
+      "id": "bird",
+      "icon": "bird",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bird.svg",
+      "sha256": "6714496bfd202994ef9b345e6ba9e3f3453701ced232fb3fa92c9c016b35d712"
+    },
+    {
+      "id": "butterfly",
+      "icon": "bug",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bug.svg",
+      "sha256": "c4fddf0d43b4c4f0b8fc52eb8810173c8d8bd25618034a70f162d85e8189d69d"
+    },
+    {
+      "id": "beach",
+      "icon": "umbrella",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/umbrella.svg",
+      "sha256": "c1c21ec8b289676b8b984ffa4cd76ef1a011aedb2f2082460656a8fb1d2eb8a9"
+    },
+    {
+      "id": "home",
+      "icon": "house",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/house.svg",
+      "sha256": "28216c479005731ef5e382e7d8627eda2b129b019eb1f3d9de9f5915576d448e"
+    },
+    {
+      "id": "sofa",
+      "icon": "sofa",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sofa.svg",
+      "sha256": "f55280bc2720c537adbb3d9758ed9adbbf683cf0bd45239b329e9ccf1c1bf7d6"
+    },
+    {
+      "id": "bedtime",
+      "icon": "bed-double",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bed-double.svg",
+      "sha256": "b8db0c1a2178019c7659f10d0461e5903eddd4e8bb8a826b380eba556278bac5"
+    },
+    {
+      "id": "nap",
+      "icon": "alarm-clock",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/alarm-clock.svg",
+      "sha256": "28b99c01c718b004fbeb35afd06a7deb5d854ae81d4dc31fe043c8074353d45d"
+    },
+    {
+      "id": "wake-up",
+      "icon": "sun-dim",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sun-dim.svg",
+      "sha256": "7217d7a23ed76894013adc36651a65b4c809ca8fa0f3b965e36a3d2314cb91ae"
+    },
+    {
+      "id": "shower",
+      "icon": "shower-head",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shower-head.svg",
+      "sha256": "caae956f3356861b4cb714691e0b14d458240e7f1be5956f49a0b1dba66249d8"
+    },
+    {
+      "id": "teeth",
+      "icon": "tabler:dental",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/dental.svg",
+      "sha256": "245e0590f6f8e152e83739d6e6f040d8a2db6564ef090031cf688f62fb59391b"
+    },
+    {
+      "id": "washing",
+      "icon": "washing-machine",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/washing-machine.svg",
+      "sha256": "47de24566c8f95282ffd4a80a10100295ef35a0c4163254a3d477e7a80945ed4"
+    },
+    {
+      "id": "cleaning",
+      "icon": "brush",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/brush.svg",
+      "sha256": "70a2174ebd2601367ba0e8ce6ddb3d6a844d5d17e24235197f04481a1bed27e9"
+    },
+    {
+      "id": "tidy",
+      "icon": "archive",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/archive.svg",
+      "sha256": "78c732e34e232db63af06a2330b4448045cfdf49b48b59f2d31922df54c7bb17"
+    },
+    {
+      "id": "dishes",
+      "icon": "glass-water",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/glass-water.svg",
+      "sha256": "5cdb0b488c058e83ae4b619d6e94bb736f8dbfbb8171c8663f9fc37915ccdfc8"
+    },
+    {
+      "id": "shopping",
+      "icon": "shopping-basket",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shopping-basket.svg",
+      "sha256": "eb844af87b5858eef48effb43548e2bcce3b87cc5c18c12329c1cb3da338d6dd"
+    },
+    {
+      "id": "groceries",
+      "icon": "shopping-bag",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shopping-bag.svg",
+      "sha256": "24a161961b559234b7a31af904dab18b437507336ba2decff3fe6b7772495896"
+    },
+    {
+      "id": "medicine",
+      "icon": "pill",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/pill.svg",
+      "sha256": "cf28e85117f308eb1d33b8ccd07f5dca5d6796bd1d76ab531d010b2dfc514949"
+    },
+    {
+      "id": "bandage",
+      "icon": "bandage",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bandage.svg",
+      "sha256": "a0e56764e3701ea180950c79975ac3aa14d90924c9fc9b427f7c476ec01eb609"
+    },
+    {
+      "id": "breathing",
+      "icon": "heart-pulse",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/heart-pulse.svg",
+      "sha256": "103d6b99ac9ab53c5861317673880ae5d6e2491efa7a40e8b89ecac449842df2"
+    },
+    {
+      "id": "rest",
+      "icon": "armchair",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/armchair.svg",
+      "sha256": "94040a227db83a21e42834b8839426754b4e1f36530eb90a440abaa3f3ee13eb"
+    },
+    {
+      "id": "cat",
+      "icon": "cat",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cat.svg",
+      "sha256": "aa8dacc2b7db300a4137da7a7b0e2b4983061d45ef8bfff2c8078796b97e7518"
+    },
+    {
+      "id": "dog",
+      "icon": "dog",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/dog.svg",
+      "sha256": "8817ced475f62c704e0641aaa522d8c587b75b16b3b533997916c91e9e5de06a"
+    },
+    {
+      "id": "pet-care",
+      "icon": "paw-print",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/paw-print.svg",
+      "sha256": "578001404e63e57af3da69c739f247f20d4ccc8a40882123c352d4160fe63996"
+    },
+    {
+      "id": "birthday",
+      "icon": "cake",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cake.svg",
+      "sha256": "f1f7b460568599597e00aa2242c3d392b20b3686c14ae97884cb0cb78e385169"
+    },
+    {
+      "id": "gift",
+      "icon": "gift",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/gift.svg",
+      "sha256": "bc0651476bc7fdefa8d033f7b7572f9c8712aaca3b9196488442e6b4e76ed2a4"
+    },
+    {
+      "id": "invitation",
+      "icon": "mail-open",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mail-open.svg",
+      "sha256": "e6e601542021faa6753ccb4c2009e2a1db00031cdbda4bcb85225028969daf7f"
+    },
+    {
+      "id": "visitors",
+      "icon": "door-closed",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/door-closed.svg",
+      "sha256": "19d3f8698ccd8dff208ce78e880cdb5e2a4794cb551210a2170178d526bc9941"
+    },
+    {
+      "id": "friendship",
+      "icon": "users",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/users.svg",
+      "sha256": "eeed488a1ec95ba730dd69996536fb65061d6ea273afb2429ae47e65eebf401c"
+    },
+    {
+      "id": "together",
+      "icon": "heart",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/heart.svg",
+      "sha256": "70af5f30be9fcb500b852556b38dcdf8c04a4ba81fd262534fb0336bd39b3b52"
+    },
+    {
+      "id": "message",
+      "icon": "message-square-heart",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/message-square-heart.svg",
+      "sha256": "2ace2396eb503e41a4d1890b4561aa8e6660be930956850c2bcc465826ac1461"
+    },
+    {
+      "id": "phone-call",
+      "icon": "phone",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/phone.svg",
+      "sha256": "bd59dd10667cbe410a69e2fbbf4d9645d08abe862c8d89082bd4f533957859a8"
+    },
+    {
+      "id": "letter",
+      "icon": "mail",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mail.svg",
+      "sha256": "3236a51d5b8ce9b0528cf2e6ad07e527bd636dded6f5a9d656072052b99caea8"
+    },
+    {
+      "id": "picnic",
+      "icon": "tabler:picnic-table",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/picnic-table.svg",
+      "sha256": "23c579c25d7caa9348ba93200362d2f00b7c68289b5cf6445301fe513a80d128"
+    },
+    {
+      "id": "barbecue",
+      "icon": "beef",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/beef.svg",
+      "sha256": "e6ed2f9c6c7109434de4b3e2730aa0946baa2411590e27f7ac02cbe5a935276e"
+    },
+    {
+      "id": "spring",
+      "icon": "tree-deciduous",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/tree-deciduous.svg",
+      "sha256": "b52cb61737d117046c8e9a6c6cbfffa4b88c90129d5f8d07c1369b62a8288714"
+    },
+    {
+      "id": "summer",
+      "icon": "sun-snow",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/sun-snow.svg",
+      "sha256": "5b2ef971056ca55504b39024521541541b4c0ed81f61aa1c9e78b86fa03e11c6"
+    },
+    {
+      "id": "autumn",
+      "icon": "tabler:leaf",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/ed177a085b652fe04ec4f37ced867c94621e7840/icons/outline/leaf.svg",
+      "sha256": "ca3b92ae35e9b8e7e94746cc4e51301ee2f85b4760a03a62250eb418f39a063a"
+    },
+    {
+      "id": "winter",
+      "icon": "cloud-snow",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cloud-snow.svg",
+      "sha256": "cdbb307c38c6f6781dd8169bc92c28cae16b4fb77d6c5d88898dd92698ad2dbc"
+    },
+    {
+      "id": "christmas",
+      "icon": "tree-pine",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/tree-pine.svg",
+      "sha256": "dc753fcbe03ca676163795fa5d62243fe0d66b44b6cab44350ae2eb144c38478"
+    },
+    {
+      "id": "new-year",
+      "icon": "calendar-heart",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/calendar-heart.svg",
+      "sha256": "a1707d6225149598449888346d420e751904c2f791de495a418f0fcdbe6575da"
+    },
+    {
+      "id": "halloween",
+      "icon": "ghost",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/ghost.svg",
+      "sha256": "7577ea4e1390a8a8203509dff037fa74791ecebb145cdc5e3f3349de2f009278"
+    },
+    {
+      "id": "anniversary",
+      "icon": "calendar-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/calendar-check.svg",
+      "sha256": "952b6b26c7a29e845e06f7ab1618cbbc809298e62639ae456acb1cd6da8d942e"
+    },
+    {
+      "id": "milestone",
+      "icon": "flag",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/flag.svg",
+      "sha256": "e99f1de2fea87cd2e3decc28a1f021a2a8182f907b3b350f604909de2030d8b9"
+    },
+    {
+      "id": "charging",
+      "icon": "battery-charging",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/battery-charging.svg",
+      "sha256": "6a95bf102235d7070121bb8eb21a4836fa7ea9f0dbe8327eadbdf94253acdcbd"
+    },
+    {
+      "id": "low-battery",
+      "icon": "battery-low",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/battery-low.svg",
+      "sha256": "a158265a07d3ea60134de7ca88c023ebbe35d9af9c724c410ed251f248987a52"
+    },
+    {
+      "id": "battery-full",
+      "icon": "battery-full",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/battery-full.svg",
+      "sha256": "9ef66bd46e676bbcf1e8befca8e904b93be9214abccea4f8a4d20432a0c5ccf8"
+    },
+    {
+      "id": "connected",
+      "icon": "bluetooth-connected",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bluetooth-connected.svg",
+      "sha256": "d39c628c736b13b022f154e9aaa8aad178ef1d090a9bc14f1f4740c24767d828"
+    },
+    {
+      "id": "disconnected",
+      "icon": "bluetooth-off",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bluetooth-off.svg",
+      "sha256": "61d26b013859d73ddf585d7b6e460ab2a6f02ca3ec2faf4b646cf9054224c22c"
+    },
+    {
+      "id": "wifi",
+      "icon": "wifi",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/wifi.svg",
+      "sha256": "5c4c795d014fa95d1e1038362df44a0f0f32ded9cb08c833ae72419ebadc9a91"
+    },
+    {
+      "id": "offline",
+      "icon": "wifi-off",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/wifi-off.svg",
+      "sha256": "318b290106e55c3505933f434d3663524206c7a44165a89508774fba4fdbaadd"
+    },
+    {
+      "id": "microphone",
+      "icon": "mic",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mic.svg",
+      "sha256": "9b940cd735d1ffa270ba670c4e677d9a09400f3fa81d6b3f405b12a3b67a59a8"
+    },
+    {
+      "id": "muted",
+      "icon": "mic-off",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/mic-off.svg",
+      "sha256": "bcb5a033b4ecd182ec8d0d0945810ccc5147219b1a21c017b47fd4d5ae3a8320"
+    },
+    {
+      "id": "audio",
+      "icon": "volume-2",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/volume-2.svg",
+      "sha256": "fb404f9c128a0579de67b399177631e5edb3502fdc247ceb30e8b15754b46071"
+    },
+    {
+      "id": "download",
+      "icon": "download",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/download.svg",
+      "sha256": "3daeee13ded5a3afa2198b1bb4e2262d163922f97d96ac6ff9953e8ed4fe039d"
+    },
+    {
+      "id": "update",
+      "icon": "refresh-cw",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/refresh-cw.svg",
+      "sha256": "2e10dd403c85a24f163d59fc6151aa21147fe9402e1305dfc8979208caee8944"
+    },
+    {
+      "id": "setup",
+      "icon": "settings-2",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/settings-2.svg",
+      "sha256": "06d06c191bd7eb28afaf9d40acb5c49ef69448fdeda91801d9823d7c440a4e10"
+    },
+    {
+      "id": "tools",
+      "icon": "tool-case",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/tool-case.svg",
+      "sha256": "8a06de4aaacc45accbad40b18b43a8ebe9d899a3bfd27bd0e94f746ca2ea1d77"
+    },
+    {
+      "id": "privacy",
+      "icon": "shield-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/shield-check.svg",
+      "sha256": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e"
+    },
+    {
+      "id": "locked",
+      "icon": "lock-keyhole",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/lock-keyhole.svg",
+      "sha256": "fc0b8b7590d1d9e9bb0112c5c2e15a78ade0bfeca6d6f8c79fbbe149236d74be"
+    },
+    {
+      "id": "notification",
+      "icon": "bell",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/bell.svg",
+      "sha256": "394889e9631fe3a9a63be9a479a95b451b708e432d895978d21d9130b5ee5dbe"
+    },
+    {
+      "id": "maintenance",
+      "icon": "cog",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/cog.svg",
+      "sha256": "8b00c44388d173ca490d4bfde8ed28f58c23902fd84b8da9e5052578bfe633cf"
+    },
+    {
+      "id": "help",
+      "icon": "life-buoy",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/life-buoy.svg",
+      "sha256": "6f6280c32ee414ef191ce98b58213b56d1317b25000e17785ede1125b7a37701"
+    },
+    {
+      "id": "stop",
+      "icon": "octagon",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/c2dd25753da3f25d9ddc351ddb0ee72332189692/icons/octagon.svg",
+      "sha256": "3b2722c3ea597beb3903be760f09165009bec78176317e1f78d47c39e7c1b006"
+    }
+  ]
+}

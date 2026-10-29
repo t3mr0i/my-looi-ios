@@ -27,8 +27,10 @@ CAPABILITIES = {
     "protocol": 1,
     "service": "looi-hermes",
     "capabilities": ["tasks", "cancel", "delete"],
+    "features": [{"id": "public-research", "revision": 1, "availability": "available"}],
+    "connectionProviders": ["nous-v1"],
 }
-LANGUAGES = frozenset({"en", "ru", "uk"})
+LANGUAGES = frozenset({"en", "ru", "uk", "de"})
 logger = logging.getLogger("looi-hermes")
 _AGENT_TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{32,512}\Z")
 
@@ -68,6 +70,9 @@ def dispatch_request(
         return 401, {"error": "E_UNAUTHORIZED"}
     if method == "GET" and parts == ["v1", "capabilities"]:
         return 200, CAPABILITIES
+    if parts in (["v1", "nous"], ["v1", "nous", "connect"]):
+        from .nous_connections import dispatch_nous
+        return dispatch_nous(method, parts, body)
     if method == "GET" and parts == ["v1", "tasks"]:
         try:
             query = parse_qs(urlsplit(target).query, keep_blank_values=True, strict_parsing=True, max_num_fields=1)

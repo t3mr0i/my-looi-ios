@@ -1,0 +1,379 @@
+{
+  "platform": "physical iPhone 16",
+  "variant": "B5 native interval patch",
+  "probe": {
+    "variant": "B5-native-interval-fix",
+    "launchedAt": "2026-10-28T17:17:10.589593+00:00",
+    "question": "synthetic German question, current Mac speakers",
+    "acousticReach": "not independently calibrated",
+    "playStartedAt": "2026-10-28T17:17:18.595051+00:00",
+    "playExitCode": 0,
+    "playFinishedAt": "2026-10-28T17:17:20.383793+00:00"
+  },
+  "sampledFrameDuration": {
+    "n": 12,
+    "medianMs": 200,
+    "p95Ms": 200
+  },
+  "sampledVadProcessing": {
+    "n": 12,
+    "medianMs": 3.217561960220337,
+    "p95Ms": 7.397333145141602
+  },
+  "events": [
+    {
+      "timestamp": "2026-10-28T17:17:11.909Z",
+      "event": "app-state-changed",
+      "details": {
+        "previous": "inactive",
+        "state": "active"
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:12.263Z",
+      "event": "feeder-started",
+      "details": {
+        "requestedIntervalMs": 100,
+        "reportedIntervalMs": 100
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:12.359Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 97,
+        "deltaSize": 3200
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:13.445Z",
+      "event": "feeder-started",
+      "details": {
+        "requestedIntervalMs": 100,
+        "reportedIntervalMs": 100
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:14.087Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 641,
+        "deltaSize": 3200
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:14.215Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 1600,
+        "frameDurationMs": 100,
+        "frames": 2,
+        "maxRms": 0.007101386905693046,
+        "peak": 0.019256591796875,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 1.932042121887207,
+        "vadQueueMs": 0.22754192352294922,
+        "hadSpeech": false
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:14.814Z",
+      "event": "budget-input-attention",
+      "details": {
+        "frameDurationMs": 200
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:15.306Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.011051403500274117,
+        "peak": 0.049041748046875,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 4.308542251586914,
+        "vadQueueMs": 0.44145774841308594,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:16.396Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.0050788157651201725,
+        "peak": 0.01434326171875,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 4.617958068847656,
+        "vadQueueMs": 0.938209056854248,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:17.419Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 1600,
+        "frameDurationMs": 100,
+        "frames": 6,
+        "maxRms": 0.007014147668516021,
+        "peak": 0.0218505859375,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 2.542874813079834,
+        "vadQueueMs": 0.25150012969970703,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:18.511Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.0042088169849570966,
+        "peak": 0.016845703125,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 3.617166042327881,
+        "vadQueueMs": 0.40170860290527344,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:19.598Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.006533959666384613,
+        "peak": 0.02410888671875,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 4.143749713897705,
+        "vadQueueMs": 0.4925422668457031,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:20.617Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 1600,
+        "frameDurationMs": 100,
+        "frames": 6,
+        "maxRms": 0.007304121896959415,
+        "peak": 0.020538330078125,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 2.562875270843506,
+        "vadQueueMs": 0.29787492752075195,
+        "hadSpeech": true
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:21.238Z",
+      "event": "local-command-start",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T17:17:21.810Z",
+      "event": "local-command-finished",
+      "details": {
+        "durationMs": 574
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:23.656Z",
+      "event": "budget-text-usage",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T17:17:25.353Z",
+      "event": "budget-turn-latency",
+      "details": {
+        "segmentEndToPlayingEstimateMs": 4263.51008272171,
+        "endpointToCommitMs": 3.9619998931884766,
+        "commitToPlayingMs": 4153.523499965668,
+        "sttMs": 583.202666759491,
+        "memoryMs": 48.61875009536743,
+        "textReplyMs": 1780.4070000648499,
+        "speechPreparationMs": 1682.5839576721191
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:35.663Z",
+      "event": "feeder-started",
+      "details": {
+        "requestedIntervalMs": 100,
+        "reportedIntervalMs": 100
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:36.312Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 638,
+        "deltaSize": 3200
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:36.437Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 1600,
+        "frameDurationMs": 100,
+        "frames": 2,
+        "maxRms": 0.0003265639321624344,
+        "peak": 0.001129150390625,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 2.817957878112793,
+        "vadQueueMs": 0.29016685485839844,
+        "hadSpeech": false
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:37.534Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.00040118864826695343,
+        "peak": 0.00164794921875,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 7.397333145141602,
+        "vadQueueMs": 0.5636672973632812,
+        "hadSpeech": false
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:38.619Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.00035324591021446486,
+        "peak": 0.0013427734375,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 2.7906250953674316,
+        "vadQueueMs": 0.31058311462402344,
+        "hadSpeech": false
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:39.644Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 1600,
+        "frameDurationMs": 100,
+        "frames": 6,
+        "maxRms": 0.0003882548578693245,
+        "peak": 0.00213623046875,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 3.7633328437805176,
+        "vadQueueMs": 1.0200419425964355,
+        "hadSpeech": false
+      }
+    },
+    {
+      "timestamp": "2026-10-28T17:17:40.731Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 3200,
+        "frameDurationMs": 200,
+        "frames": 6,
+        "maxRms": 0.0006148122860917443,
+        "peak": 0.00286865234375,
+        "vadSpeech": false,
+        "completedSegments": 0,
+        "vadProcessingMs": 2.364542007446289,
+        "vadQueueMs": 0.35854244232177734,
+        "hadSpeech": false
+      }
+    }
+  ],
+  "latency": {
+    "variant": "B5",
+    "since": "2026-10-28T17:17:05.589Z",
+    "warmupTurnsExcluded": 0,
+    "evidence": "internal device clocks and player callbacks; no external acoustic, visible-display or motor-onset measurement",
+    "limitations": [
+      "VAD segment end is mapped to JS audio receipt in Budget mode; native capture/bridge age is excluded",
+      "PCM uses a local energy reference and render/route estimate, not annotated speech or microphone-measured playback",
+      "Input receipt to state request excludes microphone capture and visible display latency",
+      "Small pilot p95 is descriptive; incomplete measurements are counted separately"
+    ],
+    "summary": {
+      "budgetSegmentEndToPlayingEstimate": {
+        "n": 1,
+        "medianMs": 4263.51008272171,
+        "p95Ms": 4263.51008272171
+      },
+      "budgetEndpointToCommit": {
+        "n": 1,
+        "medianMs": 3.9619998931884766,
+        "p95Ms": 3.9619998931884766
+      },
+      "budgetCommitToPlaying": {
+        "n": 1,
+        "medianMs": 4153.523499965668,
+        "p95Ms": 4153.523499965668
+      },
+      "pcmActivityEndToEstimatedAudible": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "budgetInputReceiptToStateRequest": {
+        "n": 1,
+        "medianMs": 28.615084171295166,
+        "p95Ms": 28.615084171295166
+      },
+      "incompleteBudgetEndReferences": 0
+    },
+    "records": [
+      {
+        "timestamp": "2026-10-28T17:17:14.814Z",
+        "event": "budget-input-attention",
+        "sessionId": "budget_1793207832527_1",
+        "metrics": {
+          "frameDurationMs": 200,
+          "receiptToStateMs": 28.615084171295166
+        }
+      },
+      {
+        "timestamp": "2026-10-28T17:17:25.353Z",
+        "event": "budget-turn-latency",
+        "sessionId": "budget_1793207832527_1",
+        "metrics": {
+          "segmentEndToPlayingEstimateMs": 4263.51008272171,
+          "endpointToCommitMs": 3.9619998931884766,
+          "commitToPlayingMs": 4153.523499965668,
+          "captureStopMs": 36.141000270843506,
+          "sttMs": 583.202666759491,
+          "memoryMs": 48.61875009536743,
+          "textReplyMs": 1780.4070000648499,
+          "speechPreparationMs": 1682.5839576721191,
+          "maxVadQueueMs": 0.938209056854248,
+          "maxVadProcessingMs": 9.026041030883789
+        }
+      }
+    ]
+  },
+  "interpretationNote": "The native wrapper used a five-second maximum-speech default. A completed segment may be forced; B5 lacks enough segment boundary data to assign that cause. Its mapped segment end is not a verified human speech end. Commit-to-playing and stage durations remain valid internal metrics."
+}

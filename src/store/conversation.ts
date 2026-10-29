@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { ChatMessage, SessionSummary } from "../core/context-service";
 import { mirrorSessionMessage } from "../memory/memory-service";
+import { INPUT_ATTENTION_DURATION_MS, type InputAttentionCue } from "../voice/input-attention";
 
 export type { ChatMessage, SessionSummary };
 
@@ -24,8 +25,13 @@ interface ConversationState {
   realtimeIssue: RealtimeIssue;
   currentTranscript: string;
   streamingText: string;
+  /** Assistant words confirmed by output ASR and the actual playback head. */
+  heardSpeechText: string | null;
   overlayVisible: boolean;
   imageOverlayUri: string | null;
+  /** Presentation only. Incoming sound does not establish recognized human speech. */
+  inputAttention: InputAttentionCue | null;
+  lastInputAttentionAtMs: number | null;
 
   // Actions
   setActiveSession: (sessionId: string, messages?: ChatMessage[]) => void;
@@ -39,12 +45,15 @@ interface ConversationState {
   setRealtimeIssue: (issue: RealtimeIssue) => void;
   setCurrentTranscript: (transcript: string) => void;
   setStreamingText: (text: string) => void;
+  setHeardSpeechText: (text: string | null) => void;
   appendStreamingText: (text: string) => void;
   setOverlayVisible: (visible: boolean) => void;
   showImageOverlay: (uri: string | null) => void;
   hideImageOverlay: () => void;
   clearMessages: () => void;
   clearSession: () => void;
+  requestInputAttention: (sessionId: string, receivedAtMs: number) => string | null;
+  clearInputAttention: (expectedId?: string) => void;
 }
 
 function createLocalMessage(message: NewChatMessage): ChatMessage {
@@ -55,7 +64,7 @@ function createLocalMessage(message: NewChatMessage): ChatMessage {
   };
 }
 
-export const useConversationStore = create<ConversationState>((set) => ({
+export const useConversationStore = create<ConversationState>((set, get) => ({
   activeSessionId: null,
   messages: [],
   isProcessing: false,
@@ -66,11 +75,28 @@ export const useConversationStore = create<ConversationState>((set) => ({
   realtimeIssue: null,
   currentTranscript: "",
   streamingText: "",
+  heardSpeechText: null,
   overlayVisible: false,
   imageOverlayUri: null,
+  inputAttention: null,
+  lastInputAttentionAtMs: null,
+
+  requestInputAttention: (sessionId, receivedAtMs) => {
+    const state = get();
+    const now = performance.now();
+    if (state.activeSessionId !== sessionId || !state.isListening || state.isSpeaking || state.isProcessing
+      || state.realtimeReadiness !== "ready" || !Number.isFinite(receivedAtMs) || receivedAtMs > now || now - receivedAtMs > 100
+      || (state.lastInputAttentionAtMs !== null && now - state.lastInputAttentionAtMs < 1000)) return null;
+    const id = `${sessionId}:input:${now}`;
+    set({ inputAttention: { id, sessionId, receivedAtMs, requestedAtMs: now, expiresAtMs: now + INPUT_ATTENTION_DURATION_MS }, lastInputAttentionAtMs: now });
+    return id;
+  },
+  clearInputAttention: (expectedId) => {
+    if (get().inputAttention && (!expectedId || get().inputAttention?.id === expectedId)) set({ inputAttention: null });
+  },
 
   setActiveSession: (activeSessionId, messages) =>
-    set(messages ? { activeSessionId, messages } : { activeSessionId }),
+    set(messages ? { activeSessionId, messages, heardSpeechText: null, inputAttention: null } : { activeSessionId, heardSpeechText: null, inputAttention: null }),
 
   addMessage: (message) => {
     const localMessage = createLocalMessage(message);
@@ -102,19 +128,21 @@ export const useConversationStore = create<ConversationState>((set) => ({
     return localMessage;
   },
 
-  setProcessing: (isProcessing) => set({ isProcessing }),
+  setProcessing: (isProcessing) => set((state) => ({ isProcessing, inputAttention: isProcessing ? null : state.inputAttention })),
   setListening: (isListening) =>
     set((state) => ({
       isListening,
+      inputAttention: isListening ? state.inputAttention : null,
       overlayVisible: isListening ? true : state.overlayVisible,
     })),
   setUserSpeaking: (isUserSpeaking) => set({ isUserSpeaking }),
   setSpeaking: (isSpeaking) =>
     set((state) => ({
       isSpeaking,
+      inputAttention: isSpeaking ? null : state.inputAttention,
       overlayVisible: isSpeaking ? true : state.overlayVisible,
     })),
-  setRealtimeReadiness: (realtimeReadiness) => set({ realtimeReadiness }),
+  setRealtimeReadiness: (realtimeReadiness) => set((state) => ({ realtimeReadiness, inputAttention: realtimeReadiness === "ready" ? state.inputAttention : null })),
   setRealtimeIssue: (realtimeIssue) => set((state) => ({ realtimeIssue, overlayVisible: realtimeIssue ? true : state.overlayVisible })),
   setCurrentTranscript: (currentTranscript) =>
     set((state) => ({
@@ -126,6 +154,7 @@ export const useConversationStore = create<ConversationState>((set) => ({
       streamingText,
       overlayVisible: streamingText ? true : state.overlayVisible,
     })),
+  setHeardSpeechText: (heardSpeechText) => set({ heardSpeechText }),
   appendStreamingText: (text) =>
     set((state) => ({
       streamingText: `${state.streamingText}${text}`,
@@ -138,9 +167,12 @@ export const useConversationStore = create<ConversationState>((set) => ({
   clearSession: () =>
     set({
       activeSessionId: null,
+      inputAttention: null,
+      lastInputAttentionAtMs: null,
       messages: [],
       currentTranscript: "",
       streamingText: "",
+      heardSpeechText: null,
       realtimeReadiness: "idle",
       realtimeIssue: null,
       isProcessing: false,

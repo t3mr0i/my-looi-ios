@@ -20,7 +20,7 @@ const retiredPaths = [
 for (const path of retiredPaths) assert.equal(existsSync(path), false, `${path} must remain absent`);
 
 const home = readFileSync("app/(tabs)/index.tsx", "utf8");
-assert.match(home, /gearshape\.fill/);
+assert.match(home, /onSettings=\{\(\) => router\.replace\("\/settings"\)\}/);
 assert.match(home, /applyLiveRealtimePreferences/);
 assert.doesNotMatch(home, /quickPanelVisible|quickActions/);
 

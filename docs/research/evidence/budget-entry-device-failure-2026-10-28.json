@@ -1,0 +1,367 @@
+{
+  "source": "physical iPhone 16 diagnostic metadata after failed round A",
+  "outcome": "no usable speech-response latency samples",
+  "userObservation": "face visible; speech and taps appear to have no effect",
+  "diagnosis": "tap retry arrives, but Budget is rejected by the Realtime PCM handoff stability gate",
+  "events": [
+    {
+      "timestamp": "2026-10-28T16:17:55.476Z",
+      "event": "conversation-mode-sync",
+      "details": {
+        "mode": "budget"
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:17:56.728Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 903,
+        "deltaSize": 28800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:17:57.028Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 260,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 284,
+        "recordingAgeMs": 1205
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:17:58.787Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 964,
+        "deltaSize": 12800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:50.455Z",
+      "event": "conversation-mode-sync",
+      "details": {
+        "mode": "budget"
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:51.657Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 900,
+        "deltaSize": 28800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:51.971Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 275,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 301,
+        "recordingAgeMs": 1215
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:53.231Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 836,
+        "deltaSize": 9600
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:53.515Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 2,
+        "elapsedStableMs": 248,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 264,
+        "recordingAgeMs": 1116
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:24:53.542Z",
+      "event": "fresh-launch-audio-preparation-failed",
+      "details": {
+        "attempts": 2,
+        "triggerSource": "fresh-launch",
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 298,
+        "recordingAgeMs": 1150
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:07.801Z",
+      "event": "realtime-microphone-preparation-manual-retry",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T16:25:07.851Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 0,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 795,
+        "recordingAgeMs": 15461
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:09.177Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 955,
+        "deltaSize": 12800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:09.461Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 2,
+        "elapsedStableMs": 248,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 263,
+        "recordingAgeMs": 1231
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:09.487Z",
+      "event": "fresh-launch-audio-preparation-failed",
+      "details": {
+        "attempts": 2,
+        "triggerSource": "manual-retry",
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 298,
+        "recordingAgeMs": 1266
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:09.676Z",
+      "event": "realtime-microphone-preparation-manual-retry",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T16:25:09.724Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 0,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 536,
+        "recordingAgeMs": 1504
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:11.070Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 965,
+        "deltaSize": 12800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:11.353Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 2,
+        "elapsedStableMs": 256,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 268,
+        "recordingAgeMs": 1253
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:11.383Z",
+      "event": "fresh-launch-audio-preparation-failed",
+      "details": {
+        "attempts": 2,
+        "triggerSource": "manual-retry",
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 301,
+        "recordingAgeMs": 1286
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:32.027Z",
+      "event": "conversation-mode-sync",
+      "details": {
+        "mode": "budget"
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:32.824Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 829,
+        "deltaSize": 9600
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:36.937Z",
+      "event": "realtime-microphone-preparation-manual-retry",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T16:25:36.986Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 0,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 1026,
+        "recordingAgeMs": 4996
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:38.324Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 972,
+        "deltaSize": 12800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:38.609Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 2,
+        "elapsedStableMs": 254,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 268,
+        "recordingAgeMs": 1255
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:25:38.639Z",
+      "event": "fresh-launch-audio-preparation-failed",
+      "details": {
+        "attempts": 2,
+        "triggerSource": "manual-retry",
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 301,
+        "recordingAgeMs": 1288
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:26:00.375Z",
+      "event": "realtime-microphone-preparation-manual-retry",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-10-28T16:26:00.423Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 1,
+        "elapsedStableMs": 0,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 794,
+        "recordingAgeMs": 23075
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:26:01.761Z",
+      "event": "first-pcm",
+      "details": {
+        "afterStartMs": 964,
+        "deltaSize": 12800
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:26:02.072Z",
+      "event": "fresh-launch-audio-stability-degraded",
+      "details": {
+        "attempt": 2,
+        "elapsedStableMs": 274,
+        "stableWindowMs": 1000,
+        "maxPcmAgeMs": 250,
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 287,
+        "recordingAgeMs": 1272
+      }
+    },
+    {
+      "timestamp": "2026-10-28T16:26:02.097Z",
+      "event": "fresh-launch-audio-preparation-failed",
+      "details": {
+        "attempts": 2,
+        "triggerSource": "manual-retry",
+        "feederRunning": true,
+        "feederDesiredRunning": true,
+        "appCaptureAllowed": true,
+        "pcmFlowing": true,
+        "pcmAgeMs": 317,
+        "recordingAgeMs": 1302
+      }
+    }
+  ]
+}

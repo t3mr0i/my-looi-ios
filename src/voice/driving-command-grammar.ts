@@ -51,6 +51,7 @@ const STOP_ALL_LANGUAGES = [
   "стоп", "стой", "остановись", "останови", "останови движение", "тормози", "замри", "хватит", "достаточно", "прекрати", "прекрати движение", "не едь", "не езди",
   "стій", "зупинись", "зупини", "зупини рух", "гальмуй", "завмри", "досить", "припини", "припини рух", "не їдь",
   "stop", "halt", "freeze", "brake", "hold", "enough", "stop moving", "stop now", "don't move", "do not move",
+  "stopp", "anhalten", "halte an", "bleib stehen", "stehen bleiben", "bremsen", "bremse", "beweg dich nicht", "nicht weiterfahren",
 ];
 
 export function buildDrivingCommandGrammar(language: ListeningLanguage): DrivingGrammarBundle {
@@ -165,6 +166,68 @@ export function buildDrivingCommandGrammar(language: ListeningLanguage): Driving
     addNaturalVariants(commandByPhrase, { kind: "exit" }, [
       "закінчили", "все закінчили", "досить керувати", "звичайний режим", "поговорімо", "давай поговоримо", "повернись до розмови", "режим розмови",
     ], ["", "ну", "давай"], ["", "будь ласка"]);
+  } else if (language === "de") {
+    const prefixes = [
+      "", "bitte", "jetzt", "los", "jetzt bitte", "okay", "na los", "also",
+      "louis", "louis bitte", "louis jetzt", "hey louis", "looi", "looi bitte",
+    ];
+    const suffixes = ["bitte", "jetzt", "sofort"];
+
+    addNaturalVariants(commandByPhrase, { kind: "stop" }, [
+      "stopp", "stop", "halt", "anhalten", "halte an", "bleib stehen", "stehen bleiben",
+      "bremse", "bremsen", "beweg dich nicht", "beweg dich keinen schritt", "nicht weiterfahren",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "move", direction: "forward" }, [
+      "vorwärts", "vorwaerts", "nach vorne", "nach vorn", "geradeaus", "fahr vorwärts",
+      "fahre vorwärts", "fahr nach vorne", "fahre nach vorne", "fahr geradeaus", "fahre geradeaus",
+      "beweg dich nach vorne", "beweg dich nach vorn", "fahr los", "vorwärts fahren",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "move", direction: "backward" }, [
+      "rückwärts", "rueckwaerts", "zurück", "zurueck", "nach hinten", "fahr rückwärts",
+      "fahre rückwärts", "fahr zurück", "fahre zurück", "fahr nach hinten", "fahre nach hinten",
+      "setz zurück", "setze zurück", "beweg dich zurück",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "turn", direction: "left", degrees: 90 }, [
+      "links", "nach links", "linksdrehung", "links drehen", "dreh nach links", "dreh dich nach links",
+      "biege links ab", "bieg links ab", "lenk nach links", "schwenk nach links",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "turn", direction: "right", degrees: 90 }, [
+      "rechts", "nach rechts", "rechtsdrehung", "rechts drehen", "dreh nach rechts", "dreh dich nach rechts",
+      "biege rechts ab", "bieg rechts ab", "lenk nach rechts", "schwenk nach rechts",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "turn", direction: "right", degrees: 180 }, [
+      "dreh dich um", "dreh um", "drehe dich um", "drehe um", "wende", "wend dich",
+      "mach eine kehrtwende", "mach kehrt", "umdrehen", "dreh dich um 180 grad", "um 180 grad drehen",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "gesture", gesture: "nod", count: 1 }, [
+      "nick", "nicke", "nick mit dem kopf", "nicke mit dem kopf", "mach einen nick", "nick einmal",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "gesture", gesture: "nod", count: 2 }, [
+      "nick zweimal", "nicke zweimal", "nicke zwei mal", "zweimal nicken", "nicke zwei mal mit dem kopf",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "gesture", gesture: "nod", count: 3 }, [
+      "nick dreimal", "nicke dreimal", "nicke drei mal", "dreimal nicken", "nicke drei mal mit dem kopf",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "gesture", gesture: "happy_bob", count: 1 }, [
+      "schüttle den kopf", "schuettle den kopf", "beweg den kopf", "bewege den kopf", "wackle mit dem kopf",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "dance" }, [
+      "tanz", "tanze", "tanz für mich", "tanze für mich", "zeig mir einen tanz", "mach einen tanz",
+      "dreh dich und tanz", "tanze für mich",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "sleep" }, [
+      "schlaf", "schlafe", "geh schlafen", "schlaf ein", "geh ins bett", "zeit zum schlafen", "gute nacht",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "light", enabled: true }, [
+      "licht an", "mach das licht an", "schalte das licht ein", "schalte licht ein", "mach licht an",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "light", enabled: false }, [
+      "licht aus", "mach das licht aus", "schalte das licht aus", "schalte licht aus", "mach licht aus",
+    ], prefixes, suffixes);
+    addNaturalVariants(commandByPhrase, { kind: "exit" }, [
+      "fertig", "fahrmodus beenden", "fahrsteuerung beenden", "normaler modus", "zurück zum gespräch",
+      "zurück zum gespraech", "lass uns reden", "wir reden weiter", "gesprächsmodus", "gespraechsmodus",
+    ], ["", "okay", "bitte"], ["", "bitte"]);
   } else {
     const prefixes = [
       "go", "please", "okay", "ok", "well", "now", "now please", "and now", "now let's",

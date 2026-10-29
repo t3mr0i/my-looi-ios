@@ -1,0 +1,55 @@
+{
+  "observedAt": "2026-10-28T20:04:45.976778+00:00",
+  "kind": "physical iPhone installation, launch and short startup observation; NOT a response-latency trial",
+  "platform": "physical iPhone16 over paired Wi-Fi",
+  "package": "B7",
+  "version": "2.1.151 (41)",
+  "bundleSha256": "8694a8c50815beb919bd4531fc441e1deb9dd8c503a7731ecfc7d3d942847ab8",
+  "signature": "codesign --verify --deep --strict passed before installation",
+  "previousTestPackageIdentityMatched": true,
+  "installation": {
+    "result": "success",
+    "regularPackage": true,
+    "forcedBenchmarkMode": false,
+    "installedAppUrlSuffix": "/B7.app/"
+  },
+  "launch": {
+    "result": "success",
+    "processIdentifier": 46060
+  },
+  "startup": {
+    "bootstrapStart": "2026-10-28T20:00:58.503Z",
+    "modeObserved": "budget",
+    "freshLaunchAutoListenRequestedAt": "2026-10-28T20:00:58.883Z",
+    "feederStartedAt": "2026-10-28T20:01:00.146Z",
+    "requestedIntervalMs": 100,
+    "reportedIntervalMs": 100,
+    "appInactiveAt": "2026-10-28T20:01:00.460Z",
+    "appBackgroundAt": "2026-10-28T20:01:01.301Z",
+    "bootstrapToInactiveMs": 1957,
+    "budgetStoppedAt": "2026-10-28T20:01:00.618Z",
+    "budgetStopReason": "voice-runtime-stop",
+    "captureStoppedAt": "2026-10-28T20:01:00.667Z",
+    "budgetInputHealthObserved": false
+  },
+  "conversationTrials": 0,
+  "micToVisibleLatencyMs": null,
+  "speechEndToAudibleLatencyMs": null,
+  "motorOnsetLatencyMs": null,
+  "medianMs": null,
+  "p95Ms": null,
+  "earlyInputAttentionCueIncluded": false,
+  "limits": [
+    "OS launch success is not proof of a conversational response.",
+    "The app entered the background shortly after startup; no reason for the foreground loss is inferred.",
+    "The feeder reported the corrected interval; this observation is not a new distribution of captured block durations.",
+    "No valid comparison, human speech-end reference, audible answer or motor-onset measurement.",
+    "B7 predates the newer early-input attention cue; that cue remains source/mock/browser verified only."
+  ],
+  "receiptSha256": {
+    "install-B7-current.json": "0f2d692f49c77c26622de780e9cd3941e8a55ee9b3be626ca156cac9f6a9ff4d",
+    "launch-B7-current.json": "885eac7b163353d304d8b7b8158e96382fd2b926473ffbe9a9e4ab9da89eda33",
+    "apps-B7-installed.json": "c144215f3e1e7321c955f4e7325840c1cf5af71acb243c9d8ccfaf3e65ae070e"
+  },
+  "diagnosticSourceSha256": "9d8e3127b425980696a0a6b8b7e352f96a2be5023daafea7a8ca4265356c1aac"
+}

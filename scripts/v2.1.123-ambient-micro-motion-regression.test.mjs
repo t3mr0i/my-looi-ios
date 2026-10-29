@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 const patchVersion = Number(pkg.version.split(".")[2]);
@@ -49,16 +51,17 @@ assert.match(pcm, /markRobotInteraction\("realtime-pcm-transcript"\)/, "Realtime
 
 const settings = read("app/(tabs)/settings.tsx");
 for (const level of ["off", "subtle", "normal", "lively"]) {
-  assert.match(settings, new RegExp(`ambientMotionLevel === "${level}"`));
-  assert.match(settings, new RegExp(`ambientMotionLevel: "${level}"`));
+  assert.match(settings, new RegExp(`id: "${level}" as const`));
 }
+assert.match(settings, /value=\{preferences\.ambientMotionLevel\}/);
+assert.match(settings, /updatePreferences\(\{ ambientMotionLevel: id \}\)/);
 
 const strings = read("src/i18n/ui-strings.ts");
-assert.equal((strings.match(/"settings\.ambientMotion":/g) ?? []).length, 3);
-assert.equal((strings.match(/"settings\.ambientMotionHelp":/g) ?? []).length, 3);
-assert.equal((strings.match(/"settings\.ambientMotionOff":/g) ?? []).length, 3);
-assert.equal((strings.match(/"settings\.ambientMotionSubtle":/g) ?? []).length, 3);
-assert.equal((strings.match(/"settings\.ambientMotionNormal":/g) ?? []).length, 3);
-assert.equal((strings.match(/"settings\.ambientMotionLively":/g) ?? []).length, 3);
+assert.equal((strings.match(/"settings\.ambientMotion":/g) ?? []).length, uiLanguageCount);
+assert.equal((strings.match(/"settings\.ambientMotionHelp":/g) ?? []).length, uiLanguageCount);
+assert.equal((strings.match(/"settings\.ambientMotionOff":/g) ?? []).length, uiLanguageCount);
+assert.equal((strings.match(/"settings\.ambientMotionSubtle":/g) ?? []).length, uiLanguageCount);
+assert.equal((strings.match(/"settings\.ambientMotionNormal":/g) ?? []).length, uiLanguageCount);
+assert.equal((strings.match(/"settings\.ambientMotionLively":/g) ?? []).length, uiLanguageCount);
 
 console.log("v2.1.123 ambient micro-motion regression: PASS");

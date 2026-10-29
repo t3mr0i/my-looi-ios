@@ -74,6 +74,14 @@ let coordinationHoldUntil = 0;
 let headCoordinationHoldUntil = 0;
 let lastHeadCoordinationSource = "";
 let behaviorPolicy: (() => { suppress: boolean }) | null = null;
+const objectAttentionHolds = new Map<string, number>();
+
+/** A releasable camera-stability hold; the deadline also bounds an orphaned lease. */
+export function setAmbientObjectAttentionHeld(id: string, held: boolean): void {
+  if (held) objectAttentionHolds.set(id, Date.now() + 30_000);
+  else objectAttentionHolds.delete(id);
+  if (running && !actionInFlight) schedule(200);
+}
 
 /** Connect local behavior holds to ambient action selection without coupling the controllers. */
 export function configureAmbientBehaviorPolicy(policy: null | (() => { suppress: boolean })): void {
@@ -125,6 +133,8 @@ function motionContext(): MotionContext {
 }
 
 function commonBlockReason(): string | null {
+  for (const [id, deadline] of objectAttentionHolds) if (Date.now() >= deadline) objectAttentionHolds.delete(id);
+  if (objectAttentionHolds.size) return "object-attention";
   if (Date.now() < coordinationHoldUntil) return "coordination-hold";
   if (behaviorSuppressesAmbient()) return "behavior-hold";
   const user = useUserStore.getState();
@@ -333,6 +343,7 @@ export function startAmbientMotionController(source = "runtime"): void {
 
 /** Stop scheduling natural motion. Background/sleep teardown owns BLE stop itself. */
 export function stopAmbientMotionController(reason = "runtime"): void {
+  objectAttentionHolds.clear();
   if (!running && !timer) return;
   running = false;
   generation += 1;

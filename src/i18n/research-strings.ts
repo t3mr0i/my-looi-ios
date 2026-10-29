@@ -35,6 +35,37 @@ const en = {
 
 type ResearchStrings = Record<ResearchStringKey, string>;
 
+const de: ResearchStrings = {
+  title: "Websuche",
+  eyebrow: "QUELLEN AUF ABRUF",
+  intro: "Stelle eine aktuelle Frage. LOOI durchsucht das Web und zeigt die verwendeten Quellen.",
+  questionLabel: "Frage",
+  questionPlaceholder: "Wonach soll ich suchen?",
+  costNotice:
+    "OpenAI Web Search kostet etwa 0,01 $ pro Aufruf des Suchwerkzeugs, zuzüglich Luna-Eingabe- und Ausgabetoken. OpenAI kann mehrere Aufrufe machen, daher variieren die Gesamtkosten.",
+  dataNotice:
+    "Nur deine Frage wird als von dir bereitgestellter Inhalt an OpenAI gesendet. Unterhaltungen, Erinnerungen, Kamerabilder und Robotersteuerung werden nicht mitgesendet.",
+  idleNote: "Es wird nichts gesendet, bis du „Im Web suchen“ auswählst.",
+  search: "Im Web suchen",
+  searching: "Suche läuft …",
+  cancel: "Suche abbrechen",
+  answer: "Antwort",
+  sources: "Quellen",
+  cancelled: "Suche angehalten. Es wurde keine neue Antwort hinzugefügt.",
+  queryEmpty: "Gib eine Frage mit mindestens zwei Zeichen ein.",
+  queryTooLong: "Die Frage darf höchstens 600 Zeichen enthalten.",
+  errorMissingKey: "Speichere deinen OpenAI-API-Schlüssel in den Einstellungen, bevor du suchst.",
+  errorAuth: "OpenAI hat diesen API-Schlüssel abgelehnt. Prüfe ihn in den Einstellungen.",
+  errorRateLimit: "OpenAI begrenzt gerade die Anfragen. Warte kurz und versuche es erneut.",
+  errorTimeout: "Die Suche dauerte zu lange und wurde angehalten. Versuche eine kürzere Frage.",
+  errorNetwork: "OpenAI ist nicht erreichbar. Prüfe die Verbindung und versuche es erneut.",
+  errorApi: "OpenAI konnte diese Suche nicht abschließen. Prüfe den API-Zugriff oder das Guthaben und versuche es erneut.",
+  errorResponse: "Die Suchantwort war nicht lesbar. Bitte versuche es erneut.",
+  errorNoCitations: "Es wurden keine überprüfbaren Quellenlinks gefunden. Deshalb wird die Antwort nicht angezeigt. Versuche es erneut.",
+  openSource: "Quelle öffnen: {title}",
+  linkError: "Dieser Quellenlink konnte nicht geöffnet werden.",
+};
+
 const uk: ResearchStrings = {
   title: "Пошук в інтернеті",
   eyebrow: "ДЖЕРЕЛА НА ЗАПИТ",
@@ -97,7 +128,7 @@ const ru: ResearchStrings = {
   linkError: "Не удалось открыть ссылку на источник.",
 };
 
-const translations: Record<InterfaceLanguage, ResearchStrings> = { en, uk, ru };
+const translations: Record<InterfaceLanguage, ResearchStrings> = { en, uk, ru, de };
 
 export function createResearchTranslator(language: InterfaceLanguage) {
   return (key: ResearchStringKey, params?: Record<string, string | number>) =>

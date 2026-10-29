@@ -12,6 +12,8 @@ Pod::Spec.new do |s|
   s.requires_arc = true
   s.source_files = '**/*.{h,m,mm,swift}'
   s.resources = 'Models/*.bundle'
+  # Only Vosk's C API crosses this dynamic boundary. Its private OpenFST flag
+  # registry must not coalesce with the separately linked Sherpa implementation.
+  s.vendored_frameworks = 'Native/LooiVoskNative.xcframework'
   s.dependency 'ExpoModulesCore'
-  s.dependency 'react-native-vosk'
 end

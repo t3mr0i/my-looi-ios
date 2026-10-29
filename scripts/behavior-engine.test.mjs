@@ -28,12 +28,16 @@ function makeClock() {
 
 const flush = async () => { for (let i = 0; i < 24; i += 1) await Promise.resolve(); };
 const policy = loadTypeScript("src/behavior/behavior-policy.ts");
+const companion = loadTypeScript("src/behavior/behavior-companion.ts", {
+  "../character/companion-personality": loadTypeScript("src/character/companion-personality.ts"),
+  "./behavior-episode-search": loadTypeScript("src/behavior/behavior-episode-search.ts"),
+});
 const decisions = loadTypeScript("src/openai/decisions.ts", {
   "./openai-api-key": { getOpenAiApiKey: async () => "unused-test-key" },
 });
 
 function makeEngine({ mode = "active", budget = 1, scoring = true, visual = true, foreground = true, clock = makeClock() } = {}) {
-  const engineModule = loadTypeScript("src/behavior/behavior-engine.ts", { "./behavior-policy": policy }, {
+  const engineModule = loadTypeScript("src/behavior/behavior-engine.ts", { "./behavior-policy": policy, "./behavior-companion": companion, "./shared-activity": loadTypeScript("src/behavior/shared-activity.ts") }, {
     setTimeout: (callback, delay) => clock.setTimeoutFake(callback, delay),
     clearTimeout: (id) => clock.clearTimeoutFake(id),
   });
@@ -54,14 +58,14 @@ function makeEngine({ mode = "active", budget = 1, scoring = true, visual = true
   return { engine, clock, calls, effects, requests, turn };
 }
 
-function resultFor(request, { cue = "hold", visual = "use_view", scores = {}, costUsd = 0.001 } = {}) {
+function resultFor(request, { cue = "hold", visual = "use_view", intention = "wait", scores = {}, costUsd = 0.001 } = {}) {
   const answers = request.questions.map((question) => {
     if (question.type === "score") {
       const score = scores[question.name] ?? 0;
       return { name: question.name, type: "score", score, confidence: 0.9, probabilities: question.levels.map((level, value) => ({ value, label: level.label, probability: value === score ? 1 : 0 })) };
     }
     const values = question.choices.map((item) => item.value);
-    const preferred = question.name === "cue" ? cue : question.name === "visual" ? visual : question.name === "attention" ? "keep_target" : question.name === "intention" ? "wait" : "none";
+    const preferred = question.name === "cue" ? cue : question.name === "visual" ? visual : question.name === "attention" ? "keep_target" : question.name === "intention" ? intention : "none";
     const choice = values.includes(preferred) ? preferred : values[0];
     return { name: question.name, type: "choice", choice, confidence: 0.95, probabilities: values.map((value) => ({ value, probability: value === choice ? 1 : 0 })) };
   });
@@ -82,6 +86,9 @@ const active = makeEngine(); active.turn();
 assert.ok(active.calls[0].request.questions.some((item) => item.type === "score" && item.name === "score_joy"));
 await complete(active.calls[0], { cue: "hold", scores: { score_joy: 4 } });
 assert.equal(active.effects[0].gesture, "happy_bob", "score rubric selects a candidate only when enabled");
+const curious = makeEngine(); curious.turn();
+await complete(curious.calls[0], { cue: "curious" });
+assert.equal(curious.engine.getState().cue.mood, "curious", "the curious gesture carries its own visual emotion instead of borrowing startled");
 const noScores = makeEngine({ scoring: false }); noScores.turn();
 assert.equal(noScores.calls[0].request.questions.some((item) => item.type === "score"), false);
 await complete(noScores.calls[0]);
@@ -90,6 +97,37 @@ await complete(style.calls[0], { cue: "nod" });
 assert.equal(style.engine.getState().cue.gesture, "hold", "an explicit style preference suppresses nods");
 const styleReload = makeEngine({ mode: "shadow", foreground: false }); styleReload.engine.restore(style.engine.serialize());
 assert.equal(styleReload.engine.getState().style.suppressNod, true, "the device style preference persists across restart");
+
+const personality = makeEngine({ foreground: false });
+personality.turn("Sei lebendiger");
+assert.equal(personality.engine.getState().style.conversationTone, "playful");
+assert.match(JSON.parse(personality.engine.getConversationContext()).conversationStyle, /livelier/u, "Realtime receives the chosen manner");
+const personalityReload = makeEngine({ foreground: false });
+personalityReload.engine.restore(personality.engine.serialize());
+assert.equal(personalityReload.engine.getState().style.conversationTone, "playful", "explicit tone survives restart");
+event(personalityReload.engine, "assistant-end", { text: "Sei ruhiger." });
+assert.equal(personalityReload.engine.getState().style.conversationTone, "playful", "assistant speech cannot change the person's preference");
+personalityReload.turn("Sei ruhiger");
+assert.equal(personalityReload.engine.getState().style.conversationTone, "calm");
+assert.equal(personalityReload.engine.getState().style.livelyWhenPlayful, false);
+assert.match(JSON.parse(personalityReload.engine.getConversationContext()).conversationStyle, /calmer/u);
+const beforeTemporaryRequest = personalityReload.engine.getState().style.version;
+personalityReload.turn("Sei heute lebendiger");
+assert.equal(personalityReload.engine.getState().style.version, beforeTemporaryRequest, "a temporary request is not saved as a durable preference");
+personalityReload.turn("Sei wieder normal");
+assert.equal(personalityReload.engine.getState().style.conversationTone, "default");
+assert.equal(JSON.parse(personalityReload.engine.getConversationContext()).conversationStyle, undefined);
+const legacyStyle = JSON.parse(personality.engine.serialize());
+delete legacyStyle.style.conversationTone;
+personalityReload.engine.restore(JSON.stringify(legacyStyle));
+assert.equal(personalityReload.engine.getState().style.conversationTone, "playful", "an older explicit lively preference migrates");
+personalityReload.engine.resetLearning();
+assert.equal(personalityReload.engine.getState().style.conversationTone, "default", "clearing learning clears the saved tone");
+
+const calmExpression = makeEngine({ scoring: false });
+calmExpression.turn("Sei ruhiger");
+await complete(calmExpression.calls[0], { cue: "happy_bob" });
+assert.equal(calmExpression.engine.getState().cue.gesture, "hold", "the calm preference also suppresses a bouncy reactive accent");
 const ritual = makeEngine(); ritual.turn("Greet me with a nod");
 await complete(ritual.calls[0]); await ritual.clock.tick(1_000);
 ritual.turn("Hello"); await complete(ritual.calls[1], { cue: "curious" });
@@ -99,6 +137,26 @@ assert.equal(ritualReload.engine.getState().style.greetingRitualSource, "explici
 assert.equal(ritualReload.engine.getState().style.greetingRitual, "nod");
 await ritual.clock.tick(1_000); ritual.turn("Hello again"); await complete(ritual.calls[2], { cue: "nod" });
 assert.equal(ritual.engine.getState().cue.gesture, "hold", "a repeated greeting respects its cooldown");
+
+// Physical accents are spaced across turns, but do not become permanently
+// forbidden simply because the same gesture happened twice in the past.
+const accents = makeEngine({ scoring: false });
+async function accentTurn() {
+  event(accents.engine, "user-speech-start");
+  accents.turn("Was denkst du?");
+  event(accents.engine, "user-speech-end");
+  event(accents.engine, "assistant-start");
+  event(accents.engine, "assistant-end", { text: "Das ist interessant." });
+  await accents.clock.tick(1_000);
+  await complete(accents.calls.at(-1), { cue: "curious" });
+  return accents.engine.getState().cue.gesture;
+}
+assert.equal(await accentTurn(), "curious");
+assert.equal(await accentTurn(), "hold", "an identical physical accent is not repeated immediately");
+accents.clock.setWall(accents.clock.wall() + 13_000);
+assert.equal(await accentTurn(), "curious", "the same accent is available again after its cooldown");
+accents.clock.setWall(accents.clock.wall() + 13_000);
+assert.equal(await accentTurn(), "curious", "repeated accents do not become permanently forbidden");
 
 // A delayed transcript cannot clear a newer live speech edge and start cloud work.
 const delayed = makeEngine();
@@ -148,6 +206,62 @@ assert.equal(resumed.engine.getState().pendingIntention.status, "paused", "resta
 resumed.turn("Forget it"); assert.equal(resumed.engine.getState().pendingIntention, null);
 const dropped = makeEngine({ mode: "shadow", foreground: false }); dropped.engine.restore(resumed.engine.serialize());
 assert.equal(dropped.engine.getState().pendingIntention, null, "dropping an intention persists across restart");
+
+// Explicitly paused work remains available beyond the next day, but restores
+// paused and never silently resumes after a restart.
+const retentionClock = makeClock();
+const longTask = makeEngine({ clock: retentionClock });
+event(longTask.engine, "intention", { action: "pause", goal: "Papierflieger", lastConfirmedStep: "Flügel gefaltet" });
+const persistedTask = longTask.engine.serialize();
+retentionClock.setWall(retentionClock.wall() + 2 * 24 * 60 * 60 * 1_000);
+const nextDay = makeEngine({ clock: retentionClock });
+nextDay.engine.restore(persistedTask);
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "paused");
+assert.equal(nextDay.engine.getState().pendingIntention?.lastConfirmedStep, "Flügel gefaltet");
+nextDay.engine.setEnvironment({ responseLanguage: "de" });
+nextDay.turn("Ich bin wieder da.");
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "paused", "returning alone does not resume the task");
+await complete(nextDay.calls.at(-1), { intention: "offer_resume" });
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "paused", "an asynchronous decision cannot replace the local confirmation gate");
+assert.match(JSON.parse(nextDay.engine.getConversationContext()).returnQuestion, /Sollen wir weitermachen/u);
+nextDay.turn("Ja");
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "paused", "yes cannot accept an unheard question");
+nextDay.turn("Ich bin wieder da.");
+event(nextDay.engine, "assistant-end", { text: "Schön, dass du wieder da bist." });
+nextDay.turn("Ja");
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "paused", "a truncated question cannot authorize continuation");
+nextDay.turn("Ich bin wieder da.");
+event(nextDay.engine, "assistant-end", { text: "Schön, dass du wieder da bist. Sollen wir weitermachen?" });
+nextDay.turn("Ja, bitte.");
+assert.equal(nextDay.engine.getState().pendingIntention?.status, "active", "a heard question and affirmative answer resume the same task");
+retentionClock.setWall(retentionClock.wall() + 6 * 24 * 60 * 60 * 1_000);
+nextDay.engine.tick();
+assert.equal(nextDay.engine.getState().pendingIntention, null, "bounded retention still expires abandoned work");
+
+const expiredReturn = makeEngine();
+event(expiredReturn.engine, "intention", { action: "pause", goal: "Papierflieger" });
+expiredReturn.turn("Ich bin wieder da.");
+assert.equal(expiredReturn.engine.hasPendingReturnConfirmation(), true);
+expiredReturn.clock.setWall(expiredReturn.clock.wall() + 31_000);
+expiredReturn.engine.tick();
+assert.equal(expiredReturn.engine.hasPendingReturnConfirmation(), false, "an unanswered return question does not lock later replies");
+expiredReturn.turn("Ja");
+assert.equal(expiredReturn.engine.getState().pendingIntention.status, "paused", "an expired return question cannot authorize resumption");
+
+const interrupted = makeEngine();
+event(interrupted.engine, "assistant-start");
+event(interrupted.engine, "user-speech-start");
+event(interrupted.engine, "user-speech-end");
+interrupted.turn("Moment, ich meinte die blaue.");
+let interruptionContext = JSON.parse(interrupted.engine.getConversationContext());
+assert.match(interruptionContext.interruptedReply, /unheard part/u, "repair is grounded in an actual interrupted spoken reply");
+assert.equal(interruptionContext.physicalState.transportConnected, true);
+assert.match(interruptionContext.physicalState.instruction, /may be simulated/u, "a mock transport is not presented as proof of a physical robot");
+event(interrupted.engine, "assistant-end", { text: "Du meinst die blaue." });
+interruptionContext = JSON.parse(interrupted.engine.getConversationContext());
+assert.equal(interruptionContext.interruptedReply, undefined, "the repair hint does not repeat after a completed reply");
+interrupted.engine.setEnvironment({ foreground: true, focused: true, sleeping: false, connected: false, ambientEnabled: false, cameraEnabled: false, userSpeaking: false, assistantSpeaking: false, motionActive: false });
+assert.equal(JSON.parse(interrupted.engine.getConversationContext()).physicalState.transportConnected, false, "connection context reflects the real local transport state");
 dropped.turn("Please nod less"); assert.equal(dropped.engine.getState().style.suppressNod, true);
 const referenceBefore = dropped.engine.getState().referenceVersion;
 dropped.engine.dispatch({ type: "correction", sessionId: "s1", correctedReference: "the blue box" });
@@ -207,7 +321,13 @@ game.turn("1"); assert.equal(game.engine.getState().game.status, "won");
 // Exercise the real engine-to-HTTP contract, rather than validating each seam in isolation.
 const httpEffects = [];
 let httpCalls = 0;
-const realEngine = loadTypeScript("src/behavior/behavior-engine.ts", { "./behavior-policy": policy }).createBehaviorEngine({
+const contractClock = makeClock();
+const realEngine = loadTypeScript("src/behavior/behavior-engine.ts", { "./behavior-policy": policy, "./behavior-companion": companion, "./shared-activity": loadTypeScript("src/behavior/shared-activity.ts") }, {
+  setTimeout: contractClock.setTimeoutFake,
+  clearTimeout: contractClock.clearTimeoutFake,
+}).createBehaviorEngine({
+  now: contractClock.now,
+  wallNow: contractClock.wall,
   decide: (input, options) => decisions.requestDecisions(input, {
     ...options,
     dependencies: {

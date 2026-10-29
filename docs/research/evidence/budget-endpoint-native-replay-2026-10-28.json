@@ -1,0 +1,3351 @@
+{
+  "platform": "Mac native Sherpa ONNX 1.13.0, supplied Silero model; synthetic German audio, no phone or robot",
+  "vad": {
+    "threshold": 0.45,
+    "minSilenceDuration": 1,
+    "minSpeechDuration": 0.3,
+    "windowSize": 512
+  },
+  "modelSha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+  "results": [
+    {
+      "fixture": "short",
+      "audioSha256": "cc4dffa0ebfcf1b8dc70a7f2e746f672d1b5d6d4a33ab2aefc66942cc90264e7",
+      "referenceAcousticEndMs": 1198,
+      "completedSegments": [
+        {
+          "audioEndMs": 2280,
+          "isSpeechDetected": false,
+          "segments": [
+            {
+              "startTime": 0.532,
+              "endTime": 1.272
+            }
+          ]
+        }
+      ],
+      "processingMedianMs": 0.09779149695532396,
+      "processingP95Ms": 0.690999993821606,
+      "frames": [
+        {
+          "audioEndMs": 20,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 40,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 60,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 80,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 240,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 260,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 280,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 880,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2280,
+          "isSpeechDetected": false,
+          "segments": [
+            {
+              "startTime": 0.532,
+              "endTime": 1.272
+            }
+          ]
+        },
+        {
+          "audioEndMs": 2300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2880,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2900,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2920,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2940,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2960,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2980,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3000,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3020,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3040,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3060,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3080,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3240,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3260,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3280,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3880,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3900,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3920,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3940,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3960,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3980,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4000,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4020,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4040,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4060,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4080,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4240,
+          "isSpeechDetected": false,
+          "segments": []
+        }
+      ],
+      "replayedBudgetCommit": {
+        "baselineAudioMs": 3060,
+        "completedSegmentAudioMs": 2280,
+        "savedMs": 780,
+        "baselineEndToCommitMs": 1862,
+        "completedSegmentEndToCommitMs": 1082
+      }
+    },
+    {
+      "fixture": "pause",
+      "audioSha256": "af5b65a2102141fb4acb581dba2655aee737b5c77023edc745a3d7301a0249f8",
+      "referenceAcousticEndMs": 5767.875,
+      "completedSegments": [
+        {
+          "audioEndMs": 6720,
+          "isSpeechDetected": false,
+          "segments": [
+            {
+              "startTime": 0.5,
+              "endTime": 5.72
+            }
+          ]
+        }
+      ],
+      "processingMedianMs": 0.10287449549650773,
+      "processingP95Ms": 0.589791001402773,
+      "frames": [
+        {
+          "audioEndMs": 20,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 40,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 60,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 80,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 240,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 260,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 280,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 1980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 2980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 3980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 4980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5720,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5740,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5760,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5780,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5800,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5820,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5840,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5860,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5880,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5900,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5920,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5940,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5960,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 5980,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6000,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6020,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6040,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6060,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6080,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6100,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6120,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6140,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6160,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6180,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6200,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6220,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6240,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6260,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6280,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6300,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6320,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6340,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6360,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6380,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6400,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6420,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6440,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6460,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6480,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6500,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6520,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6540,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6560,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6580,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6600,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6620,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6640,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6660,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6680,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6700,
+          "isSpeechDetected": true,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6720,
+          "isSpeechDetected": false,
+          "segments": [
+            {
+              "startTime": 0.5,
+              "endTime": 5.72
+            }
+          ]
+        },
+        {
+          "audioEndMs": 6740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6880,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6900,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6920,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6940,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6960,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 6980,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7000,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7020,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7040,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7060,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7080,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7240,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7260,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7280,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7800,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7820,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7840,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7860,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7880,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7900,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7920,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7940,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7960,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 7980,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8000,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8020,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8040,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8060,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8080,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8100,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8120,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8140,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8160,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8180,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8200,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8220,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8240,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8260,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8280,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8300,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8320,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8340,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8360,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8380,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8400,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8420,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8440,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8460,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8480,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8500,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8520,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8540,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8560,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8580,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8600,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8620,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8640,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8660,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8680,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8700,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8720,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8740,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8760,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8780,
+          "isSpeechDetected": false,
+          "segments": []
+        },
+        {
+          "audioEndMs": 8800,
+          "isSpeechDetected": false,
+          "segments": []
+        }
+      ],
+      "replayedBudgetCommit": {
+        "baselineAudioMs": 7500,
+        "completedSegmentAudioMs": 6720,
+        "savedMs": 780,
+        "baselineEndToCommitMs": 1732.125,
+        "completedSegmentEndToCommitMs": 952.125
+      }
+    }
+  ],
+  "endpointSummary": {
+    "baseline": {
+      "n": 2,
+      "medianMs": 1797.0625,
+      "p95Ms": 1862
+    },
+    "completedSegment": {
+      "n": 2,
+      "medianMs": 1017.0625,
+      "p95Ms": 1082
+    },
+    "evidence": "native VAD outputs replayed through endpoint sample-count rules; not phone, microphone or spoken-response measurements"
+  }
+}

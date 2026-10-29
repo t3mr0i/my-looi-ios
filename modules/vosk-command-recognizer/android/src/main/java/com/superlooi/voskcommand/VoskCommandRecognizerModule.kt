@@ -1,7 +1,9 @@
 package com.superlooi.voskcommand
 
 import android.content.res.AssetManager
+import android.os.Process
 import android.os.SystemClock
+import android.util.Base64
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.json.JSONObject
@@ -12,13 +14,115 @@ import java.io.FileOutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 import kotlin.math.sqrt
+
+/** Stateful band-limited 24 kHz -> 16 kHz converter for the output-only decoder. */
+private class AssistantPcm24To16Resampler {
+  private val radius = 24
+  private val cutoff = 0.31
+  private var pending = ArrayList<Float>()
+  private var pendingStartFrame = 0L
+  private var sourceFrames = 0L
+  private var nextOutputFrame = 0L
+
+  private val weights = Array(2) { phaseIndex ->
+    val fraction = phaseIndex * 0.5
+    val values = FloatArray(radius * 2 + 1)
+    var total = 0.0
+    for (tap in -radius..radius) {
+      val distance = tap - fraction
+      val windowPosition = kotlin.math.abs(distance) / radius
+      if (windowPosition > 1.0) continue
+      val window = 0.5 + 0.5 * cos(PI * windowPosition)
+      val sincArgument = 2.0 * cutoff * distance
+      val sinc = if (kotlin.math.abs(sincArgument) < 1e-9) 1.0
+      else sin(PI * sincArgument) / (PI * sincArgument)
+      val value = (2.0 * cutoff * sinc * window)
+      values[tap + radius] = value.toFloat()
+      total += value
+    }
+    if (kotlin.math.abs(total) > 1e-9) {
+      for (index in values.indices) values[index] = (values[index] / total).toFloat()
+    }
+    values
+  }
+
+  val audioDurationMs: Double get() = sourceFrames * 1000.0 / 24_000.0
+
+  fun appendPcm16Le(bytes: ByteArray): FloatArray {
+    require(bytes.size % 2 == 0) { "Assistant PCM16 payload has an odd byte count" }
+    if (bytes.isEmpty()) return FloatArray(0)
+    var offset = 0
+    while (offset < bytes.size) {
+      val bits = (bytes[offset].toInt() and 0xff) or ((bytes[offset + 1].toInt() and 0xff) shl 8)
+      pending.add((bits.toShort().toInt() / 32768.0f))
+      offset += 2
+    }
+    sourceFrames += (bytes.size / 2).toLong()
+
+    val result = ArrayList<Float>()
+    while (nextOutputFrame * 1.5 + radius < sourceFrames.toDouble()) {
+      result.add(resampledSample(nextOutputFrame))
+      nextOutputFrame += 1
+    }
+    trimHistory()
+    return result.toFloatArray()
+  }
+
+  fun finish(): FloatArray {
+    val targetFrames = (sourceFrames * 2 + 2) / 3
+    val result = ArrayList<Float>()
+    while (nextOutputFrame < targetFrames) {
+      result.add(resampledSample(nextOutputFrame))
+      nextOutputFrame += 1
+    }
+    trimHistory()
+    return result.toFloatArray()
+  }
+
+  private fun resampledSample(outputFrame: Long): Float {
+    val position = outputFrame * 1.5
+    val center = floor(position).toLong()
+    val phase = if (outputFrame % 2L == 0L) 0 else 1
+    var output = 0.0
+    for (tap in -radius..radius) {
+      val sourceIndex = center + tap
+      if (sourceIndex < 0 || sourceIndex >= sourceFrames) continue
+      val localIndex = sourceIndex - pendingStartFrame
+      if (localIndex < 0 || localIndex >= pending.size) continue
+      output += pending[localIndex.toInt()].toDouble() * weights[phase][tap + radius]
+    }
+    return output.coerceIn(-1.0, 1.0).toFloat()
+  }
+
+  private fun trimHistory() {
+    val keepFrom = max(0L, floor(nextOutputFrame * 1.5).toLong() - radius)
+    val removeCount = min(pending.size.toLong(), keepFrom - pendingStartFrame).toInt()
+    if (removeCount <= 0) return
+    pending = ArrayList(pending.subList(removeCount, pending.size))
+    pendingStartFrame += removeCount
+  }
+}
 
 class VoskCommandRecognizerModule : Module() {
   private val executor = Executors.newSingleThreadExecutor()
+  private val assistantExecutor = Executors.newSingleThreadExecutor { runnable ->
+    Thread({
+      try { Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND) } catch (_: Throwable) {}
+      runnable.run()
+    }, "looi-vosk-assistant-output").apply { isDaemon = true }
+  }
+  private val modelLock = Any()
+  private val assistantLock = Any()
   private val queuedChunks = AtomicInteger(0)
+  private val assistantGeneration = AtomicInteger(0)
+  private val assistantQueuedChunks = AtomicInteger(0)
   private val resetGeneration = AtomicInteger(0)
   private val resetCount = AtomicInteger(0)
   private val samplesSinceReset = AtomicLong(0)
@@ -26,14 +130,14 @@ class VoskCommandRecognizerModule : Module() {
   private val emergencyArmGeneration = AtomicInteger(0)
   private val sessionCounter = AtomicInteger(0)
 
-  private var model: Model? = null
+  @Volatile private var model: Model? = null
   private var recognizer: Recognizer? = null
   // A second recognizer shares the same acoustic model but has a tiny STOP-only
   // grammar. It is fed before the normal command recognizer so emergency STOP
   // does not wait behind the 5k+ phrase driving grammar.
   private var emergencyRecognizer: Recognizer? = null
-  private var currentLanguage: String = ""
-  private var currentAssetDir: String = ""
+  @Volatile private var currentLanguage: String = ""
+  @Volatile private var currentAssetDir: String = ""
   private var currentGrammar: String = "[]"
   private var currentEmergencyGrammar: String = "[]"
   private var lastPartial: String = ""
@@ -44,16 +148,52 @@ class VoskCommandRecognizerModule : Module() {
   private var sequence: Int = 0
   @Volatile private var currentSessionId: Int = 0
   @Volatile private var appliedResetGeneration: Int = 0
+  @Volatile private var assistantModelChanging = false
+  @Volatile private var assistantResponseId: String? = null
+  @Volatile private var assistantOutputLanguage: String = ""
+  @Volatile private var assistantEnding = false
+  private var assistantQueuedPayloadBytes = 0 // guarded by assistantLock
+  private var assistantOutputState: AssistantOutputState? = null // assistantExecutor only
+
+  private data class AssistantOutputState(
+    val responseId: String,
+    val generation: Int,
+    val language: String,
+    val model: Model,
+    val recognizer: Recognizer,
+    val resampler: AssistantPcm24To16Resampler = AssistantPcm24To16Resampler(),
+    var lastPartialSignature: String = ""
+  )
+
+  private val assistantQueueLimit = 8
+  private val assistantPayloadLimit = 65_536
+  private val assistantQueuedPayloadByteLimit = 128 * 1024
 
   override fun definition() = ModuleDefinition {
     Name("VoskCommandRecognizer")
 
-    Events("onCommandResult", "onEmergencyStop", "onEmergencyUnknown", "onEmergencyHealth", "onModelReady", "onRecognizerError", "onRecognizerState")
+    Events("onCommandResult", "onEmergencyStop", "onEmergencyUnknown", "onEmergencyHealth", "onModelReady", "onRecognizerError", "onRecognizerState", "onAssistantRecognition", "onAssistantRecognitionError")
 
     // Keep v1.1.36 recognizer lifecycle semantics. prepare() is intentionally
     // not routed through the PCM executor; v1.1.38 adds observability only.
     AsyncFunction("prepare") { language: String, assetDir: String, grammarJson: String, emergencyGrammarJson: String ->
       prepareRecognizer(language, assetDir, grammarJson, emergencyGrammarJson)
+    }
+
+    AsyncFunction("beginAssistantOutput") { language: String, responseId: String ->
+      beginAssistantOutput(language, responseId)
+    }
+
+    Function("feedAssistantPcm24") { responseId: String, pcm24Base64: String ->
+      feedAssistantPcm24(responseId, pcm24Base64)
+    }
+
+    Function("endAssistantOutput") { responseId: String ->
+      endAssistantOutput(responseId)
+    }
+
+    Function("cancelAssistantOutput") { responseId: String ->
+      cancelAssistantOutput(responseId)
     }
 
     AsyncFunction("setGrammar") { grammarJson: String ->
@@ -313,10 +453,17 @@ class VoskCommandRecognizerModule : Module() {
     }
 
     Function("unload") {
-      executor.execute {
-        closeRecognizer()
-        currentLanguage = ""
-        currentAssetDir = ""
+      synchronized(modelLock) { assistantModelChanging = true }
+      cancelAssistantOutput(null, force = true, reason = "unload")
+      assistantExecutor.execute {
+        releaseAssistantOutput()
+        executor.execute {
+          closeRecognizer()
+          synchronized(modelLock) {
+            currentLanguage = ""
+            currentAssetDir = ""
+          }
+        }
       }
     }
 
@@ -337,12 +484,293 @@ class VoskCommandRecognizerModule : Module() {
     }
 
     OnDestroy {
-      executor.execute { closeRecognizer() }
-      executor.shutdown()
+      synchronized(modelLock) { assistantModelChanging = true }
+      cancelAssistantOutput(null, force = true, reason = "destroy")
+      assistantExecutor.execute {
+        releaseAssistantOutput()
+        executor.execute { closeRecognizer() }
+        executor.shutdown()
+        assistantExecutor.shutdown()
+      }
     }
   }
 
+  private fun languageKey(value: String): String =
+    value.trim().lowercase().substringBefore('-').substringBefore('_')
+
+  private fun beginAssistantOutput(language: String, responseId: String): Map<String, Any> {
+    val response = responseId.trim()
+    val outputGeneration: Int
+    val previousGeneration: Int
+    synchronized(assistantLock) {
+      previousGeneration = assistantGeneration.get()
+      outputGeneration = assistantGeneration.incrementAndGet()
+      assistantResponseId = response.ifEmpty { null }
+      assistantOutputLanguage = language
+      assistantEnding = false
+    }
+    val snapshot = synchronized(modelLock) {
+      Triple(model, currentLanguage, assistantModelChanging)
+    }
+    val loadedModel = snapshot.first
+    if (response.isEmpty() || snapshot.third || loadedModel == null || languageKey(language) != languageKey(snapshot.second)) {
+      synchronized(assistantLock) {
+        if (assistantGeneration.get() == outputGeneration) {
+          assistantResponseId = null
+          assistantEnding = true
+        }
+      }
+      assistantExecutor.execute { releaseAssistantOutput(previousGeneration) }
+      return mapOf("ready" to false, "generation" to outputGeneration)
+    }
+
+    val ready = try {
+      assistantExecutor.submit<Boolean> {
+        if (!isCurrentAssistantOutput(outputGeneration, response)) return@submit false
+        releaseAssistantOutput()
+        val outputRecognizer = Recognizer(loadedModel, 16000.0f).also {
+          it.setWords(true)
+          it.setPartialWords(true)
+          it.setEndpointerMode(Recognizer.EndpointerMode.SHORT)
+          it.setEndpointerDelays(3.0f, 0.26f, 5.0f)
+        }
+        if (!isCurrentAssistantOutput(outputGeneration, response)) {
+          try { outputRecognizer.close() } catch (_: Throwable) {}
+          return@submit false
+        }
+        assistantOutputState = AssistantOutputState(
+          responseId = response,
+          generation = outputGeneration,
+          language = language,
+          model = loadedModel,
+          recognizer = outputRecognizer
+        )
+        true
+      }.get()
+    } catch (error: Throwable) {
+      sendAssistantError(response, outputGeneration, language, "begin", error.message ?: "Could not create Vosk output recognizer")
+      false
+    }
+    if (!ready) {
+      synchronized(assistantLock) {
+        if (assistantGeneration.get() == outputGeneration) {
+          assistantResponseId = null
+          assistantEnding = true
+        }
+      }
+    }
+    return mapOf("ready" to ready, "generation" to outputGeneration)
+  }
+
+  private fun feedAssistantPcm24(responseId: String, pcm24Base64: String): Boolean {
+    val response = responseId.trim()
+    if (response.isEmpty() || pcm24Base64.isEmpty() || pcm24Base64.length > assistantPayloadLimit) return false
+    val payloadByteCount = pcm24Base64.length
+
+    val outputGeneration: Int
+    val language: String
+    synchronized(assistantLock) {
+      if (assistantResponseId != response || assistantEnding) return false
+      if (assistantQueuedChunks.get() >= assistantQueueLimit ||
+        assistantQueuedPayloadBytes + payloadByteCount > assistantQueuedPayloadByteLimit) {
+        outputGeneration = assistantGeneration.get()
+        language = assistantOutputLanguage
+        assistantGeneration.incrementAndGet()
+        assistantResponseId = null
+        assistantEnding = true
+        sendAssistantError(response, outputGeneration, language, "backlog",
+          "Assistant output recognition queue exceeded its latency budget")
+        assistantExecutor.execute { releaseAssistantOutput(outputGeneration) }
+        return false
+      }
+      assistantQueuedChunks.incrementAndGet()
+      assistantQueuedPayloadBytes += payloadByteCount
+      outputGeneration = assistantGeneration.get()
+      language = assistantOutputLanguage
+      // Enqueue while holding the state lock so end/cancel cannot overtake an
+      // already admitted chunk when native calls arrive from different threads.
+      assistantExecutor.execute {
+        try {
+          if (!isCurrentAssistantOutput(outputGeneration, response)) return@execute
+          val state = assistantOutputState
+          if (state == null || state.generation != outputGeneration || state.responseId != response) return@execute
+          val bytes = Base64.decode(pcm24Base64, Base64.DEFAULT)
+          if (bytes.isEmpty() || bytes.size > 48 * 1024 || bytes.size % 2 != 0) {
+            failAssistantOutput(state, "input", "Invalid or unsupported assistant PCM24 payload")
+            return@execute
+          }
+          feedAssistantPcm24Bytes(state, bytes)
+        } catch (error: Throwable) {
+          val state = assistantOutputState
+          if (state != null && state.generation == outputGeneration && state.responseId == response) {
+            failAssistantOutput(state, "decode", error.message ?: "Vosk assistant output decode failed")
+          }
+        } finally {
+          assistantQueuedChunks.decrementAndGet()
+          synchronized(assistantLock) { assistantQueuedPayloadBytes -= payloadByteCount }
+        }
+      }
+    }
+    return true
+  }
+
+  private fun endAssistantOutput(responseId: String) {
+    val response = responseId.trim()
+    val outputGeneration: Int
+    synchronized(assistantLock) {
+      if (assistantResponseId != response || assistantEnding) return
+      outputGeneration = assistantGeneration.get()
+      assistantEnding = true
+      assistantExecutor.execute {
+        if (!isCurrentAssistantGeneration(outputGeneration)) return@execute
+        val state = assistantOutputState
+        if (state != null && state.generation == outputGeneration && state.responseId == response) {
+          try {
+            feedAssistantOutputSamples(state, state.resampler.finish())
+            feedAssistantOutputSamples(state, FloatArray(12800)) // endpoint flush only; not response time
+          } catch (error: Throwable) {
+            failAssistantOutput(state, "flush", error.message ?: "Vosk assistant output flush failed")
+          } finally {
+            releaseAssistantOutput(outputGeneration)
+          }
+        }
+        synchronized(assistantLock) {
+          if (assistantGeneration.get() == outputGeneration && assistantResponseId == response) {
+            assistantResponseId = null
+          }
+        }
+      }
+    }
+  }
+
+  private fun cancelAssistantOutput(responseId: String?, force: Boolean = false, reason: String) {
+    val oldGeneration: Int
+    synchronized(assistantLock) {
+      if (!force && assistantResponseId != responseId?.trim()) return
+      oldGeneration = assistantGeneration.getAndIncrement()
+      assistantResponseId = null
+      assistantEnding = true
+      assistantExecutor.execute { releaseAssistantOutput(oldGeneration) }
+    }
+  }
+
+  private fun awaitAssistantOutputRelease() {
+    assistantExecutor.submit<Unit> { releaseAssistantOutput() }.get()
+  }
+
+  private fun releaseAssistantOutput(expectedGeneration: Int? = null) {
+    val state = assistantOutputState ?: return
+    if (expectedGeneration != null && state.generation != expectedGeneration) return
+    try { state.recognizer.close() } catch (_: Throwable) {}
+    assistantOutputState = null
+  }
+
+  private fun isCurrentAssistantGeneration(requested: Int): Boolean =
+    assistantGeneration.get() == requested
+
+  private fun isCurrentAssistantOutput(requested: Int, responseId: String): Boolean =
+    isCurrentAssistantGeneration(requested) && assistantResponseId == responseId
+
+  private fun feedAssistantPcm24Bytes(state: AssistantOutputState, bytes: ByteArray) {
+    feedAssistantOutputSamples(state, state.resampler.appendPcm16Le(bytes))
+  }
+
+  private fun feedAssistantOutputSamples(state: AssistantOutputState, samples: FloatArray) {
+    var offset = 0
+    while (offset < samples.size) {
+      if (!isCurrentAssistantGeneration(state.generation)) return
+      val count = min(1600, samples.size - offset)
+      // Vosk's Java float overload carries PCM16 amplitude, not normalized audio.
+      val chunk = FloatArray(count) { index ->
+        (samples[offset + index] * 32767.0f).coerceIn(-32768.0f, 32767.0f)
+      }
+      val endpoint = state.recognizer.acceptWaveForm(chunk, chunk.size)
+      offset += count
+      if (endpoint) {
+        emitAssistantWords(state, state.recognizer.result, true)
+      } else {
+        emitAssistantWords(state, state.recognizer.partialResult, false)
+      }
+    }
+  }
+
+  private fun emitAssistantWords(state: AssistantOutputState, json: String, endpoint: Boolean) {
+    if (!isCurrentAssistantGeneration(state.generation)) return
+    val words = mutableListOf<Map<String, Any>>()
+    try {
+      val entries = JSONObject(json).optJSONArray(if (endpoint) "result" else "partial_result")
+      if (entries != null) {
+        for (index in 0 until entries.length()) {
+          val item = entries.optJSONObject(index) ?: continue
+          val word = item.optString("word", "").trim()
+          val start = item.optDouble("start", Double.NaN)
+          val end = item.optDouble("end", Double.NaN)
+          val confidence = item.optDouble("conf", Double.NaN)
+          if (word.isEmpty() || !start.isFinite() || !end.isFinite() || !confidence.isFinite() ||
+            start < 0.0 || end <= start || confidence !in 0.0..1.0) continue
+          words.add(mapOf(
+            "word" to word,
+            // Vosk's frame_offset_ already preserves response-relative time
+            // after each endpoint reset.
+            "startMs" to (start * 1000.0),
+            "endMs" to (end * 1000.0),
+            "confidence" to confidence
+          ))
+        }
+      }
+    } catch (_: Throwable) {
+      // A malformed endpoint is deliberately ignored; partial text is never promoted.
+      return
+    }
+    if (!endpoint) {
+      if (words.isEmpty()) return
+      val signature = words.joinToString(";") { word ->
+        val startBucket = ((word["startMs"] as Double) / 100.0).toLong()
+        val endBucket = ((word["endMs"] as Double) / 100.0).toLong()
+        val confidenceBucket = (((word["confidence"] as Double) * 20.0).toLong())
+        "${word["word"]}|$startBucket|$endBucket|$confidenceBucket"
+      }
+      if (signature == state.lastPartialSignature) return
+      state.lastPartialSignature = signature
+    } else {
+      state.lastPartialSignature = ""
+    }
+    sendEvent("onAssistantRecognition", mapOf(
+      "responseId" to state.responseId,
+      "generation" to state.generation,
+      "language" to state.language,
+      "words" to words,
+      "endpoint" to endpoint,
+      "audioDurationMs" to state.resampler.audioDurationMs
+    ))
+  }
+
+  private fun failAssistantOutput(state: AssistantOutputState, stage: String, message: String) {
+    synchronized(assistantLock) {
+      if (assistantGeneration.get() != state.generation || assistantResponseId != state.responseId) return
+      assistantGeneration.incrementAndGet()
+      assistantResponseId = null
+      assistantEnding = true
+    }
+    sendAssistantError(state.responseId, state.generation, state.language, stage, message)
+    releaseAssistantOutput(state.generation)
+  }
+
+  private fun sendAssistantError(responseId: String, generation: Int, language: String, stage: String, message: String) {
+    sendEvent("onAssistantRecognitionError", mapOf(
+      "responseId" to responseId,
+      "generation" to generation,
+      "language" to language,
+      "stage" to stage,
+      "message" to message
+    ))
+  }
+
   private fun prepareRecognizer(language: String, assetDir: String, grammarJson: String, emergencyGrammarJson: String) {
+    synchronized(modelLock) { assistantModelChanging = true }
+    cancelAssistantOutput(null, force = true, reason = "model-change")
+    awaitAssistantOutputRelease()
+
     val context = appContext.reactContext ?: throw IllegalStateException("React context unavailable")
     val started = SystemClock.elapsedRealtime()
     val destination = File(context.filesDir, "vosk-command-models/$assetDir")
@@ -353,11 +781,17 @@ class VoskCommandRecognizerModule : Module() {
       copyAssetTree(context.assets, assetDir, destination)
     }
 
-    if (currentLanguage != language || currentAssetDir != assetDir || model == null) {
+    val modelChanged = synchronized(modelLock) {
+      currentLanguage != language || currentAssetDir != assetDir || model == null
+    }
+    if (modelChanged) {
       closeRecognizer()
-      model = Model(destination.absolutePath)
-      currentLanguage = language
-      currentAssetDir = assetDir
+      val loadedModel = Model(destination.absolutePath)
+      synchronized(modelLock) {
+        model = loadedModel
+        currentLanguage = language
+        currentAssetDir = assetDir
+      }
     } else {
       recognizer?.close()
       recognizer = null
@@ -367,7 +801,8 @@ class VoskCommandRecognizerModule : Module() {
 
     currentGrammar = grammarJson
     currentEmergencyGrammar = emergencyGrammarJson
-    recognizer = Recognizer(model, 16000.0f, grammarJson).also {
+    val loadedModel = model ?: throw IllegalStateException("Vosk model could not be loaded")
+    recognizer = Recognizer(loadedModel, 16000.0f, grammarJson).also {
       it.setWords(true)
       it.setPartialWords(false)
       it.setEndpointerMode(Recognizer.EndpointerMode.SHORT)
@@ -375,7 +810,7 @@ class VoskCommandRecognizerModule : Module() {
       // experiment regressed repeated driving control on the physical robot.
       it.setEndpointerDelays(3.0f, 0.26f, 5.0f)
     }
-    emergencyRecognizer = Recognizer(model, 16000.0f, emergencyGrammarJson).also {
+    emergencyRecognizer = Recognizer(loadedModel, 16000.0f, emergencyGrammarJson).also {
       it.setWords(false)
       it.setPartialWords(false)
       it.setEndpointerMode(Recognizer.EndpointerMode.SHORT)
@@ -396,6 +831,7 @@ class VoskCommandRecognizerModule : Module() {
     appliedResetGeneration = 0
     samplesSinceReset.set(0)
     emergencySamplesSinceReset.set(0)
+    synchronized(modelLock) { assistantModelChanging = false }
 
     sendEvent(
       "onModelReady",
@@ -412,12 +848,14 @@ class VoskCommandRecognizerModule : Module() {
   }
 
   private fun closeRecognizer() {
-    try { recognizer?.close() } catch (_: Throwable) {}
-    recognizer = null
-    try { emergencyRecognizer?.close() } catch (_: Throwable) {}
-    emergencyRecognizer = null
-    try { model?.close() } catch (_: Throwable) {}
-    model = null
+    synchronized(modelLock) {
+      try { recognizer?.close() } catch (_: Throwable) {}
+      recognizer = null
+      try { emergencyRecognizer?.close() } catch (_: Throwable) {}
+      emergencyRecognizer = null
+      try { model?.close() } catch (_: Throwable) {}
+      model = null
+    }
     lastPartial = ""
     lastEmergencyPartial = ""
     lastEmergencyUnknownEventAtMs = 0L

@@ -1,0 +1,32 @@
+Browser tab: 4, Title: "Telepresence", URL: <official Telepresence page; OAuth query removed>
+1 AXWebArea Telepresence, URL: <official Telepresence page; OAuth query removed>
+	2 container root
+		3 container
+			4 text Telepresence LOOI
+			14 image Link quality (10 ms)
+			15 text 10 ms
+			13 button End session
+		16 container Telepresence
+			17 AXWebArea Telepresence, URL: <official Telepresence page; OAuth query removed>
+				18 container root
+					19 container
+						20 text WAITING FOR CAMERA
+					21 text The robot reports no microphone support. You can hear it but your voice won't be sent.
+					22 checkbox (disabled) Mic off, Value: 0
+						23 text Mic off
+					24 text Mic gain undefined%
+					25 slider (settable, integer) Description: Mic gain, Value: 0
+					26 checkbox Sound off, Value: 0
+						27 text Sound
+						28 text off
+					29 text Speaker — %
+					30 slider (disabled, settable, integer) Description: Speaker, Value: 0
+		31 container
+			32 heading Update from the desktop app, Value: 2
+				33 text Update from the desktop app
+			34 text This Reachy runs v0.1.0-looi-bridge, which is too old to run web apps. Version v1.8.2 or newer is required. Install the Reachy desktop app to update it, then come back.
+			35 link Description: Get the desktop app, Value: huggingface.co/spaces/pollen-robotics/reachy-mini
+			36 link Description: Troubleshooting, Value: huggingface.co/docs/reachy_mini/troubleshooting
+			37 button Back to my Reachies
+
+The focused UI element is 1 AXWebArea Telepresence, URL: <official Telepresence page; OAuth query removed>

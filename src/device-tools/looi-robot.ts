@@ -14,12 +14,15 @@ import {
 
 const DEFAULT_MOVE_DURATION_MS = 700;
 const MAX_MOVE_DURATION_MS = 1_800;
+export const LOOI_DRIVE_DURATION_LIMITS = Object.freeze({ minimumMs: 80, maximumMs: MAX_MOVE_DURATION_MS });
 const FED9_LOG_INTERVAL_MS = 2_000;
 const BLE_DRIVE_START_TIMEOUT_MS = 1_800;
 const BLE_STOP_TIMEOUT_MS = 900;
 const SENSOR_CONNECT_WARMUP_MS = 700;
 const DRIVE_REVALIDATION_SETTLE_MS = 120;
 const SENSOR_WARMUP_POLL_MS = 25;
+const SENSOR_OBSERVER_PUBLISH_INTERVAL_MS = 100;
+const MOTION_LEASE_POLL_MS = 25;
 export const CLIFF_REARM_STABLE_MS = 250;
 export const CLIFF_ESCAPE_CLEAR_MS = 650;
 export const MANUAL_REPOSITION_SAFE_MS = 900;
@@ -35,6 +38,9 @@ let continuousMotionDeadmanTimer: ReturnType<typeof setTimeout> | null = null;
 let frontNearEdgeClearTimer: ReturnType<typeof setTimeout> | null = null;
 let rearNearEdgeClearTimer: ReturnType<typeof setTimeout> | null = null;
 let motionSequenceAbortGeneration = 0;
+let boundedMotionCancellationBarrier: Promise<void> = Promise.resolve();
+let driveStartBarrier: Promise<void> = Promise.resolve();
+let pendingDriveStartReservations = 0;
 
 export type LooiHeadMotionPriority = "ambient" | "behavior" | "social" | "explicit";
 export type LooiHeadMotionOptions = {
@@ -42,6 +48,25 @@ export type LooiHeadMotionOptions = {
   /** Additional caller-owned validity check, evaluated before and after every write/wait. */
   isCurrent?: () => boolean;
 };
+
+export type LooiMotionOptions = {
+  /** Caller-owned validity check, polled during bounded motion and around start waits/writes. */
+  isCurrent?: () => boolean;
+};
+
+type LooiMotionRequest = {
+  stopGeneration: number;
+  motionGeneration?: number;
+  connectionGeneration: number;
+  isCurrent?: () => boolean;
+};
+
+class LooiMotionCancelledError extends Error {
+  constructor() {
+    super("LOOI motion request was interrupted because it was cancelled.");
+    this.name = "LooiMotionCancelledError";
+  }
+}
 
 type HeadMotionOwner = {
   id: number;
@@ -62,6 +87,7 @@ const HEAD_MOTION_PRIORITY: Record<LooiHeadMotionPriority, number> = {
 let headMotionGeneration = 0;
 let activeHeadMotion: HeadMotionOwner | null = null;
 let headWriteQueue: Promise<void> = Promise.resolve();
+let activeDriveStartReservation: DriveStartReservation | null = null;
 
 type LooiSensorSnapshot = {
   lastFed9Hex: string | null;
@@ -149,6 +175,26 @@ export function subscribeLooiRobotRuntimeState(listener: LooiRuntimeStateListene
   return () => runtimeStateListeners.delete(listener);
 }
 
+let pendingSensorObserverTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSensorObserverGeneration: number | null = null;
+
+/** Coalesce high-rate FED9 notifications into bounded, generation-safe UI updates. */
+function publishSensorObserverUpdate(event: LooiRawNotification, generation: number): void {
+  if (event.characteristic !== "fed9" || runtimeStateListeners.size === 0) return;
+  if (generation !== connectionGeneration) return;
+  if (pendingSensorObserverTimer && pendingSensorObserverGeneration === generation) return;
+
+  if (pendingSensorObserverTimer) clearTimeout(pendingSensorObserverTimer);
+  pendingSensorObserverGeneration = generation;
+  pendingSensorObserverTimer = setTimeout(() => {
+    const scheduledGeneration = pendingSensorObserverGeneration;
+    pendingSensorObserverTimer = null;
+    pendingSensorObserverGeneration = null;
+    if (scheduledGeneration !== connectionGeneration) return;
+    emitLooiRobotRuntimeStateChanged();
+  }, SENSOR_OBSERVER_PUBLISH_INTERVAL_MS);
+}
+
 const state: LooiRuntimeState = {
   robot: null,
   transport: null,
@@ -170,6 +216,7 @@ const state: LooiRuntimeState = {
 /** Bind the platform-specific LOOI BLE transport. */
 export function configureLooiRobotTransport(transport: LooiTransport): void {
   cancelLooiHeadMotion("transport-reconfigured");
+  releaseActiveDriveStartReservation();
   connectionGeneration += 1;
   state.transport = transport;
   state.robot = new LooiRobot(transport);
@@ -196,6 +243,7 @@ export function markLooiDriveControlNeedsRevalidation(reason: string): void {
 
 export function handleLooiRobotTransportDisconnected(error?: unknown): void {
   cancelLooiHeadMotion("transport-disconnected");
+  releaseActiveDriveStartReservation();
   connectionGeneration += 1;
   const message = error instanceof Error ? error.message : error ? String(error) : "BLE link disconnected";
   const previousDirection = state.activeDirection;
@@ -558,6 +606,7 @@ async function getRobot(options: LooiConnectOptions = {}): Promise<LooiRobot> {
       onRawNotify: (event) => {
         if (!isCurrent()) return;
         rememberRawNotification(event);
+        publishSensorObserverUpdate(event, generation);
         options.onRawNotify?.(event);
       },
     };
@@ -611,7 +660,8 @@ async function getRobot(options: LooiConnectOptions = {}): Promise<LooiRobot> {
 
 async function waitForMovementSafetyReady(
   direction: Exclude<LooiMoveDirection, "stop">,
-  source: string
+  source: string,
+  request?: LooiMotionRequest,
 ): Promise<void> {
   // Immediately after a fresh BLE/GATT connect, FED9 can arrive a few tens of
   // milliseconds after connect() resolves. v1.1.31 evaluated safety in that tiny
@@ -630,6 +680,7 @@ async function waitForMovementSafetyReady(
 
   while (Date.now() - startedAt < SENSOR_CONNECT_WARMUP_MS) {
     await delay(SENSOR_WARMUP_POLL_MS);
+    if (request && !isLooiMotionRequestCurrent(request)) throw new LooiMotionCancelledError();
     safety = computeSafety(direction);
     if (safety.state !== "unknown") {
       recordDiagnosticEvent("robot", "sensor-warmup-finished", {
@@ -649,6 +700,25 @@ async function waitForMovementSafetyReady(
     reason: safety.reason ?? "unknown",
     waitMs: Date.now() - startedAt,
   });
+}
+
+function isLooiMotionRequestCurrent(request: LooiMotionRequest, robot?: LooiRobot): boolean {
+  if (
+    request.stopGeneration !== state.stopGeneration ||
+    (request.motionGeneration !== undefined && request.motionGeneration !== state.motionGeneration) ||
+    request.connectionGeneration !== connectionGeneration ||
+    (robot !== undefined && (robot !== state.robot || !state.connected))
+  ) return false;
+  if (!request.isCurrent) return true;
+  try {
+    return request.isCurrent();
+  } catch {
+    return false;
+  }
+}
+
+function assertLooiMotionRequestCurrent(request: LooiMotionRequest, robot?: LooiRobot): void {
+  if (!isLooiMotionRequestCurrent(request, robot)) throw new LooiMotionCancelledError();
 }
 
 function assertMovementAllowed(direction: LooiMoveDirection, source: string): void {
@@ -678,50 +748,330 @@ function assertMovementAllowed(direction: LooiMoveDirection, source: string): vo
   );
 }
 
+/**
+ * Wait for an older cancelled motion's final STOP before starting another one.
+ * A stop write that lands after a successor's start would otherwise stop the
+ * successor, so every wheel-motion entry point joins this barrier.
+ */
+async function waitForBoundedMotionCancellation(): Promise<void> {
+  let barrier = boundedMotionCancellationBarrier;
+  while (true) {
+    await barrier.catch(() => undefined);
+    if (barrier === boundedMotionCancellationBarrier) return;
+    barrier = boundedMotionCancellationBarrier;
+  }
+}
+
+type DriveStartReservation = {
+  ready: Promise<void>;
+  isReady(): boolean;
+  trackWrite(write: Promise<void>): void;
+  release(): void;
+};
+
+function releaseActiveDriveStartReservation(): void {
+  const reservation = activeDriveStartReservation;
+  activeDriveStartReservation = null;
+  reservation?.release();
+}
+
+/**
+ * Serialize first drive frames across controller requests. A BLE write may be
+ * pending after its caller's lease has been revoked; allowing a successor's
+ * frame to overtake it can make the stale frame the last physical command.
+ */
+function reserveDriveStart(): DriveStartReservation {
+  const previous = driveStartBarrier;
+  let unlock!: () => void;
+  const lock = new Promise<void>((resolve) => { unlock = resolve; });
+  driveStartBarrier = previous.catch(() => undefined).then(() => lock);
+  let isReady = false;
+  const ready = previous.catch(() => undefined).then(() => { isReady = true; });
+  pendingDriveStartReservations += 1;
+
+  let rawWriteSettled = true;
+  let callerReleased = false;
+  let released = false;
+  const maybeRelease = () => {
+    if (released || !callerReleased || !rawWriteSettled) return;
+    released = true;
+    pendingDriveStartReservations = Math.max(0, pendingDriveStartReservations - 1);
+    unlock();
+  };
+
+  return {
+    ready,
+    isReady: () => isReady,
+    trackWrite(write) {
+      rawWriteSettled = false;
+      void write.then(
+        () => { rawWriteSettled = true; maybeRelease(); },
+        () => { rawWriteSettled = true; maybeRelease(); },
+      );
+    },
+    release() {
+      callerReleased = true;
+      maybeRelease();
+    },
+  };
+}
+
+/** Poll the queued start lease so an expired request never waits on stale BLE. */
+async function waitForDriveStartReservation(
+  reservation: DriveStartReservation,
+  request: LooiMotionRequest,
+  robot: LooiRobot,
+): Promise<void> {
+  while (!reservation.isReady()) {
+    if (!isLooiMotionRequestCurrent(request, robot)) {
+      reservation.release();
+      throw new LooiMotionCancelledError();
+    }
+    await waitForReservationOrPoll(reservation, MOTION_LEASE_POLL_MS);
+  }
+  assertLooiMotionRequestCurrent(request, robot);
+}
+
+function waitForReservationOrPoll(reservation: DriveStartReservation, pollMs: number): Promise<void> {
+  if (reservation.isReady()) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    }, pollMs);
+    void reservation.ready.then(() => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
+/** Start requests replace a locally-owned motion even while waiting on BLE. */
+function queueMotionReplacementStop(
+  robot: LooiRobot,
+  nextDirection: Exclude<LooiMoveDirection, "stop">,
+  source: string,
+): void {
+  if (!state.motionActive) return;
+  const previousDirection = state.activeDirection;
+  const stopReservation = reserveDriveStart();
+  clearContinuousMotionDeadman();
+  clearNearEdgeEscapeTimers();
+  state.motionGeneration += 1;
+  robot.stopMoveLoop({ writeStop: false });
+  state.motionActive = false;
+  state.activeDirection = null;
+  emitLooiRobotRuntimeStateChanged();
+  recordDiagnosticEvent("robot", "motion-replaced", {
+    source,
+    previousDirection: previousDirection ?? "unknown",
+    nextDirection,
+    bleStopWrite: true,
+  });
+  releaseActiveDriveStartReservation();
+
+  void (async () => {
+    await stopReservation.ready;
+    try {
+      if (robot === state.robot && state.connected) {
+        await stopRobotWithDeadline(robot, `motion-replaced-${source}`);
+      }
+    } catch (error) {
+      recordDiagnosticEvent("robot", "emergency-stop-write-failed", {
+        reason: `motion-replaced-${source}`,
+        direction: previousDirection ?? "none",
+        durationMs: 0,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await recoverAfterBleFailure(robot, error, `motion-replaced-${source}`);
+    } finally {
+      stopReservation.release();
+    }
+  })();
+}
+
+async function waitForOwnedDriveStartReservation(
+  reservation: DriveStartReservation,
+  generation: number,
+): Promise<boolean> {
+  while (!reservation.isReady()) {
+    if (generation !== state.motionGeneration) {
+      reservation.release();
+      return false;
+    }
+    await waitForReservationOrPoll(reservation, MOTION_LEASE_POLL_MS);
+  }
+  return generation === state.motionGeneration;
+}
+
+/** Stop only if this bounded command still owns the wheel generation. */
+function cancelBoundedMotionIfOwned(
+  robot: LooiRobot,
+  direction: Exclude<LooiMoveDirection, "stop">,
+  generation: number,
+  source: string,
+): Promise<void> {
+  if (generation !== state.motionGeneration) return boundedMotionCancellationBarrier;
+
+  // Reserve a new generation synchronously before starting the asynchronous
+  // STOP write. A successor will either own a newer generation already or
+  // wait for boundedMotionCancellationBarrier before it can start.
+  robot.stopMoveLoop({ writeStop: false });
+  state.motionGeneration += 1;
+  const stopGeneration = state.motionGeneration;
+  clearContinuousMotionDeadman();
+  clearNearEdgeEscapeTimers();
+  state.motionActive = false;
+  state.activeDirection = null;
+  state.lastSafetyStopReason = "command-cancelled";
+  emitLooiRobotRuntimeStateChanged();
+  recordDiagnosticEvent("robot", "move-stop", {
+    direction,
+    reason: "command-cancelled",
+    mode: source,
+  });
+
+  const stopping = (async () => {
+    try {
+      await stopRobotWithDeadline(robot, "command-cancelled");
+    } catch (error) {
+      recordDiagnosticEvent("robot", "emergency-stop-write-failed", {
+        reason: "command-cancelled",
+        direction,
+        durationMs: 0,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await recoverAfterBleFailure(robot, error, "cancel-bounded-motion");
+    } finally {
+      // A stop or newer motion may have taken ownership while BLE settled.
+      if (state.motionGeneration === stopGeneration) {
+        state.motionActive = false;
+        state.activeDirection = null;
+      }
+    }
+  })();
+  const barrier = Promise.all([boundedMotionCancellationBarrier.catch(() => undefined), stopping]).then(() => undefined);
+  boundedMotionCancellationBarrier = barrier;
+  return barrier;
+}
+
+/** Keep a physical bounded move tied to its lease without changing ordinary timing. */
+async function waitForBoundedMotionDuration(
+  durationMs: number,
+  request: LooiMotionRequest,
+  robot: LooiRobot,
+  generation: number,
+  direction: Exclude<LooiMoveDirection, "stop">,
+  source: string,
+): Promise<boolean> {
+  const deadline = Date.now() + durationMs;
+  while (true) {
+    if (!isLooiMotionRequestCurrent(request, robot)) {
+      await cancelBoundedMotionIfOwned(robot, direction, generation, source);
+      return false;
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return true;
+    await delay(Math.min(MOTION_LEASE_POLL_MS, remaining));
+  }
+}
+
 async function runBoundedMotion(
   direction: Exclude<LooiMoveDirection, "stop">,
   durationMs: number,
   mode: "manual-bounded" | "calibrated-turn",
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
+  options: LooiMotionOptions = {},
 ) {
+  const request: LooiMotionRequest = {
+    stopGeneration: state.stopGeneration,
+    connectionGeneration,
+    isCurrent: options.isCurrent,
+  };
+  assertLooiMotionRequestCurrent(request);
   const robot = await getRobot();
-  await waitForMovementSafetyReady(direction, mode);
+  assertLooiMotionRequestCurrent(request, robot);
+  await waitForMovementSafetyReady(direction, mode, request);
+  assertLooiMotionRequestCurrent(request, robot);
   assertMovementAllowed(direction, mode);
   const boundedDurationMs = clampDuration(durationMs);
-  prepareMotionStart(robot, direction, mode);
-  // No blocking BLE STOP is sent before an idle start. Re-check the cached
-  // interlock immediately before the first actual drive frame.
-  assertMovementAllowed(direction, mode);
-  const generation = state.motionGeneration;
+  assertLooiMotionRequestCurrent(request, robot);
+  await waitForBoundedMotionCancellation();
+  assertLooiMotionRequestCurrent(request, robot);
+  queueMotionReplacementStop(robot, direction, mode);
+  const startReservation = reserveDriveStart();
+  let generation = -1;
   let completed = false;
-  state.motionActive = true;
-  state.activeDirection = direction;
-  recordDiagnosticEvent("robot", "move-start", { direction, durationMs: boundedDurationMs, mode, ...details });
   try {
-    await startDriveWithDeadline(robot, direction, mode);
-    recordDiagnosticEvent("robot", "ble-drive-first-write", { direction, mode, ok: true });
-    maybeArmNearEdgeEscapeClear(mode);
-    await delay(boundedDurationMs);
-  } catch (error) {
-    recordDiagnosticEvent("robot", "ble-drive-write-failed", {
-      direction,
-      mode,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    await recoverAfterBleFailure(robot, error, `${mode}-start`);
-    throw error;
-  } finally {
-    if (generation === state.motionGeneration) {
-      robot.stopMoveLoop({ writeStop: false });
-      await stopRobotWithDeadline(robot, "duration-complete").catch(() => undefined);
-      state.motionActive = false;
-      state.activeDirection = null;
-      state.lastSafetyStopReason = "duration-complete";
-      completed = true;
-      recordDiagnosticEvent("robot", "move-stop", { direction, reason: "duration-complete", mode, ...details });
+    await waitForDriveStartReservation(startReservation, request, robot);
+    prepareMotionStart(robot, direction, mode);
+    request.motionGeneration = state.motionGeneration;
+    // No blocking BLE STOP is sent before an idle start. Re-check the cached
+    // interlock immediately before the first actual drive frame.
+    assertLooiMotionRequestCurrent(request, robot);
+    assertMovementAllowed(direction, mode);
+    assertLooiMotionRequestCurrent(request, robot);
+    generation = state.motionGeneration;
+    state.motionActive = true;
+    state.activeDirection = direction;
+    recordDiagnosticEvent("robot", "move-start", { direction, durationMs: boundedDurationMs, mode, ...details });
+    try {
+      await startDriveWithDeadline(robot, direction, mode, startReservation);
+      if (!isLooiMotionRequestCurrent(request, robot)) {
+        await cancelBoundedMotionIfOwned(robot, direction, generation, mode);
+        throw new LooiMotionCancelledError();
+      }
+      startReservation.release();
+      recordDiagnosticEvent("robot", "ble-drive-first-write", { direction, mode, ok: true });
+      maybeArmNearEdgeEscapeClear(mode);
+      await waitForBoundedMotionDuration(boundedDurationMs, request, robot, generation, direction, mode);
+    } catch (error) {
+      if (error instanceof LooiMotionCancelledError) throw error;
+      recordDiagnosticEvent("robot", "ble-drive-write-failed", {
+        direction,
+        mode,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await recoverAfterBleFailure(robot, error, `${mode}-start`);
+      throw error;
     }
+  } finally {
+    if (generation >= 0 && generation === state.motionGeneration) {
+      const cleanupReservation = reserveDriveStart();
+      try {
+        if (await waitForOwnedDriveStartReservation(cleanupReservation, generation)) {
+          if (generation === state.motionGeneration) {
+            robot.stopMoveLoop({ writeStop: false });
+            await stopRobotWithDeadline(robot, "duration-complete").catch(() => undefined);
+            if (generation === state.motionGeneration) {
+              state.motionActive = false;
+              state.activeDirection = null;
+              state.lastSafetyStopReason = "duration-complete";
+              completed = true;
+              recordDiagnosticEvent("robot", "move-stop", { direction, reason: "duration-complete", mode, ...details });
+            }
+          }
+        }
+      } finally {
+        cleanupReservation.release();
+      }
+    }
+    startReservation.release();
   }
-  return { ok: true, direction, durationMs: boundedDurationMs, safetyBounded: true, mode, completed };
+  return { ok: completed, direction, durationMs: boundedDurationMs, safetyBounded: true, mode, completed };
+}
+
+/** Safety-gated discrete directional drive for robot-bridge backends. */
+export function driveLooiForDuration(
+  direction: Exclude<LooiMoveDirection, "stop">,
+  durationMs: number,
+  options: LooiMotionOptions = {},
+) {
+  return runBoundedMotion(direction, durationMs, "manual-bounded", { robotBridge: true }, options);
 }
 
 /** Time-bounded movement used by manual Settings tests. */
@@ -774,58 +1124,99 @@ export async function performLooiSocialAttentionPivot(direction: "left" | "right
 }
 
 /** Calibrated bounded turn. First build uses time estimates that must be tuned on the real robot. */
-export async function turnLooi(direction: "left" | "right", degrees: 90 | 180 = 90) {
+export async function turnLooi(
+  direction: "left" | "right",
+  degrees: 90 | 180 = 90,
+  options: LooiMotionOptions = {},
+) {
+  const request: LooiMotionRequest = {
+    stopGeneration: state.stopGeneration,
+    connectionGeneration,
+    isCurrent: options.isCurrent,
+  };
+  assertLooiMotionRequestCurrent(request);
   const robot = await getRobot();
+  assertLooiMotionRequestCurrent(request, robot);
   const durationMs = clampDuration(degrees === 180 ? TURN_180_MS : TURN_90_MS);
   const source = `turn-${degrees}`;
-  await waitForMovementSafetyReady(direction, source);
+  await waitForMovementSafetyReady(direction, source, request);
+  assertLooiMotionRequestCurrent(request, robot);
+  await waitForBoundedMotionCancellation();
+  assertLooiMotionRequestCurrent(request, robot);
   assertMovementAllowed(direction, source);
-  prepareMotionStart(robot, direction, source);
-  // Re-check immediately before wheel motion so a cliff event arriving during
-  // command handling cannot slip through the turn interlock.
-  assertMovementAllowed(direction, source);
-  const generation = state.motionGeneration;
+  queueMotionReplacementStop(robot, direction, source);
+  const startReservation = reserveDriveStart();
+  let generation = -1;
   let completed = false;
-  state.motionActive = true;
-  state.activeDirection = direction;
-  recordDiagnosticEvent("robot", "move-start", {
-    direction,
-    durationMs,
-    mode: "calibrated-turn",
-    degrees,
-    sensorGate: "calibrated-directional-cliff-v2",
-  });
   try {
-    await startDriveWithDeadline(robot, direction, "calibrated-turn");
-    recordDiagnosticEvent("robot", "ble-drive-first-write", {
+    await waitForDriveStartReservation(startReservation, request, robot);
+    prepareMotionStart(robot, direction, source);
+    request.motionGeneration = state.motionGeneration;
+    // Re-check immediately before wheel motion so a cliff event arriving during
+    // command handling cannot slip through the turn interlock.
+    assertLooiMotionRequestCurrent(request, robot);
+    assertMovementAllowed(direction, source);
+    assertLooiMotionRequestCurrent(request, robot);
+    generation = state.motionGeneration;
+    state.motionActive = true;
+    state.activeDirection = direction;
+    recordDiagnosticEvent("robot", "move-start", {
       direction,
+      durationMs,
       mode: "calibrated-turn",
-      ok: true,
+      degrees,
+      sensorGate: "calibrated-directional-cliff-v2",
     });
-    await delay(durationMs);
-  } catch (error) {
-    recordDiagnosticEvent("robot", "ble-drive-write-failed", {
-      direction,
-      mode: "calibrated-turn",
-      error: error instanceof Error ? error.message : String(error),
-    });
-    await recoverAfterBleFailure(robot, error, "calibrated-turn-start");
-    throw error;
-  } finally {
-    if (generation === state.motionGeneration) {
-      robot.stopMoveLoop({ writeStop: false });
-      await stopRobotWithDeadline(robot, "turn-duration-complete").catch(() => undefined);
-      state.motionActive = false;
-      state.activeDirection = null;
-      state.lastSafetyStopReason = "duration-complete";
-      completed = true;
-      recordDiagnosticEvent("robot", "move-stop", {
+    try {
+      await startDriveWithDeadline(robot, direction, "calibrated-turn", startReservation);
+      if (!isLooiMotionRequestCurrent(request, robot)) {
+        await cancelBoundedMotionIfOwned(robot, direction, generation, "calibrated-turn");
+        throw new LooiMotionCancelledError();
+      }
+      startReservation.release();
+      recordDiagnosticEvent("robot", "ble-drive-first-write", {
         direction,
-        reason: "duration-complete",
         mode: "calibrated-turn",
-        degrees,
+        ok: true,
       });
+      await waitForBoundedMotionDuration(durationMs, request, robot, generation, direction, "calibrated-turn");
+    } catch (error) {
+      if (error instanceof LooiMotionCancelledError) throw error;
+      recordDiagnosticEvent("robot", "ble-drive-write-failed", {
+        direction,
+        mode: "calibrated-turn",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await recoverAfterBleFailure(robot, error, "calibrated-turn-start");
+      throw error;
     }
+  } finally {
+    if (generation >= 0 && generation === state.motionGeneration) {
+      const cleanupReservation = reserveDriveStart();
+      try {
+        if (await waitForOwnedDriveStartReservation(cleanupReservation, generation)) {
+          if (generation === state.motionGeneration) {
+            robot.stopMoveLoop({ writeStop: false });
+            await stopRobotWithDeadline(robot, "turn-duration-complete").catch(() => undefined);
+            if (generation === state.motionGeneration) {
+              state.motionActive = false;
+              state.activeDirection = null;
+              state.lastSafetyStopReason = "duration-complete";
+              completed = true;
+              recordDiagnosticEvent("robot", "move-stop", {
+                direction,
+                reason: "duration-complete",
+                mode: "calibrated-turn",
+                degrees,
+              });
+            }
+          }
+        }
+      } finally {
+        cleanupReservation.release();
+      }
+    }
+    startReservation.release();
   }
   return { ok: true, direction, durationMs, degrees, safetyBounded: false, mode: "calibrated-turn" as const, completed };
 }
@@ -834,8 +1225,15 @@ export async function turnLooi(direction: "left" | "right", degrees: 90 | 180 = 
  * Start persistent translation. Only forward/backward may be continuous;
  * rotations are always bounded by turnLooi().
  */
-export async function startLooiMotion(direction: string) {
+export async function startLooiMotion(direction: string, options: LooiMotionOptions = {}) {
+  const request: LooiMotionRequest = {
+    stopGeneration: state.stopGeneration,
+    connectionGeneration,
+    isCurrent: options.isCurrent,
+  };
+  assertLooiMotionRequestCurrent(request);
   const robot = await getRobot();
+  assertLooiMotionRequestCurrent(request, robot);
   const normalizedDirection = normalizeMoveDirection(direction);
   if (normalizedDirection === "stop") {
     await stopLooiMotion("explicit-stop");
@@ -845,28 +1243,54 @@ export async function startLooiMotion(direction: string) {
     throw new Error("Continuous rotation is disabled; use turnLooi() for bounded turns.");
   }
 
-  await waitForMovementSafetyReady(normalizedDirection, "continuous");
+  await waitForMovementSafetyReady(normalizedDirection, "continuous", request);
+  assertLooiMotionRequestCurrent(request, robot);
+  await waitForBoundedMotionCancellation();
+  assertLooiMotionRequestCurrent(request, robot);
   assertMovementAllowed(normalizedDirection, "continuous");
-  prepareMotionStart(robot, normalizedDirection, "continuous");
-  assertMovementAllowed(normalizedDirection, "continuous");
-  state.motionActive = true;
-  state.activeDirection = normalizedDirection;
+  queueMotionReplacementStop(robot, normalizedDirection, "continuous");
+  const startReservation = reserveDriveStart();
+  let generation = -1;
+  let reservationTransferred = false;
   try {
-    await startDriveWithDeadline(robot, normalizedDirection, "continuous-until-stop");
-    recordDiagnosticEvent("robot", "ble-drive-first-write", { direction: normalizedDirection, mode: "continuous-until-stop", ok: true });
-    maybeArmNearEdgeEscapeClear("continuous");
-  } catch (error) {
-    state.motionActive = false;
-    state.activeDirection = null;
-    recordDiagnosticEvent("robot", "ble-drive-write-failed", {
-      direction: normalizedDirection,
-      mode: "continuous-until-stop",
-      error: error instanceof Error ? error.message : String(error),
-    });
-    await recoverAfterBleFailure(robot, error, "continuous-start");
-    throw error;
+    await waitForDriveStartReservation(startReservation, request, robot);
+    prepareMotionStart(robot, normalizedDirection, "continuous");
+    request.motionGeneration = state.motionGeneration;
+    generation = state.motionGeneration;
+    assertLooiMotionRequestCurrent(request, robot);
+    assertMovementAllowed(normalizedDirection, "continuous");
+    assertLooiMotionRequestCurrent(request, robot);
+    state.motionActive = true;
+    state.activeDirection = normalizedDirection;
+    try {
+      await startDriveWithDeadline(robot, normalizedDirection, "continuous-until-stop", startReservation);
+      if (!isLooiMotionRequestCurrent(request, robot)) {
+        await cancelBoundedMotionIfOwned(robot, normalizedDirection, generation, "continuous-until-stop");
+        throw new LooiMotionCancelledError();
+      }
+      recordDiagnosticEvent("robot", "ble-drive-first-write", { direction: normalizedDirection, mode: "continuous-until-stop", ok: true });
+      maybeArmNearEdgeEscapeClear("continuous");
+      activeDriveStartReservation = startReservation;
+      reservationTransferred = true;
+    } catch (error) {
+      if (generation === state.motionGeneration) {
+        state.motionActive = false;
+        state.activeDirection = null;
+      }
+      if (error instanceof LooiMotionCancelledError) throw error;
+      recordDiagnosticEvent("robot", "ble-drive-write-failed", {
+        direction: normalizedDirection,
+        mode: "continuous-until-stop",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await recoverAfterBleFailure(robot, error, "continuous-start");
+      throw error;
+    }
+  } finally {
+    if (!reservationTransferred) startReservation.release();
   }
-  const generation = state.motionGeneration;
+  if (generation < 0) throw new LooiMotionCancelledError();
+  monitorContinuousMotionLease(request, robot, generation, normalizedDirection);
   armContinuousMotionDeadman(generation, normalizedDirection);
   recordDiagnosticEvent("robot", "move-start", {
     direction: normalizedDirection,
@@ -884,6 +1308,14 @@ export async function startLooiMotion(direction: string) {
 
 /** Immediate best-effort motor stop. Safe to call repeatedly. */
 export async function stopLooiMotion(reason = "explicit"): Promise<void> {
+  // Keep the immediate STOP below, but reserve one final STOP behind any
+  // pending initial drive write. BLE may deliver that frame after the immediate
+  // STOP settles, so later starts must also wait behind this final cleanup.
+  // The active continuous-drive reservation is intentionally held for the
+  // whole motion lease; it does not indicate an in-flight first packet. Exclude
+  // it here to avoid a redundant late STOP racing into the next safety check.
+  const pendingInitialStarts = pendingDriveStartReservations - (activeDriveStartReservation ? 1 : 0);
+  const lateStartStop = pendingInitialStarts > 0 ? reserveDriveStart() : null;
   motionSequenceAbortGeneration += 1;
   cancelLooiHeadMotion(reason);
   clearContinuousMotionDeadman();
@@ -897,7 +1329,11 @@ export async function stopLooiMotion(reason = "explicit"): Promise<void> {
   state.lastSafetyStopReason = reason;
   emitLooiRobotRuntimeStateChanged();
   const robot = state.robot;
-  if (!robot || !state.connected) return;
+  if (!robot || !state.connected) {
+    releaseActiveDriveStartReservation();
+    if (lateStartStop) void lateStartStop.ready.then(() => lateStartStop.release());
+    return;
+  }
   robot.stopMoveLoop({ writeStop: false });
   const writeStartedAt = Date.now();
   try {
@@ -918,11 +1354,44 @@ export async function stopLooiMotion(reason = "explicit"): Promise<void> {
     });
     await recoverAfterBleFailure(robot, error, `stop-${reason}`);
   }
+  releaseActiveDriveStartReservation();
+  if (lateStartStop) {
+    void (async () => {
+      await lateStartStop.ready;
+      try {
+        if (robot === state.robot && state.connected) {
+          await stopRobotWithDeadline(robot, `${reason}-after-pending-start`);
+          recordDiagnosticEvent("robot", "emergency-stop-after-pending-start", {
+            reason,
+            direction: direction ?? "none",
+          });
+        }
+      } catch (error) {
+        recordDiagnosticEvent("robot", "emergency-stop-write-failed", {
+          reason: `${reason}-after-pending-start`,
+          direction: direction ?? "none",
+          durationMs: 0,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        await recoverAfterBleFailure(robot, error, `stop-${reason}-after-pending-start`);
+      } finally {
+        lateStartStop.release();
+      }
+    })();
+  }
 }
 
-export async function setLooiLight(enabled: boolean) {
+export async function setLooiLight(enabled: boolean, options: LooiMotionOptions = {}) {
+  const request: LooiMotionRequest = {
+    stopGeneration: state.stopGeneration,
+    connectionGeneration,
+    isCurrent: options.isCurrent,
+  };
+  assertLooiMotionRequestCurrent(request);
   const robot = await getRobot();
+  assertLooiMotionRequestCurrent(request, robot);
   await robot.setLight(enabled);
+  assertLooiMotionRequestCurrent(request, robot);
   return { ok: true, enabled };
 }
 
@@ -1372,10 +1841,18 @@ function triggerSensorSafetyStop(reason: "cliff" | "obstacle", details: Record<s
   state.activeDirection = null;
   state.motionGeneration += 1;
   state.stopGeneration += 1;
+  // Continuous motion holds its start reservation for the duration of the
+  // lease. Transfer that reservation to the safety STOP so a later start
+  // cannot overtake the stop write, then release it when the write settles.
+  const safetyStopReservation = activeDriveStartReservation;
+  activeDriveStartReservation = null;
   state.lastSafetyStopReason = reason;
   emitLooiRobotRuntimeStateChanged();
   const robot = state.robot;
-  if (!robot || !state.connected) return;
+  if (!robot || !state.connected) {
+    safetyStopReservation?.release();
+    return;
+  }
   robot.stopMoveLoop({ writeStop: false });
   const writeStartedAt = Date.now();
   void stopRobotWithDeadline(robot, `sensor-${reason}`)
@@ -1393,7 +1870,8 @@ function triggerSensorSafetyStop(reason: "cliff" | "obstacle", details: Record<s
         error: error instanceof Error ? error.message : String(error),
       });
       await recoverAfterBleFailure(robot, error, `sensor-${reason}`);
-    });
+    })
+    .finally(() => safetyStopReservation?.release());
 }
 
 
@@ -1401,6 +1879,38 @@ function clearContinuousMotionDeadman(): void {
   if (!continuousMotionDeadmanTimer) return;
   clearTimeout(continuousMotionDeadmanTimer);
   continuousMotionDeadmanTimer = null;
+}
+
+function monitorContinuousMotionLease(
+  request: LooiMotionRequest,
+  robot: LooiRobot,
+  generation: number,
+  direction: Exclude<LooiMoveDirection, "stop">,
+): void {
+  void (async () => {
+    while (
+      generation === state.motionGeneration &&
+      state.motionActive &&
+      state.activeDirection === direction &&
+      isLooiMotionRequestCurrent(request, robot)
+    ) {
+      await delay(MOTION_LEASE_POLL_MS);
+    }
+    if (
+      generation === state.motionGeneration &&
+      state.motionActive &&
+      state.activeDirection === direction &&
+      !isLooiMotionRequestCurrent(request, robot)
+    ) {
+      recordDiagnosticEvent("robot", "continuous-motion-lease-expired", { direction });
+      await stopLooiMotion("continuous-lease-expired").catch((error) => {
+        recordDiagnosticEvent("robot", "continuous-motion-lease-stop-failed", {
+          direction,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }
+  })();
 }
 
 function armContinuousMotionDeadman(
@@ -1451,11 +1961,14 @@ function prepareMotionStart(
 async function startDriveWithDeadline(
   robot: LooiRobot,
   direction: Exclude<LooiMoveDirection, "stop">,
-  mode: string
+  mode: string,
+  reservation: DriveStartReservation,
 ): Promise<void> {
   try {
+    const startWrite = robot.startMoveLoop(direction);
+    reservation.trackWrite(startWrite);
     await withDeadline(
-      robot.startMoveLoop(direction),
+      startWrite,
       BLE_DRIVE_START_TIMEOUT_MS,
       `BLE drive start timed out after ${BLE_DRIVE_START_TIMEOUT_MS}ms`
     );

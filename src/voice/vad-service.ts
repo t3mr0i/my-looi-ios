@@ -81,6 +81,9 @@ export class VadService {
       threshold: 0.45,
       minSilenceDuration: 1.0,
       minSpeechDuration: 0.3,
+      // Match Budget's bounded twenty-second turn. The iOS wrapper's default
+      // of five seconds can emit a completed segment during a longer turn.
+      maxSpeechDuration: 20,
       windowSize: 512,
     });
 

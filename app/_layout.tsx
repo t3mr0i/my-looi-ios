@@ -12,6 +12,9 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useUserStore } from '@/src/store/user';
 import { installBehaviorRuntime } from '@/src/behavior/behavior-runtime';
+import { installCharacterActionRuntime } from '@/src/character/character-action-runtime';
+import { installRobotBridgeRuntime } from '@/src/robot-bridge/runtime';
+import { installRobotAppSkillRuntime } from '@/src/robot-bridge/app-skill-runtime';
 import { markRobotInteraction, startRobotInactivityTimer, stopRobotInactivityTimer } from '@/src/core/robot-inactivity';
 import { recordDiagnosticEvent } from '@/src/diagnostics/diagnostic-log';
 import { startPerformanceMonitor, stopPerformanceMonitor } from '@/src/diagnostics/performance-monitor';
@@ -52,10 +55,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     const uninstallBehavior = installBehaviorRuntime();
+    const uninstallCharacterActions = installCharacterActionRuntime();
+    const uninstallRobotBridge = installRobotBridgeRuntime();
+    const uninstallAppSkills = installRobotAppSkillRuntime();
     startRobotInactivityTimer();
     startPerformanceMonitor();
     return () => {
       uninstallBehavior();
+      uninstallCharacterActions();
+      uninstallAppSkills();
+      uninstallRobotBridge();
       stopRobotInactivityTimer();
       stopPerformanceMonitor();
     };
@@ -98,7 +107,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    let previousRuntimeAppState = AppState.currentState;
     const subscription = AppState.addEventListener('change', (state) => {
+      recordDiagnosticEvent('app', 'app-state-changed', { previous: previousRuntimeAppState, state });
+      previousRuntimeAppState = state;
       void (async () => {
         if (state === 'active') {
           // Cancel the native kill before touching foreground audio/BLE state.
@@ -188,6 +200,7 @@ function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
   const currentRoot = String(segments[0] ?? '');
+  const isAppsRoute = currentRoot === 'robot-apps' || (currentRoot === '(tabs)' && String(segments[1] ?? '') === 'apps');
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -202,7 +215,7 @@ function RootLayoutNav() {
       .then(({ computeSetupReadiness }) => computeSetupReadiness())
       .then((readiness) => {
         if (cancelled || readiness.requiredReady) return;
-        if (currentRoot === 'onboarding') return;
+        if (currentRoot === 'onboarding' || currentRoot === 'robot-debug' || isAppsRoute) return;
         router.replace(`/onboarding?step=${readiness.nextStep}` as never);
       })
       .catch((error) => {
@@ -212,7 +225,7 @@ function RootLayoutNav() {
     return () => {
       cancelled = true;
     };
-  }, [currentRoot, router]);
+  }, [currentRoot, isAppsRoute, router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -221,6 +234,8 @@ function RootLayoutNav() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="robot-debug" options={{ headerShown: false }} />
+          <Stack.Screen name="robot-apps" options={{ headerShown: false }} />
         </Stack>
       </View>
     </ThemeProvider>

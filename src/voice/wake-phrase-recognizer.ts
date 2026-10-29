@@ -8,7 +8,7 @@ import type { WhisperLanguageHint } from "./sherpa-adapter";
 import { useUserStore } from "../store/user";
 
 export type WakePhraseRecognitionAttempt = {
-  language: "auto" | "ru" | "uk" | "en";
+  language: "auto" | "ru" | "uk" | "en" | "de";
   transcript: string;
   matched: boolean;
 };
@@ -24,6 +24,7 @@ const LANGUAGE_BY_PHRASE: Record<WakePhraseId, Exclude<WhisperLanguageHint, "">>
   ru: "ru",
   uk: "uk",
   en: "en",
+  de: "de",
 };
 
 function languageCandidates(expectedId?: WakePhraseId): WhisperLanguageHint[] {
@@ -50,7 +51,7 @@ export async function recognizeWakePhraseSamples(
       sampleRate,
       language
     );
-    const match = matchWakePhrase(transcript, expectedId);
+    const match = matchWakePhrase(transcript, expectedId ?? (language || undefined));
     const label = language || "auto";
     attempts.push({ language: label, transcript, matched: Boolean(match) });
     recordDiagnosticEvent("whisper", "wake-attempt", {

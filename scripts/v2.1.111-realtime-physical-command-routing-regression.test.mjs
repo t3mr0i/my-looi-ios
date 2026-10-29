@@ -31,7 +31,7 @@ assert.ok(helper.includes('await turnLooi(command.direction, command.degrees)'),
 assert.ok(helper.includes('await performLooiHeadGesture(command.gesture, command.count)'), "head gestures must remain available");
 assert.ok(helper.includes('await performLooiDance("random")'), "bounded dance remains available through the safety controller");
 
-assert.ok(config.includes("You have no physical movement tool yourself"), "LLM must not be granted autonomous movement tools");
+assert.match(config, /You have no (?:raw )?physical movement tool(?: yourself)?/, "LLM must not be granted raw movement tools");
 assert.ok(config.includes("intercepted and executed deterministically by the local app"), "Realtime instructions must describe the local deterministic handoff");
 
 console.log("Realtime PCM physical command routing regression: PASS");

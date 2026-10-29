@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import ts from "typescript";
+import { loadTypeScript } from "./helpers/load-typescript.mjs";
 
 const deferred = () => {
   let resolve;
@@ -19,17 +20,36 @@ const callbacks = {};
 const storeEvents = [];
 const sent = [];
 const stopped = [];
+const assistantSpeechBegin = deferred();
+let assistantSpeechBeginResponse = null;
+const assistantSpeechCalls = { feeds: [], ends: [], cancels: [] };
+const hermesTaskToolDefinitions = { HERMES_TASK_TOOL_NAMES: new Set(["start_hermes_task", "list_hermes_tasks", "get_hermes_task", "retry_pending_hermes_task"]) };
+const vosk = {
+  addListener() { return { remove() {} }; },
+  beginAssistantOutput(_language, responseId) {
+    return responseId === assistantSpeechBeginResponse
+      ? assistantSpeechBegin.promise
+      : Promise.resolve({ ready: false, generation: 1 });
+  },
+  feedAssistantPcm24(responseId, pcm24Base64) { assistantSpeechCalls.feeds.push([responseId, pcm24Base64]); return true; },
+  endAssistantOutput(responseId) { assistantSpeechCalls.ends.push(responseId); },
+  cancelAssistantOutput(responseId) { assistantSpeechCalls.cancels.push(responseId); },
+};
 const audio = {
   addListener(name, callback) { callbacks[name] = callback; return { remove() {} }; },
   stopPlayback() { return { playedDurationMs: 25 }; },
 };
 const store = new Proxy({}, { get: (_, name) => (...args) => storeEvents.push([name, ...args]) });
 const dependencies = {
+  "./input-attention": loadTypeScript("src/voice/input-attention.ts"),
   "../behavior/behavior-events": {
-    beginBehaviorSession() {}, endBehaviorSession() {}, getBehaviorConversationContext: () => "", isBehaviorGameActive: () => false,
+    beginBehaviorSession() {}, endBehaviorSession() {}, getBehaviorConversationContext: () => "", isBehaviorGameActive: () => false, requiresBehaviorTurnCommit: () => false,
+    // This lifecycle fixture has no registered behavior session.
+    getBehaviorInteractionRevision: () => null,
     inspectBehaviorVisual: async () => "", publishBehaviorEvent() {},
   },
   "react-native": { Platform: { OS: "ios" }, AppState: { currentState: "active" } },
+  "../core/main-screen-presence": { isMainScreenFocused: () => true },
   "./audio-capture-profile": { isRealtimeCaptureReady: () => true },
   "expo-audio": { async setIsAudioActiveAsync() {} }, "../core/observation": {},
   "../core/robot-inactivity": {},
@@ -51,8 +71,16 @@ const dependencies = {
     startPcmCapture: () => nativeCapture.promise,
     async reservePcmCapture() {},
   },
+  "../../modules/vosk-command-recognizer": vosk,
+  "../character/speech-expression": { createSpeechExpressionTracker: () => ({ setNativeGeneration() {}, setTranscript() {}, acceptRecognition() {}, advancePlayback() {}, invalidate() {} }) },
+  "../language/response-language": { normalizeResponseLanguage: (value) => value },
   "./kws-audio-feeder": { kwsAudioFeeder: { diagnosticStatus: { appCaptureAllowed: true }, setAppCaptureAllowed() {} } },
+  "./realtime-latency": loadTypeScript("src/voice/realtime-latency.ts"),
   "./realtime-config": { REALTIME_MODEL: "test" }, "./wakeword": {},
+  "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute() { return { ok: true }; } } },
+  "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
+  "./robot-app-skill-tools": { ROBOT_APP_TOOL_NAMES: new Set(), async executeRobotAppTool() { return { ok: true }; } },
+  "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
   "./realtime-physical-command": { executeRealtimePhysicalCommand: () => physical.promise },
   "./realtime-visual-command": {},
 };
@@ -154,6 +182,23 @@ currentSocket.onmessage({ data: '{"type":"response.failed"}' });
 await Promise.resolve();
 await Promise.resolve();
 assert.deepEqual(stopped, ["playback-error", "event-handler-failed"]);
+
+// If output finishes before the asynchronous native begin resolves, already
+// admitted PCM still feeds in order before end; no heard phrase is fabricated.
+service.active = true;
+service.sessionId = "asr-session";
+service.lifecycleGeneration = 73;
+assistantSpeechBeginResponse = "queued-before-begin";
+service.beginSpeechTracking(assistantSpeechBeginResponse);
+service.queueSpeechPcm(assistantSpeechBeginResponse, "AQID");
+service.endSpeechTrackingInput(assistantSpeechBeginResponse);
+assert.equal(service.speechEnded, true);
+assert.equal(assistantSpeechCalls.feeds.length, 0);
+assistantSpeechBegin.resolve({ ready: true, generation: 41 });
+for (let index = 0; index < 12; index += 1) await Promise.resolve();
+assert.deepEqual(assistantSpeechCalls.feeds, [["queued-before-begin", "AQID"]]);
+assert.deepEqual(assistantSpeechCalls.ends, ["queued-before-begin"]);
+service.retireSpeechTracking(true);
 
 // Two taps share the entire selection/import lifecycle. A completed old call
 // therefore cannot clear a second picker that has already begun importing.

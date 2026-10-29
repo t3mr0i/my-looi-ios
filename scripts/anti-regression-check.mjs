@@ -22,7 +22,7 @@ assert.match(settings, /Realtime WebRTC \(legacy A\/B\)/);
 assert.doesNotMatch(settings, /Realtime \+ Local ASR|GigaAM/);
 
 const home = read("app/(tabs)/index.tsx");
-assert.match(home, /gearshape\.fill/);
+assert.match(home, /onSettings=\{\(\) => router\.replace\("\/settings"\)\}/);
 assert.match(home, /applyLiveRealtimePreferences/);
 assert.doesNotMatch(home, /quickPanelVisible|quickActions|quickPanel:/);
 

@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "My LOOI benötigt die Kamera, um auf deine ausdrückliche Bitte eine Szene anzusehen und optional Gesichter auf dem Gerät zu erkennen.",
+    "NSMicrophoneUsageDescription": "My LOOI benötigt das Mikrofon für Weckwörter, Sicherheitsbefehle und Gespräche mit dir.",
+    "NSBluetoothAlwaysUsageDescription": "My LOOI benötigt Bluetooth, um sich mit deinem LOOI-Roboter zu verbinden.",
+    "NSLocalNetworkUsageDescription": "Der Expo Dev Launcher nutzt das lokale Netzwerk, um Entwicklungsserver auf deinem Computer zu finden und sich mit ihnen zu verbinden."
+  }
+}

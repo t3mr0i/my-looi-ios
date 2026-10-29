@@ -34,8 +34,12 @@ for (const platform of ["ios", "android"]) {
     this.onChange = callback; return { remove() {} };
   } };
   let storedRobot = deferred();
-  let reads = 0, configurations = 0, connections = 0, disconnections = 0, connected = false;
+  let reads = 0, physicalConfigurations = 0, inertConfigurations = 0;
+  let connections = 0, disconnections = 0, connected = false;
   let currentTransport;
+  class FakePhysicalTransport {
+    constructor(options) { this.options = options; }
+  }
   const auto = load("src/device-tools/looi-robot-autoconnect.ts", {
     "react-native": { AppState: appState, Platform: { OS: platform } },
     "expo-secure-store": {
@@ -44,16 +48,18 @@ for (const platform of ["ios", "android"]) {
     },
     "../diagnostics/diagnostic-log": diagnostics,
     "./looi-robot": {
-      configureLooiRobotTransport(transport) { configurations++; currentTransport = transport; },
+      configureLooiRobotTransport(transport) {
+        currentTransport = transport;
+        if (transport instanceof FakePhysicalTransport) physicalConfigurations++;
+        if (transport?.constructor?.name === "DisconnectedLooiTransport") inertConfigurations++;
+      },
       async connectLooiRobot() { connections++; connected = true; return { ok: true, connected: true }; },
       async disconnectLooiRobot() { connected = false; },
       getLooiRobotRuntimeState: () => ({ connected }),
       handleLooiRobotTransportDisconnected() { disconnections++; connected = false; },
       markLooiDriveControlNeedsRevalidation() {}, async stopLooiMotion() {},
     },
-    "./react-native-ble-transport": { ReactNativeBleLooiTransport: class {
-      constructor(options) { this.options = options; }
-    } },
+    "./react-native-ble-transport": { ReactNativeBleLooiTransport: FakePhysicalTransport },
   });
   const first = auto.startLooiRobotAutoConnection();
   assert.equal(auto.startLooiRobotAutoConnection(), first, "duplicate starts share an attempt");
@@ -62,8 +68,14 @@ for (const platform of ["ios", "android"]) {
   appState.onChange("background");
   storedRobot.resolve(JSON.stringify({ id: "robot", name: "LOOI" }));
   assert.equal((await first).reason, "superseded");
-  assert.equal(configurations, 0);
+  assert.equal(inertConfigurations, 1, "background cancellation immediately binds the fail-closed transport");
+  assert.equal(physicalConfigurations, 0, "a cancelled startup never configures physical BLE");
   assert.equal(connections, 0);
+  assert.equal(currentTransport?.constructor?.name, "DisconnectedLooiTransport");
+  await assert.rejects(currentTransport.write("light", "01"), /disabled/,
+    "direct tool writes remain blocked while the app is backgrounded");
+  assert.equal((await auto.startLooiRobotAutoConnection()).reason, "background-suspended");
+  assert.equal(connections, 0, "a background retry cannot revive the cancelled physical connection");
   await assert.rejects(auto.connectSelectedLooiRobot({ id: "other", name: "Other" }), /active native app/);
   appState.currentState = "active";
   await auto.resumeLooiRobotAutoConnection();

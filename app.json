@@ -3,10 +3,16 @@
     "name": "My LOOI",
     "slug": "my-looi",
     "version": "2.1.151",
-    "orientation": "landscape",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "mylooi",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "de": "./assets/locales/de.json",
+      "en": "./assets/locales/en.json",
+      "uk": "./assets/locales/uk.json",
+      "ru": "./assets/locales/ru.json"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "io.github.razor79.mylooi",

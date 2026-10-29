@@ -10,7 +10,7 @@ import { ttsService, type PreparedTtsAudio } from "../voice/tts";
 import type { TtsStyleId } from "../voice/tts-voices";
 import { vadService } from "../voice/vad-service";
 import { voiceAcceptanceTrace } from "../voice/acceptance-trace";
-import { isRealtimeConversationMode, useUserStore } from "../store/user";
+import { isManagedConversationMode, isRealtimeConversationMode, useUserStore } from "../store/user";
 import { useConversationStore } from "../store/conversation";
 import { llmService, sessionService } from "../voice/retired-classic-services";
 import {
@@ -67,12 +67,12 @@ const SESSION_PERSISTENCE_REQUEST_TIMEOUT_MS = 5000;
 const SPEAKER_SAMPLE_RATE = 16000;
 const SPEAKER_SEGMENT_PADDING_SAMPLES = Math.round(SPEAKER_SAMPLE_RATE * 0.25);
 const WAKEWORD_TRANSCRIPT_PREFIX_RE =
-  /^(?:(?:привіт|привет|hey|hay)\s*[,!]?\s*)?(?:looi|louie|loui|louis|wooi|wui|луи|луй|лу\s*[,.;:\-–—]?\s*и|луї|луі|луе|лує|лоуи|лоуї|руи|уи|уй|макс|max|робот)[,.!?\s]*/i;
+  /^(?:(?:привіт|привет|hey|hay|hallo)\s*[,!]?\s*)?(?:looi|louie|loui|louis|luie|lui|wooi|wui|луи|луй|лу\s*[,.;:\-–—]?\s*и|луї|луі|луе|лує|лоуи|лоуї|руи|уи|уй|макс|max|робот)[,.!?\s]*/i;
 
 const SPEAKING_BARGE_IN_MAX_SAMPLES = Math.round(SPEAKER_SAMPLE_RATE * 12);
 
 function containsWakeAddressToken(text: string): boolean {
-  return /(?:^|[^a-zа-яіїєґ])(?:луи|луй|луї|looi|louie|макс|max|робот)(?=$|[^a-zа-яіїєґ])/iu.test(text);
+  return /(?:^|[^\p{L}\p{N}])(?:луи|луй|луї|looi|louis|louie|loui|lui|luie|макс|max|робот)(?=$|[^\p{L}\p{N}])/iu.test(text);
 }
 
 type GenerateResponseResult = {
@@ -327,7 +327,7 @@ export class VoicePerceiver extends BasePerceiver {
 
     const triggerUserState = useUserStore.getState();
     const triggerConversationState = useConversationStore.getState();
-    if (isRealtimeConversationMode(triggerUserState.preferences.conversationMode)) {
+    if (isManagedConversationMode(triggerUserState.preferences.conversationMode)) {
       if (triggerConversationState.realtimeReadiness === "preparing-microphone") {
         recordDiagnosticEvent("runtime", "realtime-microphone-preparation-tap-ignored");
         return;
@@ -637,7 +637,7 @@ export class VoicePerceiver extends BasePerceiver {
   async resumeRealtimeConversationFromMain(
     source: "navigation-return" | "foreground-resume"
   ): Promise<void> {
-    if (!isRealtimeConversationMode(useUserStore.getState().preferences.conversationMode)) {
+    if (!isManagedConversationMode(useUserStore.getState().preferences.conversationMode)) {
       await this.trigger();
       return;
     }
@@ -664,6 +664,8 @@ export class VoicePerceiver extends BasePerceiver {
     // 2.1.84 testing proved that treating `feederRunning=false` as a reason to
     // skip the barrier simply recreated the original race, so Realtime now
     // waits for (and, if necessary, explicitly starts) the Classic recorder.
+    // Budget keeps that recorder and owns its permission/VAD setup; routing it
+    // through this handoff gate can reject healthy, coarser AudioStudio chunks.
     if (isRealtimeConversationMode(preferences.conversationMode)) {
       const conversationStore = useConversationStore.getState();
       conversationStore.setCurrentTranscript("");
@@ -750,19 +752,19 @@ export class VoicePerceiver extends BasePerceiver {
     }
 
     if (!this.isFreshLaunchAutoListenStillEligible()) {
-      if (isRealtimeConversationMode(preferences.conversationMode)) {
+      if (isManagedConversationMode(preferences.conversationMode)) {
         this.cancelFreshLaunchRealtimePreparation("eligibility-lost-before-auto-listen");
       }
       return;
     }
     const finalStatus = kwsAudioFeeder.diagnosticStatus;
-    if (isRealtimeConversationMode(preferences.conversationMode)) {
+    if (isManagedConversationMode(preferences.conversationMode)) {
       useConversationStore.getState().setRealtimeReadiness("connecting");
     }
     recordDiagnosticEvent("runtime", "realtime-entry-auto-listen", {
       source: triggerSource,
-      audioStabilized: isRealtimeConversationMode(preferences.conversationMode) ? audioStabilized : null,
-      preparationAttempts: isRealtimeConversationMode(preferences.conversationMode) ? preparationAttempts : null,
+      audioStabilized: isManagedConversationMode(preferences.conversationMode) ? audioStabilized : null,
+      preparationAttempts: isManagedConversationMode(preferences.conversationMode) ? preparationAttempts : null,
       feederRunning: finalStatus.running,
       pcmFlowing: finalStatus.pcmFlowing,
       pcmAgeMs: finalStatus.pcmAgeMs,
@@ -771,8 +773,8 @@ export class VoicePerceiver extends BasePerceiver {
     recordDiagnosticEvent("runtime", "fresh-launch-auto-listen", {
       listeningLanguage: useUserStore.getState().preferences.listeningLanguage,
       conversationMode: preferences.conversationMode,
-      audioStabilized: isRealtimeConversationMode(preferences.conversationMode) ? audioStabilized : null,
-      preparationAttempts: isRealtimeConversationMode(preferences.conversationMode) ? preparationAttempts : null,
+      audioStabilized: isManagedConversationMode(preferences.conversationMode) ? audioStabilized : null,
+      preparationAttempts: isManagedConversationMode(preferences.conversationMode) ? preparationAttempts : null,
       triggerSource,
       firstPcmWaitMs,
       feederRunning: finalStatus.running,
@@ -920,7 +922,7 @@ export class VoicePerceiver extends BasePerceiver {
     const conversationStore = useConversationStore.getState();
 
     if (
-      isRealtimeConversationMode(userStore.preferences.conversationMode) &&
+      isManagedConversationMode(userStore.preferences.conversationMode) &&
       conversationStore.realtimeReadiness === "preparing-microphone"
     ) {
       recordDiagnosticEvent("runtime", "realtime-microphone-preparation-wake-ignored", {
@@ -988,7 +990,7 @@ export class VoicePerceiver extends BasePerceiver {
       return;
     }
 
-    if (isRealtimeConversationMode(userStore.preferences.conversationMode)) {
+    if (isManagedConversationMode(userStore.preferences.conversationMode)) {
       recordDiagnosticEvent("runtime", "main-wake-accepted", {
         source: detection?.source ?? "manual",
         phraseId: detection?.phraseId ?? "unknown",
@@ -1078,7 +1080,12 @@ export class VoicePerceiver extends BasePerceiver {
     let userStore = useUserStore.getState();
     let conversationStore = useConversationStore.getState();
 
-    if (isRealtimeConversationMode(userStore.preferences.conversationMode)) {
+    if (userStore.preferences.conversationMode === "budget") {
+      realtimeConversationService.finishListening();
+      return;
+    }
+
+    if (isManagedConversationMode(userStore.preferences.conversationMode)) {
       recordDiagnosticEvent("runtime", "classic-finish-ignored-retired", {
         conversationMode: userStore.preferences.conversationMode,
       });
@@ -1286,7 +1293,9 @@ export class VoicePerceiver extends BasePerceiver {
         const stopStartedAt = Date.now();
         await stopLooiMotion("voice-emergency-transcript");
         const responseLanguage = useUserStore.getState().preferences.language;
-        const acknowledgement = responseLanguage === "en"
+        const acknowledgement = responseLanguage === "de"
+          ? "Angehalten."
+          : responseLanguage === "en"
           ? "Stopped."
           : responseLanguage === "uk" ? "Зупинився." : "Остановился.";
         conversationStore.addMessage({ role: "assistant", content: acknowledgement });
@@ -1307,7 +1316,10 @@ export class VoicePerceiver extends BasePerceiver {
           return;
         }
 
-        const acknowledgement = result.ok ? result.message : `Не получилось: ${result.message}`;
+        const acknowledgement = result.ok ? result.message
+          : useUserStore.getState().preferences.language === "de"
+            ? "Das hat nicht geklappt."
+            : `Не получилось: ${result.message}`;
         conversationStore.addMessage({ role: "assistant", content: acknowledgement });
         conversationStore.setStreamingText(acknowledgement);
         this.queueSessionTurnPersistence(transcript, acknowledgement);
@@ -1502,6 +1514,7 @@ export class VoicePerceiver extends BasePerceiver {
       }
 
       // Step 7: TTS playback
+      conversationStore.setHeardSpeechText?.(null);
       userStore.setVoiceState("speaking");
       conversationStore.setSpeaking(true);
 
@@ -1513,6 +1526,7 @@ export class VoicePerceiver extends BasePerceiver {
           styleId: userStore.preferences.ttsStyleId,
           speed: userStore.preferences.ttsSpeed,
           onPlaybackStart: () => {
+            conversationStore.setHeardSpeechText?.(null);
             voiceAcceptanceTrace.mark("first-tts", { mode: "fallback" });
             if (!this.activeTurnFirstAudioLogged && this.activeTurnSpeechEndedAt > 0) {
               this.activeTurnFirstAudioLogged = true;
@@ -1632,6 +1646,9 @@ export class VoicePerceiver extends BasePerceiver {
   ): Promise<GenerateResponseResult> {
     const sessionId = useConversationStore.getState().activeSessionId;
     useConversationStore.getState().setStreamingText("");
+    // Classic's legacy TTS surface is retired and cannot provide timed output
+    // evidence, so text generation and playback attempts stay expression-neutral.
+    useConversationStore.getState().setHeardSpeechText?.(null);
     let streamedEvidenceUri: string | undefined;
     const generationStartedAt = Date.now();
     let firstTokenLogged = false;
@@ -1663,6 +1680,7 @@ export class VoicePerceiver extends BasePerceiver {
             }
             useUserStore.getState().setVoiceState("speaking");
             useConversationStore.getState().setSpeaking(true);
+            useConversationStore.getState().setHeardSpeechText?.(null);
             spokenSubtitleText = this.appendAssistantSubtitle(spokenSubtitleText, text);
           }, signal)
         : Promise.resolve(0);
@@ -1903,6 +1921,7 @@ export class VoicePerceiver extends BasePerceiver {
               styleId: preferences.ttsStyleId,
               speed: preferences.ttsSpeed,
               onPlaybackStart: () => {
+                useConversationStore.getState().setHeardSpeechText?.(null);
                 started = true;
                 playedItems += 1;
                 recordDiagnosticEvent("playback", "started", {
@@ -2000,6 +2019,7 @@ export class VoicePerceiver extends BasePerceiver {
     command: ExplicitRobotCommand,
     rawTranscript: string
   ): Promise<{ ok: boolean; message: string }> {
+    const german = useUserStore.getState().preferences.language === "de";
     recordDiagnosticEvent("robot", "explicit-voice-command", {
       kind: command.kind,
       direction: command.kind === "move" || command.kind === "turn" ? command.direction : undefined,
@@ -2012,12 +2032,14 @@ export class VoicePerceiver extends BasePerceiver {
     try {
       if (command.kind === "sleep") {
         await enterRobotSleepMode("voice");
-        return { ok: true, message: "Спокойной ночи." };
+        return { ok: true, message: german ? "Gute Nacht." : "Спокойной ночи." };
       }
 
       if (command.kind === "gesture") {
         await performLooiHeadGesture(command.gesture, command.count);
-        return { ok: true, message: command.count > 1 ? `Киваю ${command.count} раза.` : "Киваю." };
+        return { ok: true, message: german
+          ? command.count > 1 ? `Ich habe ${command.count} Mal genickt.` : "Ich habe genickt."
+          : command.count > 1 ? `Киваю ${command.count} раза.` : "Киваю." };
       }
 
       if (command.kind === "dance") {
@@ -2028,7 +2050,7 @@ export class VoicePerceiver extends BasePerceiver {
         }
         try {
           await performLooiDance("random");
-          return { ok: true, message: "Танцую!" };
+          return { ok: true, message: german ? "Fertig!" : "Танцую!" };
         } finally {
           await voskDrivingCommandRecognizer.disarmEmergency("addressed-dance-finished");
         }
@@ -2049,7 +2071,9 @@ export class VoicePerceiver extends BasePerceiver {
         }
         return {
           ok: true,
-          message: command.degrees === 180
+          message: german
+            ? command.degrees === 180 ? "Ich habe mich umgedreht." : command.direction === "left" ? "Ich habe mich nach links gedreht." : "Ich habe mich nach rechts gedreht."
+            : command.degrees === 180
             ? "Развернулся."
             : command.direction === "left" ? "Повернул налево." : "Повернул направо.",
         };
@@ -2070,9 +2094,9 @@ export class VoicePerceiver extends BasePerceiver {
         }
       }
       const labels: Record<typeof command.direction, string> = {
-        forward: "Еду вперёд.",
-        backward: "Еду назад.",
-        stop: "Остановился.",
+        forward: german ? "Ich fahre vorwärts." : "Еду вперёд.",
+        backward: german ? "Ich fahre rückwärts." : "Еду назад.",
+        stop: german ? "Angehalten." : "Остановился.",
       };
       return { ok: true, message: labels[command.direction] };
     } catch (error) {
@@ -2302,7 +2326,7 @@ export class VoicePerceiver extends BasePerceiver {
     // v2.1.61 mode-boundary only: if Settings changed to Realtime while a
     // Classic turn was finishing, do not arm another Classic follow-up. This
     // does not alter Classic capture/VAD/STT/TTS when Classic remains selected.
-    if (isRealtimeConversationMode(useUserStore.getState().preferences.conversationMode)) {
+    if (isManagedConversationMode(useUserStore.getState().preferences.conversationMode)) {
       recordDiagnosticEvent("realtime", "classic-follow-up-skipped-for-mode-switch");
       await this.syncConversationMode();
 
@@ -2320,7 +2344,7 @@ export class VoicePerceiver extends BasePerceiver {
             !this.isActive ||
             !isMainScreenFocused() ||
             useUserStore.getState().robotSleeping ||
-            !isRealtimeConversationMode(useUserStore.getState().preferences.conversationMode) ||
+            !isManagedConversationMode(useUserStore.getState().preferences.conversationMode) ||
             realtimeConversationService.isActive
           ) return;
 
@@ -3120,6 +3144,9 @@ export class VoicePerceiver extends BasePerceiver {
   async syncConversationMode(): Promise<void> {
     const mode = useUserStore.getState().preferences.conversationMode;
     recordDiagnosticEvent("runtime", "conversation-mode-sync", { mode });
+    if (realtimeConversationService.activeMode && realtimeConversationService.activeMode !== mode) {
+      await realtimeConversationService.stop("mode-switch");
+    }
 
     // An already active WebRTC session exclusively owns Android communication
     // audio. Settings sync/navigation must never reinterpret its `listening`

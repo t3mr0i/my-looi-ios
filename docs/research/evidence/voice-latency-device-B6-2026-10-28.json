@@ -1,0 +1,37 @@
+{
+  "variant": "B6 Budget PCM streaming",
+  "preparedAt": "2026-10-28T18:22:35.063278+00:00",
+  "bundleVersion": "2.1.151 (41)",
+  "frozenSourceFiles": 237,
+  "sourceSnapshotSha256": "75de35453bc7e64e54bad20d983e2d79121fbc5d370e719e4b4f15f845e838eb",
+  "bundleSha256": "6bddf8406e6b6911b586b1674e5cca338806e39978acf8757d7382d49a02842d",
+  "bundleBytes": 8078176,
+  "bundleFormat": "Hermes bytecode v98",
+  "nativeCodeSha256ExcludingSignature": "011ddb85db022c945bd056fea1f45271e16a51b0400396a40088c07c9a5e6bd7",
+  "signature": "codesign --verify --deep --strict passed",
+  "embeddedStreamingMarker": true,
+  "forcedBenchmarkModeMarkersAbsent": true,
+  "platform": "signed iPhone Release build, not installed",
+  "productionSources": {
+    "src/openai/openai-speech.ts": "abfd3ffcb91a85ea5796b51a1ef8c21c76c224a37af729c15a28f378a524b992",
+    "src/openai/openai-speech-stream.ts": "f9f2796ac7952d614df76047bd7667f0bfd1aca2ccd59d9fdae8efb949610178",
+    "src/voice/budget-conversation.ts": "c15e83782d379990d83a7f40b8f087e9c62157ea7262accd2a5473710cc9cce7",
+    "modules/local-realtime-audio-capture/realtime-pcm.ts": "8ec5411f5de28f6894738af4efea5b9332050cba3805a71b383e3c6aada3826d",
+    "modules/local-realtime-audio-capture/ios/RealtimePcmAudioModule.swift": "a7bd5074eb0558529f26273afb2606af3a4a4aab88382da64645613cb079c42e"
+  },
+  "behavior": "Budget opts into PCM audio streaming; output-only native start/stop async; capture remains local and released during playback",
+  "verification": [
+    "native Release build with bundled JS succeeded",
+    "TypeScript passed",
+    "first native PCM enqueue before mocked HTTP EOF, red before and green after",
+    "limits, odd chunk alignment, backpressure, cancellation during native start, drain cleanup and stale generations passed",
+    "buffered WAV behavior and Budget/Realtime lifecycle regression checks passed"
+  ],
+  "deviceValidation": false,
+  "externalAcousticValidation": false,
+  "knownLimits": [
+    "No new real cloud latency measurement",
+    "WLAN jitter and output-only route remain unverified on physical iPhone",
+    "Physical test-package restoration remains pending; user cannot unlock now"
+  ]
+}

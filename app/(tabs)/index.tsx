@@ -14,12 +14,18 @@ import {
 } from "@/src/setup/setup-readiness";
 import { ConversationOverlay } from "@/src/ui/ConversationOverlay";
 import { ImageOverlay } from "@/src/ui/ImageOverlay";
+import { HomeMenu, type HomeMenuHandle } from "@/src/ui/HomeMenu";
+import { cancelCharacterAction, requestCharacterAction } from "@/src/character/character-action-runtime";
+import { ObjectAttentionControl } from "@/src/ui/ObjectAttentionControl";
 import { looiTheme } from "@/src/ui/looi-theme";
+import { useRobotDebugState } from "@/src/ui/use-robot-debug-state";
+import { createRobotDebugTranslator } from "@/src/i18n/robot-debug-strings";
 import { RobotFace } from "@/src/ui/RobotFace";
-import { RESPONSE_LANGUAGE_OPTIONS, type ResponseLanguage } from "@/src/language/response-language";
-import { LISTENING_LANGUAGE_OPTIONS, type ListeningLanguage } from "@/src/language/listening-language";
+import { type ResponseLanguage } from "@/src/language/response-language";
+import { type ListeningLanguage } from "@/src/language/listening-language";
 import { wakeRobotFromFace } from "@/src/core/sleep-mode";
-import { setMainScreenFocused } from "@/src/core/main-screen-presence";
+import { isMainScreenFocused, setMainScreenFocused } from "@/src/core/main-screen-presence";
+import { recordFriendlyStroke, useBehaviorStore } from "@/src/behavior/behavior-runtime";
 import { useUserStore } from "@/src/store/user";
 import { useConversationStore } from "@/src/store/conversation";
 import { useUiText } from "@/src/i18n/use-ui-text";
@@ -29,22 +35,16 @@ import { triggerCharacterReaction } from "@/src/character/character-reaction";
 import { classifyFaceTapImmediateRoute } from "@/src/character/face-tap-routing";
 import { isDrivingControlSessionActive } from "@/src/voice/driving-control-session";
 import { useFocusEffect, useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import regularSymbolWeight from "expo-symbols/androidWeights/regular";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-
-
-function shortLanguage(language: "ru" | "uk" | "en"): string {
-  const option = [...LISTENING_LANGUAGE_OPTIONS, ...RESPONSE_LANGUAGE_OPTIONS].find((item) => item.id === language);
-  return option?.shortLabel ?? language.toUpperCase();
-}
+import { Alert, AppState, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const [languageMenu, setLanguageMenu] = useState<"listening" | "response" | null>(null);
+  const robotDebug = useRobotDebugState();
+  const insets = useSafeAreaInsets();
+  const menuRef = useRef<HomeMenuHandle>(null);
+  const [objectOpenRequest, setObjectOpenRequest] = useState(0);
   const [readiness, setReadiness] = useState<SetupReadiness | null>(null);
   const [robotRuntimeState, setRobotRuntimeState] = useState(() => getLooiRobotRuntimeState());
   const [photoPickerBusy, setPhotoPickerBusy] = useState(false);
@@ -56,7 +56,8 @@ export default function IndexScreen() {
   const listeningLanguage = useUserStore((state) => state.preferences.listeningLanguage);
   const responseLanguage = useUserStore((state) => state.preferences.language);
   const updatePreferences = useUserStore((state) => state.updatePreferences);
-  const { t } = useUiText();
+  const { t, language } = useUiText();
+  const debugText = createRobotDebugTranslator(language);
 
   useEffect(() => () => {
     if (idleTapTimerRef.current) clearTimeout(idleTapTimerRef.current);
@@ -179,6 +180,7 @@ export default function IndexScreen() {
   }, []);
 
   const handleAwakeFaceTap = useCallback(() => {
+    cancelCharacterAction("face-tap");
     const current = getLooiRobotRuntimeState();
     const voiceState = useUserStore.getState().voiceState;
     const conversation = useConversationStore.getState();
@@ -269,6 +271,39 @@ export default function IndexScreen() {
     }, 280);
   }, [runIdlePhysicalReaction]);
 
+  const handleFaceContactStart = useCallback(() => {
+    if (AppState.currentState !== "active" || !isMainScreenFocused()) return true;
+    cancelCharacterAction("face-contact");
+    const robot = getLooiRobotRuntimeState();
+    const conversation = useConversationStore.getState();
+    const user = useUserStore.getState();
+    const route = classifyFaceTapImmediateRoute({ motionActive: robot.motionActive,
+      drivingSessionActive: isDrivingControlSessionActive(), conversationProcessing: conversation.isProcessing,
+      conversationSpeaking: conversation.isSpeaking, voiceState: user.voiceState });
+    if (user.robotSleeping && route !== "driving-stop" && route !== "driving-session-exit") return false;
+    if (route === "burst") return false;
+    if (idleTapTimerRef.current) clearTimeout(idleTapTimerRef.current);
+    idleTapTimerRef.current = null; idleTapCountRef.current = 0;
+    recordDiagnosticEvent("character", "face-contact-control", { route });
+    void voiceRuntime.trigger().catch((error) => console.warn("[Home] Face control contact failed:", error));
+    return true;
+  }, []);
+
+  const handleFriendlyStroke = useCallback(() => {
+    if (idleTapTimerRef.current) clearTimeout(idleTapTimerRef.current);
+    idleTapTimerRef.current = null; idleTapCountRef.current = 0;
+    if (AppState.currentState !== "active" || !isMainScreenFocused()) return;
+    // Recheck controls on release: motion or output may have started mid-stroke.
+    if (handleFaceContactStart()) return;
+    if (useUserStore.getState().robotSleeping) return;
+    const feedback = useBehaviorStore.getState().feedback;
+    if (useConversationStore.getState().isUserSpeaking || (feedback && feedback.kind !== "game")) return;
+    const affection = recordFriendlyStroke();
+    triggerCharacterReaction("petted", { durationMs: affection?.durationMs ?? 1100, source: "friendly-face-stroke" });
+  }, [handleFaceContactStart]);
+
+  const revealMenu = useCallback(() => menuRef.current?.reveal(), []);
+
   const robotConnectionMode = robotRuntimeState.connecting
     ? "connecting"
     : robotRuntimeState.connected
@@ -277,7 +312,10 @@ export default function IndexScreen() {
         ? "error"
         : "disconnected";
 
-  const robotConnectionLabel = robotConnectionMode === "connecting"
+  const robotConnectionLabel = robotDebug.mode === "mock"
+    ? `${debugText("mockBadge")} · ${debugText(robotRuntimeState.connected ? "connected" : "notConnected")}`
+    : robotDebug.mode === "disconnected" ? debugText("offlineBadge")
+    : robotConnectionMode === "connecting"
     ? t("home.robot.connecting")
     : robotConnectionMode === "connected"
       ? t("home.robot.connected")
@@ -286,134 +324,40 @@ export default function IndexScreen() {
         : t("home.robot.connect");
 
 
+  const robotChipDisabled = robotDebug.mode === "hardware" && (robotConnectionMode === "connecting" || robotConnectionMode === "connected");
+
+  const selectLanguage = useCallback((menu: "listening" | "response", option: ListeningLanguage | ResponseLanguage) => {
+    if (menu === "listening") {
+      const from = listeningLanguage;
+      updatePreferences({ listeningLanguage: option as ListeningLanguage });
+      recordDiagnosticEvent("runtime", "listening-language-changed", { from, language: option, source: "home-ui" });
+    } else {
+      const from = responseLanguage;
+      updatePreferences({ language: option as ResponseLanguage });
+      recordDiagnosticEvent("runtime", "response-language-changed", { from, language: option, source: "home-ui" });
+    }
+    void voiceRuntime.applyLiveRealtimePreferences(`home-${menu ?? "unknown"}-language`).then((applied) => {
+      if (menu === "listening" && !applied) {
+        return voiceRuntime.rearmWakewordAfterNavigation();
+      }
+    }).catch((error) => {
+      recordDiagnosticEvent("runtime", "live-language-apply-failed", {
+        source: menu ?? "unknown",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }, [listeningLanguage, responseLanguage, updatePreferences]);
+
   return (
-    <SafeAreaView style={styles.home}>
-      {!robotSleeping ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`LOOI Robot: ${robotConnectionLabel}`}
-          disabled={robotConnectionMode === "connecting" || robotConnectionMode === "connected"}
-          onPress={() => void connectRobot()}
-          style={[
-            styles.robotReconnectButton,
-            robotConnectionMode === "connecting" && styles.robotReconnectButtonBusy,
-            robotConnectionMode === "connected" && styles.robotReconnectButtonConnected,
-            robotConnectionMode === "error" && styles.robotReconnectButtonError,
-          ]}
-        >
-          <Text style={[
-            styles.robotReconnectText,
-            robotConnectionMode === "connected" && styles.robotReconnectTextConnected,
-            robotConnectionMode === "error" && styles.robotReconnectTextError,
-          ]}>
-            🤖 {robotConnectionLabel}
-          </Text>
-        </Pressable>
-      ) : null}
-      <View style={styles.languagePicker}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("home.listeningLanguageA11y", { language: listeningLanguage })}
-          onPress={() => setLanguageMenu((value) => value === "listening" ? null : "listening")}
-          style={styles.languageButton}
-        >
-          <Text style={styles.languageText}>🎙 {shortLanguage(listeningLanguage)} ▾</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("home.responseLanguageA11y", { language: responseLanguage })}
-          onPress={() => setLanguageMenu((value) => value === "response" ? null : "response")}
-          style={styles.languageButton}
-        >
-          <Text style={styles.languageText}>🔊 {shortLanguage(responseLanguage)} ▾</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("home.settingsA11y")}
-          onPress={() => router.replace("/settings")}
-          style={styles.settingsButton}
-        >
-          <SymbolView
-            name={{ ios: "gearshape.fill", android: "settings" }}
-            size={20}
-            tintColor={looiTheme.cyan}
-            weight={{ ios: "semibold", android: regularSymbolWeight }}
-            fallback={<Text style={styles.settingsFallback}>⚙</Text>}
-          />
-        </Pressable>
-        {languageMenu ? (
-          <View style={styles.languageMenu}>
-            {(languageMenu === "listening" ? LISTENING_LANGUAGE_OPTIONS : RESPONSE_LANGUAGE_OPTIONS).map((option) => {
-              const selected = option.id === (languageMenu === "listening" ? listeningLanguage : responseLanguage);
-              return (
-                <Pressable
-                  key={`${languageMenu}-${option.id}`}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const menu = languageMenu;
-                    if (menu === "listening") {
-                      const from = listeningLanguage;
-                      updatePreferences({ listeningLanguage: option.id as ListeningLanguage });
-                      recordDiagnosticEvent("runtime", "listening-language-changed", { from, language: option.id, source: "home-ui" });
-                    } else {
-                      const from = responseLanguage;
-                      updatePreferences({ language: option.id as ResponseLanguage });
-                      recordDiagnosticEvent("runtime", "response-language-changed", { from, language: option.id, source: "home-ui" });
-                    }
-                    setLanguageMenu(null);
-                    void voiceRuntime.applyLiveRealtimePreferences(`home-${menu ?? "unknown"}-language`).then((applied) => {
-                      if (menu === "listening" && !applied) {
-                        return voiceRuntime.rearmWakewordAfterNavigation();
-                      }
-                    }).catch((error) => {
-                      recordDiagnosticEvent("runtime", "live-language-apply-failed", {
-                        source: menu ?? "unknown",
-                        error: error instanceof Error ? error.message : String(error),
-                      });
-                    });
-                  }}
-                  style={[styles.languageMenuItem, selected && styles.languageMenuItemSelected]}
-                >
-                  <Text style={[styles.languageMenuText, selected && styles.languageMenuTextSelected]}>
-                    {option.shortLabel} · {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-      </View>
+    <View onTouchStart={revealMenu} style={styles.home}>
       <View style={styles.faceStage}>
-        {repairStep ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              router.replace(`/onboarding?step=${repairStep}` as never)
-            }
-            style={styles.repairBanner}
-          >
-            <Text style={styles.repairTitle}>
-              {t("home.modelsNotReady")}
-            </Text>
-            <Text style={styles.repairText}>{t("home.repairModels")}</Text>
-          </Pressable>
-        ) : null}
-        {!robotSleeping ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("home.choosePhotosA11y")}
-            disabled={photoPickerBusy}
-            onPress={() => void choosePhotosForDiscussion()}
-            style={[styles.photoPickerButton, photoPickerBusy && styles.photoPickerButtonBusy]}
-          >
-            <Text style={styles.photoPickerIcon}>{photoPickerBusy ? "…" : "🖼️"}</Text>
-          </Pressable>
-        ) : null}
         <RobotFace
           mode="fullscreen"
           labelVisible={false}
+          onContactStart={handleFaceContactStart}
+          onFriendlyStroke={handleFriendlyStroke}
           onPress={() => {
-                    if (robotSleeping) {
+            if (robotSleeping) {
               sleepTapAtRef.current = 0;
               void wakeRobotFromFace().catch((error) => {
                 console.warn("[Home] Failed to wake LOOI from face tap:", error);
@@ -430,9 +374,37 @@ export default function IndexScreen() {
           </View>
         ) : null}
       </View>
-      {!robotSleeping ? <ConversationOverlay /> : null}
+      {!robotSleeping ? <ObjectAttentionControl hideTrigger openRequest={objectOpenRequest} /> : null}
+      {!robotSleeping ? (
+        <>
+          <HomeMenu
+            ref={menuRef}
+            repairNeeded={repairStep !== null}
+            onRepair={() => router.replace(`/onboarding?step=${repairStep}` as never)}
+            robotError={robotConnectionMode === "error"}
+            robotLabel={robotConnectionLabel}
+            robotDisabled={robotChipDisabled}
+            onRobot={() => robotDebug.mode === "hardware" ? void connectRobot() : router.push("/robot-debug" as never)}
+            listeningLanguage={listeningLanguage}
+            responseLanguage={responseLanguage}
+            onSelectListeningLanguage={(option) => selectLanguage("listening", option)}
+            onSelectResponseLanguage={(option) => selectLanguage("response", option)}
+            photoBusy={photoPickerBusy}
+            onPhoto={() => void choosePhotosForDiscussion()}
+            onObject={() => setObjectOpenRequest((value) => value + 1)}
+            onConversations={() => router.replace("/conversation")}
+            onMemory={() => router.replace("/memories")}
+            onApps={() => router.replace("/apps" as never)}
+            onSettings={() => router.replace("/settings")}
+            onCharacterAction={requestCharacterAction}
+          />
+          <View pointerEvents="box-none" style={[styles.overlayArea, { top: insets.top, bottom: insets.bottom, left: insets.left, right: insets.right }]}>
+            <ConversationOverlay />
+          </View>
+        </>
+      ) : null}
       {!robotSleeping ? <ImageOverlay /> : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -450,135 +422,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  photoPickerButton: {
+  overlayArea: {
     position: "absolute",
-    left: 18,
-    bottom: 18,
-    zIndex: 8,
-    width: 46,
-    height: 46,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: looiTheme.line,
-    backgroundColor: "rgba(3, 13, 24, 0.84)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  photoPickerButtonBusy: {
-    opacity: 0.58,
-  },
-  photoPickerIcon: {
-    fontSize: 21,
-    color: looiTheme.cyan,
-    fontWeight: "800",
-  },
-  robotReconnectButton: {
-    position: "absolute",
-    bottom: 18,
-    right: 18,
-    zIndex: 8,
-    minHeight: 44,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: looiTheme.line,
-    backgroundColor: "rgba(3, 13, 24, 0.84)",
-    paddingHorizontal: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  robotReconnectButtonBusy: {
-    opacity: 0.62,
-  },
-  robotReconnectButtonConnected: {
-    borderColor: "rgba(77, 231, 180, 0.52)",
-  },
-  robotReconnectButtonError: {
-    borderColor: "rgba(255, 92, 122, 0.54)",
-  },
-  robotReconnectText: {
-    color: looiTheme.cyan,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-  },
-  robotReconnectTextConnected: {
-    color: looiTheme.ok,
-  },
-  robotReconnectTextError: {
-    color: looiTheme.danger,
-  },
-  languagePicker: {
-    position: "absolute",
-    top: 18,
-    right: 18,
-    zIndex: 8,
-    flexDirection: "row",
-    gap: 6,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: looiTheme.line,
-    backgroundColor: "rgba(3, 13, 24, 0.84)",
-    padding: 5,
-  },
-  settingsButton: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsFallback: {
-    color: looiTheme.cyan,
-    fontSize: 18,
-  },
-  languageMenu: {
-    position: "absolute",
-    top: 44,
-    right: 0,
-    minWidth: 180,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: looiTheme.lineActive,
-    backgroundColor: "rgba(3, 13, 24, 0.97)",
-    padding: 5,
-    gap: 3,
-  },
-  languageMenuItem: {
-    minHeight: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  languageMenuItemSelected: {
-    backgroundColor: "rgba(40, 213, 255, 0.16)",
-  },
-  languageMenuText: {
-    color: looiTheme.muted,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  languageMenuTextSelected: {
-    color: looiTheme.cyan,
-  },
-  languageButton: {
-    minWidth: 64,
-    height: 34,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  languageButtonSelected: {
-    backgroundColor: looiTheme.cyan,
-  },
-  languageText: {
-    color: looiTheme.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-  },
-  languageTextSelected: {
-    color: looiTheme.bg,
   },
   sleepBadge: {
     position: "absolute",
@@ -596,32 +441,6 @@ const styles = StyleSheet.create({
   sleepText: {
     color: looiTheme.muted,
     fontSize: 11,
-    fontWeight: "700",
-  },
-  repairBanner: {
-    position: "absolute",
-    top: 34,
-    alignSelf: "center",
-    zIndex: 4,
-    minWidth: 300,
-    maxWidth: "86%",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: looiTheme.lineActive,
-    backgroundColor: "rgba(3, 13, 24, 0.88)",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    alignItems: "center",
-    gap: 4,
-  },
-  repairTitle: {
-    color: looiTheme.text,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  repairText: {
-    color: looiTheme.cyan,
-    fontSize: 12,
     fontWeight: "700",
   },
 });

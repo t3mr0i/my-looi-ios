@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { ChatMessage, SessionSummary } from "@/src/core/context-service";
 import {
   getLocalConversationMessages,
@@ -175,6 +176,7 @@ export default function ConversationScreen() {
       return (
         <Pressable
           accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
           onPress={() => toggleSession(item.id)}
           style={[styles.sessionCard, isActive && styles.activeSessionCard]}
         >
@@ -230,27 +232,41 @@ export default function ConversationScreen() {
         eyebrow={t("history.eyebrow")}
         onReturnHome={() => router.replace("/")}
       />
-      <View style={styles.headerBand}>
-        <Text style={styles.headerLabel}>{t("history.heading")}</Text>
-        <Text style={styles.headerValue}>
-          {activeSessionId ? t("history.localActive") : t("history.localStored")}
-        </Text>
+      <Text style={styles.headerSentence}>{t("history.localStored")}</Text>
+      <View style={styles.tileRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={tAgent(language, "title")}
+          onPress={() => router.push("/agent")}
+          style={styles.tile}
+        >
+          <SymbolView
+            name={{ ios: "checklist", android: "checklist" } as never}
+            size={24}
+            tintColor={looiTheme.cyan}
+          />
+          <View style={styles.tileCopy}>
+            <Text style={styles.tileTitle}>{tAgent(language, "title")}</Text>
+            <Text style={styles.tileDescription}>{t("history.agentDescription")}</Text>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={tResearch(language, "title")}
+          onPress={() => router.push("/research")}
+          style={styles.tile}
+        >
+          <SymbolView
+            name={{ ios: "magnifyingglass", android: "search" } as never}
+            size={24}
+            tintColor={looiTheme.cyan}
+          />
+          <View style={styles.tileCopy}>
+            <Text style={styles.tileTitle}>{tResearch(language, "title")}</Text>
+            <Text style={styles.tileDescription}>{t("history.researchDescription")}</Text>
+          </View>
+        </Pressable>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={tAgent(language, "title")}
-        onPress={() => router.push("/agent")}
-        style={styles.researchButton}
-      >
-        <Text style={styles.researchButtonText}>{tAgent(language, "title")}</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push("/research")}
-        style={styles.researchButton}
-      >
-        <Text style={styles.researchButtonText}>{tResearch(language, "title")}</Text>
-      </Pressable>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </>
   );
@@ -291,7 +307,6 @@ export default function ConversationScreen() {
             onRefresh={() => loadSessions(true)}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>{t("history.empty")}</Text>
                 <Text style={styles.emptyBody}>{t("history.emptyHelp")}</Text>
               </View>
             }
@@ -334,46 +349,48 @@ function formatClock(value: string, locale: string): string {
 }
 
 const styles = StyleSheet.create({
-  researchButton: {
-    minHeight: 44,
-    alignSelf: "flex-start",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: looiTheme.lineActive,
+  tileRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
     marginBottom: 16,
   },
-  researchButtonText: {
-    color: looiTheme.cyan,
+  tile: {
+    flexGrow: 1,
+    flexBasis: 220,
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: looiTheme.lineActive,
+    backgroundColor: looiTheme.surface,
+  },
+  tileCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  tileTitle: {
+    color: looiTheme.text,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  tileDescription: {
+    color: looiTheme.muted,
+    fontSize: 13,
+    lineHeight: 18,
   },
   screen: {
     flex: 1,
   },
-  headerBand: {
-    minHeight: 76,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: looiTheme.line,
-    backgroundColor: looiTheme.surface,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  headerLabel: {
+  headerSentence: {
     color: looiTheme.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  headerValue: {
-    color: looiTheme.text,
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 14,
   },
   errorText: {
     color: looiTheme.warn,
@@ -399,6 +416,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sessionCard: {
+    minHeight: 44,
     borderRadius: 22,
     borderWidth: 1,
     borderColor: looiTheme.line,
@@ -483,11 +501,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 20,
-  },
-  emptyTitle: {
-    color: looiTheme.text,
-    fontSize: 22,
-    fontWeight: "800",
   },
   emptyBody: {
     color: looiTheme.muted,

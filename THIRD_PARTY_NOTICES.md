@@ -10,6 +10,8 @@ Portions of My LOOI originated from the MIT-licensed `GrinZero/super-looi` proje
 
 Android and iOS builds download and bundle selected Vosk command models from the official Vosk model catalog. The selected models used by the build script are listed by Vosk as Apache License 2.0 models. A copy of Apache License 2.0 is included in `licenses/APACHE-2.0.txt`.
 
+German command recognition uses `vosk-model-small-de-0.15` (Copyright © 2020 Alpha Cephei Inc.). Its original `COPYING` and `README` files stay with the staged model assets.
+
 Source: https://alphacephei.com/vosk/models
 
 ## Silero VAD
@@ -41,6 +43,28 @@ Diagnostic ZIP export uses ZIPFoundation 0.9.20 under the MIT License
 (https://github.com/weichsel/ZIPFoundation). Expo development builds also use the
 MIT-licensed expo-dev-client package. Preserve their upstream notices in binary
 distribution and include them in the final Apple application license inventory.
+
+## Character props
+
+The cup-soda, coffee, cookie and book-open SVG icons are from Lucide
+(https://lucide.dev), under the ISC License. The pinned original assets and full
+upstream license are in `assets/character-props/`; `SOURCE.md` records provenance.
+
+## Situation picture library
+
+The 200 scene props in `assets/character-scenes/props/` use original Lucide
+(ISC, including Feather MIT notices) and Tabler Icons (MIT) SVG geometry.
+`SOURCE.json` pins each upstream URL, commit and original file hash.
+Complete notices are retained as `LICENSE-LUCIDE` and `LICENSE-TABLER`.
+The corresponding full face pictures and PNG previews are composed locally
+using LOOI's existing geometric face rig.
+
+## Native glass face
+
+The face renderer uses react-native-svg under the MIT License
+(https://github.com/software-mansion/react-native-svg). Its original notice is
+preserved in `licenses/REACT-NATIVE-SVG-MIT.txt`. Glass contours and gradients are
+authored locally; the supplied visual references are not bundled as image assets.
 
 ## JavaScript and Android dependencies
 

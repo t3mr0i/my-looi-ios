@@ -1,0 +1,55 @@
+{
+  "checked_at_utc": "2026-10-28T17:55:20.526992+00:00",
+  "release": "nous-20261028-0766ceab",
+  "image": "sha256:6ccd47260d189aff9f4d51068503264c607c8a1901dc32afb9c5e0320d76cc59",
+  "maintenance_ssh": {
+    "transport": "existing TLS route on port 443",
+    "tls_verified": true,
+    "ssh_host_key_verified": true,
+    "direct_port_22": "timed_out",
+    "firewall_modified": false
+  },
+  "local_python_tests_passed": 34,
+  "isolated_candidate": {
+    "network": "none",
+    "http_contract_passed": true,
+    "installed_sdk_identity_binding_passed": true,
+    "tools": [
+      "web_search"
+    ]
+  },
+  "production": {
+    "container_health": "healthy",
+    "restart_count": 0,
+    "health_http": 200,
+    "unauthenticated_protected_routes_http": 401,
+    "capabilities_http": 200,
+    "connection_providers": [
+      "nous-v1"
+    ],
+    "nous_http": 200,
+    "nous_status": "server_login_required",
+    "published_host_ports": 0
+  },
+  "canary": {
+    "submit_http": 202,
+    "terminal_status": "completed",
+    "answer_present": true,
+    "sources": 5,
+    "test_task_cleanup_http": 204
+  },
+  "data": {
+    "sqlite_integrity_ok": true,
+    "online_backup_verified": true,
+    "existing_tasks_preserved": 1,
+    "persistent_mounts_preserved": true
+  },
+  "nous": {
+    "public_catalog_http_from_server": 200,
+    "public_catalog_count": 54,
+    "public_google_provider_slugs": [],
+    "authenticated_catalog_verified": false,
+    "device_login_status": "waiting_for_owner_confirmation",
+    "personal_content_read": false
+  }
+}

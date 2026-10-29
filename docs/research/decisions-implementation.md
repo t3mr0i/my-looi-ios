@@ -8,7 +8,7 @@ Alle zehn vorgeschlagenen Mechanismen besitzen jetzt einen ausführbaren Softwar
 
 | Mechanismus | Implementierung | Geprüfte Grenze |
 |---|---|---|
-| Gesprächshaltung | Akzeptierte Benutzerturns und tatsächlich beendete Audioausgabe liefern Ereignisse. Decisions wählt einen begrenzten Cue; die Engine führt Haltung und Wiederholungen fort. | Ein Cue pro Benutzerturn; 800-ms-Startfrist; neue Sprache verwirft alte Effekte. Kein Warten auf Decisions vor gewöhnlichen Sprachantworten. |
+| Gesprächshaltung | Akzeptierte Benutzerturns und tatsächlich beendete Audioausgabe liefern Ereignisse. Decisions wählt einen begrenzten Cue; die Engine führt Haltung und Wiederholungen fort. | Ein Cue pro Benutzerturn; 800-ms-Startfrist für Eingabe/Gesichter, nach hörbarem Antwortende bis zu 1.800 ms ab Ereignis (siehe [Timing-Korrektur](decisions-timing-2026-10-26.md)); neue Sprache verwirft alte Effekte. Kein Warten auf Decisions vor gewöhnlichen Sprachantworten. |
 | Absicht über Unterbrechungen | Lokaler, versionierter Aufgabenstatus mit explizitem Pausieren, Fortsetzen und Verwerfen sowie Realtime-Kontext. | 24 Stunden Verfall; nach Neustart pausiert; keine Wiederaufnahme einer Motorsequenz. Fragen, Negationen und Zitate sind keine lokalen Befehle. |
 | Zusammengehöriger Ausdruck | Eine Cue-ID verbindet Display-Mood, Blick und optionales Kopfmakro. | Gemeinsame Generation; neue Interaktion entfernt die Präsentation. Eine neuere manuelle Gesichtsreaktion bleibt erhalten. |
 | Begründetes Suchen/Loslassen | Decisions kann Zielhalten, begrenzte Suche oder Freigabe wählen; lokale Social Attention führt aus. | Explizite Pause hat Vorrang. Freigabe unterdrückt physische Suche/Rezentrierung, während lokale Sichtung möglich bleibt. |
@@ -46,7 +46,7 @@ Die Budgetführung reserviert vor dem Request konservativ Kosten und verrechnet 
 
 Zusätzlich sind Gegenfälle abgedeckt: verspätetes Resultat nach neuem Turn/STOP/Sessionwechsel, wiederholter STOP mit gleichem Grund, verspätetes Transkript bei bereits neuer menschlicher Sprache, Visual-Barge-in, nicht endende API-Abhängigkeiten, Budget nach Neustart/Lernreset, Kopf-Übernahme während einer Verzögerung und zulässige explizite Restschritte nach spätem Behavior-Cleanup.
 
-Der native Build konnte hier kein laufendes visuelles Simulator-Acceptance ersetzen: Die installierten CoreSimulator-Komponenten melden unterschiedliche Framework-Versionen. Die Settings-Oberfläche ist daher kompiliert, aber in dieser Sitzung nicht als laufender Screen visuell abgenommen. Es wurden keine neuen bezahlten API-Requests und keine Bewegungen auf echter Hardware ausgeführt.
+Der generische Simulator-Build ersetzte keine visuelle Abnahme. Bei der anschließenden Installation auf dem iPhone 16 mit iOS 27.0 wurden zwei native Startfehler behoben: kollidierende OpenFST-C++-Symbole von Vosk/Sherpa sowie das fehlende Scene-Modell des gepinnten Expo-56-Templates. Der korrigierte signierte Release-Build startet und zeigt die Ersteinrichtung; der Einrichtungslink und die Rückkehr zur App funktionieren. Settings-Aktivierung, echte API-Requests und Bewegungen auf dem Roboter stehen noch aus. Einzelheiten und aktueller Abnahmestand stehen im [iPhone-Prüfprotokoll](iphone-acceptance-2026-10-25.md).
 
 ## Physische Abnahme
 

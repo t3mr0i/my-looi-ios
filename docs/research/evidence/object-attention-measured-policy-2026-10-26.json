@@ -1,0 +1,1195 @@
+{
+  "format": "looi.object-attention-measured-policy-replay.v1",
+  "result": "replayed",
+  "qualityPassClaim": "none",
+  "interpretation": "Stored native measurements were replayed through the current JavaScript policy; this is a policy observation, not a tracker quality grade or live Vision run.",
+  "input": {
+    "path": "docs/research/evidence/native-tracking-probe-2026-10-26.json",
+    "measurementStatus": "frames-collected",
+    "measurementOnly": true,
+    "sourceHashesRecordedInMeasurement": {
+      "helperPath": "modules/local-face-attention/ios/LocalObjectTrackingSession.swift",
+      "helperSha256": "e059792fd0b6c29d8bd7db8afe4a094211bcd4e92f6d6e8a28ea02f53060d582",
+      "probeDriverPath": "scripts/native/vision-object-tracking-probe.swift",
+      "probeDriverSha256": "ac1c2ea791eb6644b57b4ed8eaa3a86da23b8a8f8e57b9025c0ed71e25e75f8c"
+    },
+    "storedReportSha256": "6e5875a7382f6d81b4daf249b149c29b4f1fbab5f1c88742864c2b064766fd91"
+  },
+  "currentSources": {
+    "policyPath": "src/core/object-attention-policy.ts",
+    "policySha256": "d92d235c7f35cbb3df39010b99469f0d801b5802a0568f35e8e4db95ce80f4d9",
+    "helperPath": "modules/local-face-attention/ios/LocalObjectTrackingSession.swift",
+    "helperSha256": "e059792fd0b6c29d8bd7db8afe4a094211bcd4e92f6d6e8a28ea02f53060d582",
+    "helperMatchesMeasurement": true,
+    "replayPath": "scripts/object-attention-measured-policy.mjs",
+    "replaySha256": "057186b732462e9ccde255d0a7ec891038332f6f19b8085a3ced29b7fecd9b37"
+  },
+  "replayClock": {
+    "receiveIntervalMs": 120,
+    "nativeTimestampIntervalMs": 120,
+    "timestampSource": "synthetic monotonic replay timestamps; not captured native timestamps",
+    "latencyClaim": "none; measured elapsedMs is preserved per frame but not used as a timestamp or policy interval"
+  },
+  "scenarioCount": 6,
+  "replayedFrameCount": 38,
+  "scenarios": [
+    {
+      "id": "translation",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 6,
+      "nativeTrackingFrameCount": 5,
+      "nativeAcceptedFrames": 6,
+      "policyAcceptedFrames": 6,
+      "nativeAcceptedTrackingFrames": 5,
+      "policyAcceptedTrackingFrames": 5,
+      "nativeAcceptedFullyOccludedFrames": 0,
+      "policyAcceptedFullyOccludedFrames": 0,
+      "nativeDistractorAssociatedFrames": 0,
+      "policyFirstLoss": null,
+      "policyFinalStatus": "tracking",
+      "policyFinalReason": null,
+      "nativePostLoss": null,
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 68.637833,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.878917,
+            "confidence": 0.9539999961853027,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9240331229968357,
+            "distractorIoU": null,
+            "centerErrorPx": 1.8116851124029174
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.31548256874084474,
+              "top": 0.3096220970153809,
+              "right": 0.6164087772369384,
+              "bottom": 0.6855960845947265
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.629167,
+            "confidence": 0.968999981880188,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.90405351427778,
+            "distractorIoU": null,
+            "centerErrorPx": 1.5351012682094698
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3358210325241089,
+              "top": 0.3342118263244629,
+              "right": 0.6425540208816528,
+              "bottom": 0.7030740102132161
+            }
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.545083,
+            "confidence": 0.9750000238418579,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8862548655333056,
+            "distractorIoU": null,
+            "centerErrorPx": 1.0471224214741022
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.361549973487854,
+              "top": 0.34818998972574877,
+              "right": 0.669417929649353,
+              "bottom": 0.710680643717448
+            }
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.542333,
+            "confidence": 0.9739999771118164,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8745103711866463,
+            "distractorIoU": null,
+            "centerErrorPx": 1.1197666838584368
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.38663439750671386,
+              "top": 0.36470336914062496,
+              "right": 0.6942909955978394,
+              "bottom": 0.7218283335367839
+            }
+          }
+        },
+        {
+          "index": 5,
+          "replayTimestampMs": 720,
+          "policyNowMs": 10720,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.561042,
+            "confidence": 0.9580000042915344,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8743751491660398,
+            "distractorIoU": null,
+            "centerErrorPx": 2.5786878906628483
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.40796289443969724,
+              "top": 0.36496648788452146,
+              "right": 0.719488763809204,
+              "bottom": 0.726565678914388
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "scale",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 6,
+      "nativeTrackingFrameCount": 5,
+      "nativeAcceptedFrames": 6,
+      "policyAcceptedFrames": 6,
+      "nativeAcceptedTrackingFrames": 5,
+      "policyAcceptedTrackingFrames": 5,
+      "nativeAcceptedFullyOccludedFrames": 0,
+      "policyAcceptedFullyOccludedFrames": 0,
+      "nativeDistractorAssociatedFrames": 0,
+      "policyFirstLoss": null,
+      "policyFinalStatus": "tracking",
+      "policyFinalReason": null,
+      "nativePostLoss": null,
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 1.615042,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.576791,
+            "confidence": 0.9679999947547913,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9088524873695744,
+            "distractorIoU": null,
+            "centerErrorPx": 1.7086637551820156
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2793841600418091,
+              "top": 0.2965890566507976,
+              "right": 0.597460150718689,
+              "bottom": 0.6876875559488933
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.60625,
+            "confidence": 0.9399999976158142,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8913448611501337,
+            "distractorIoU": null,
+            "centerErrorPx": 1.0935684223279452
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2659099578857422,
+              "top": 0.28445081710815434,
+              "right": 0.6147886037826538,
+              "bottom": 0.6979831695556641
+            }
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.642125,
+            "confidence": 0.9419999718666077,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.880832751914808,
+            "distractorIoU": null,
+            "centerErrorPx": 1.2470351319666537
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.25000948905944825,
+              "top": 0.27105347315470385,
+              "right": 0.6301826000213624,
+              "bottom": 0.7158922831217448
+            }
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.559708,
+            "confidence": 0.9190000295639038,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8817740763452799,
+            "distractorIoU": null,
+            "centerErrorPx": 2.5530003514797595
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.24249634742736817,
+              "top": 0.26318712234497066,
+              "right": 0.6499072551727295,
+              "bottom": 0.7403916676839193
+            }
+          }
+        },
+        {
+          "index": 5,
+          "replayTimestampMs": 720,
+          "policyNowMs": 10720,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.364916,
+            "confidence": 0.9300000071525574,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8899460461427955,
+            "distractorIoU": null,
+            "centerErrorPx": 1.0102258944514164
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.22872650623321533,
+              "top": 0.24251877466837568,
+              "right": 0.6565013647079467,
+              "bottom": 0.7486691157023112
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "partial-occlusion",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 6,
+      "nativeTrackingFrameCount": 5,
+      "nativeAcceptedFrames": 6,
+      "policyAcceptedFrames": 6,
+      "nativeAcceptedTrackingFrames": 5,
+      "policyAcceptedTrackingFrames": 5,
+      "nativeAcceptedFullyOccludedFrames": 0,
+      "policyAcceptedFullyOccludedFrames": 0,
+      "nativeDistractorAssociatedFrames": 0,
+      "policyFirstLoss": null,
+      "policyFinalStatus": "tracking",
+      "policyFinalReason": null,
+      "nativePostLoss": null,
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 1.548708,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.601208,
+            "confidence": 0.75,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8755853670884661,
+            "distractorIoU": null,
+            "centerErrorPx": 5.255199900668007
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2985510349273682,
+              "top": 0.3058134078979493,
+              "right": 0.5879762172698975,
+              "bottom": 0.6857025146484375
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.517834,
+            "confidence": 0.8960000276565552,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8011609372151659,
+            "distractorIoU": null,
+            "centerErrorPx": 8.010277107491515
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.30974493026733396,
+              "top": 0.3114232381184896,
+              "right": 0.5932553052902221,
+              "bottom": 0.682247797648112
+            }
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.537584,
+            "confidence": 0.7689999938011169,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.7855298230725158,
+            "distractorIoU": null,
+            "centerErrorPx": 9.183384933759307
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.32223992347717284,
+              "top": 0.32411645253499355,
+              "right": 0.6032515048980713,
+              "bottom": 0.6910668690999349
+            }
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.5375,
+            "confidence": 0.8370000123977661,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8716415732364531,
+            "distractorIoU": null,
+            "centerErrorPx": 4.739505161636427
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3485522508621216,
+              "top": 0.33365942637125645,
+              "right": 0.6370739698410035,
+              "bottom": 0.699726931254069
+            }
+          }
+        },
+        {
+          "index": 5,
+          "replayTimestampMs": 720,
+          "policyNowMs": 10720,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.499541,
+            "confidence": 0.8899999856948853,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.7996092512413457,
+            "distractorIoU": null,
+            "centerErrorPx": 8.24999494841397
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3525362014770508,
+              "top": 0.34371509552001944,
+              "right": 0.641021466255188,
+              "bottom": 0.7072081883748372
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "full-occlusion",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 5,
+      "nativeTrackingFrameCount": 4,
+      "nativeAcceptedFrames": 5,
+      "policyAcceptedFrames": 2,
+      "nativeAcceptedTrackingFrames": 4,
+      "policyAcceptedTrackingFrames": 1,
+      "nativeAcceptedFullyOccludedFrames": 4,
+      "policyAcceptedFullyOccludedFrames": 1,
+      "nativeDistractorAssociatedFrames": 0,
+      "policyFirstLoss": 2,
+      "policyFinalStatus": "lost",
+      "policyFinalReason": "low-confidence",
+      "nativePostLoss": null,
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 1.558292,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.605208,
+            "confidence": 0.7200000286102295,
+            "lossReason": null,
+            "fullyOccluded": true,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9229688828750916,
+            "distractorIoU": null,
+            "centerErrorPx": 2.8690764605341674
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2985473871231079,
+              "top": 0.2912332216898601,
+              "right": 0.5911103010177612,
+              "bottom": 0.6830332438151041
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.604917,
+            "confidence": 0.6949999928474426,
+            "lossReason": null,
+            "fullyOccluded": true,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8825812393218614,
+            "distractorIoU": null,
+            "centerErrorPx": 4.553428852997966
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "low-confidence",
+            "rect": null
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.633625,
+            "confidence": 0.7269999980926514,
+            "lossReason": null,
+            "fullyOccluded": true,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8545659157479767,
+            "distractorIoU": null,
+            "centerErrorPx": 5.81515212599871
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "low-confidence",
+            "rect": null
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.522667,
+            "confidence": 0.7099999785423279,
+            "lossReason": null,
+            "fullyOccluded": true,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8339067854729019,
+            "distractorIoU": null,
+            "centerErrorPx": 6.832288511576575
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "low-confidence",
+            "rect": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "similar-distractor",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 7,
+      "nativeTrackingFrameCount": 6,
+      "nativeAcceptedFrames": 7,
+      "policyAcceptedFrames": 7,
+      "nativeAcceptedTrackingFrames": 6,
+      "policyAcceptedTrackingFrames": 6,
+      "nativeAcceptedFullyOccludedFrames": 0,
+      "policyAcceptedFullyOccludedFrames": 0,
+      "nativeDistractorAssociatedFrames": 5,
+      "policyFirstLoss": null,
+      "policyFinalStatus": "tracking",
+      "policyFinalReason": null,
+      "nativePostLoss": null,
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 1.496667,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.617625,
+            "confidence": 0.9670000076293945,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": true,
+            "iou": 0.8766564973874542,
+            "distractorIoU": 0.8943917526084034,
+            "centerErrorPx": 5.250698186088138
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2881464958190918,
+              "top": 0.3158007303873698,
+              "right": 0.6050395011901856,
+              "bottom": 0.6949337005615235
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.239958,
+            "confidence": 0.9649999737739563,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8225880687804805,
+            "distractorIoU": 0.7964598771564518,
+            "centerErrorPx": 9.213919635288384
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.2822209596633911,
+              "top": 0.31675367355346684,
+              "right": 0.6228238821029664,
+              "bottom": 0.6947203318277995
+            }
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.338125,
+            "confidence": 0.9419999718666077,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": true,
+            "iou": 0.7186823979296987,
+            "distractorIoU": 0.7286884730400115,
+            "centerErrorPx": 14.958063741348804
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.27120251655578614,
+              "top": 0.3109695752461752,
+              "right": 0.6363926649093627,
+              "bottom": 0.7034446716308593
+            }
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.627583,
+            "confidence": 0.921999990940094,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": true,
+            "iou": 0.6412547214420776,
+            "distractorIoU": 0.6624980301081663,
+            "centerErrorPx": 21.142812629477657
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.26252920627593995,
+              "top": 0.31594889958699546,
+              "right": 0.6436379194259644,
+              "bottom": 0.7145763397216797
+            }
+          }
+        },
+        {
+          "index": 5,
+          "replayTimestampMs": 720,
+          "policyNowMs": 10720,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.557834,
+            "confidence": 0.746999979019165,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": true,
+            "iou": 0.5381726611504795,
+            "distractorIoU": 0.6272918590710319,
+            "centerErrorPx": 28.92511409890705
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.25478396415710447,
+              "top": 0.3114190419514974,
+              "right": 0.6412043094635009,
+              "bottom": 0.72159792582194
+            }
+          }
+        },
+        {
+          "index": 6,
+          "replayTimestampMs": 840,
+          "policyNowMs": 10840,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.588708,
+            "confidence": 0.8100000023841858,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": true,
+            "iou": 0.4877800605481075,
+            "distractorIoU": 0.5622110480768167,
+            "centerErrorPx": 34.09661516131382
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.25008811950683596,
+              "top": 0.3133754094441732,
+              "right": 0.6510152816772461,
+              "bottom": 0.7340635935465495
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "exits-image",
+      "startStatus": "selecting",
+      "armedStatus": "tracking",
+      "frameCount": 8,
+      "nativeTrackingFrameCount": 7,
+      "nativeAcceptedFrames": 5,
+      "policyAcceptedFrames": 5,
+      "nativeAcceptedTrackingFrames": 4,
+      "policyAcceptedTrackingFrames": 4,
+      "nativeAcceptedFullyOccludedFrames": 0,
+      "policyAcceptedFullyOccludedFrames": 0,
+      "nativeDistractorAssociatedFrames": 0,
+      "policyFirstLoss": 5,
+      "policyFinalStatus": "lost",
+      "policyFinalReason": "out_of_bounds",
+      "nativePostLoss": {
+        "elapsedMs": 0.000041,
+        "lossReason": "session_ended",
+        "status": "lost"
+      },
+      "frames": [
+        {
+          "index": 0,
+          "replayTimestampMs": 120,
+          "policyNowMs": 10120,
+          "native": {
+            "phase": "seed",
+            "accepted": true,
+            "measuredElapsedMs": 1.553666,
+            "confidence": 1,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9999999999999998,
+            "distractorIoU": null,
+            "centerErrorPx": 0
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.3,
+              "top": 0.30000000000000004,
+              "right": 0.5875,
+              "bottom": 0.6833333333333333
+            }
+          }
+        },
+        {
+          "index": 1,
+          "replayTimestampMs": 240,
+          "policyNowMs": 10240,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.596167,
+            "confidence": 0.9580000042915344,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9316460118282404,
+            "distractorIoU": null,
+            "centerErrorPx": 2.0762525732213857
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.38917078971862795,
+              "top": 0.2976009686787924,
+              "right": 0.6887343168258667,
+              "bottom": 0.6740834554036459
+            }
+          }
+        },
+        {
+          "index": 2,
+          "replayTimestampMs": 360,
+          "policyNowMs": 10360,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.482792,
+            "confidence": 0.9490000009536743,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8870363770404732,
+            "distractorIoU": null,
+            "centerErrorPx": 3.2292130509495025
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.4868593215942383,
+              "top": 0.29156163533528656,
+              "right": 0.7917050838470459,
+              "bottom": 0.6676427205403646
+            }
+          }
+        },
+        {
+          "index": 3,
+          "replayTimestampMs": 480,
+          "policyNowMs": 10480,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.505166,
+            "confidence": 0.9409999847412109,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.9063671741837105,
+            "distractorIoU": null,
+            "centerErrorPx": 1.9093554364728098
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.5868549823760987,
+              "top": 0.2983115196228028,
+              "right": 0.8938536882400513,
+              "bottom": 0.6719384511311849
+            }
+          }
+        },
+        {
+          "index": 4,
+          "replayTimestampMs": 600,
+          "policyNowMs": 10600,
+          "native": {
+            "phase": "tracked",
+            "accepted": true,
+            "measuredElapsedMs": 1.496791,
+            "confidence": 0.9440000057220459,
+            "lossReason": null,
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": 0.8745484972612065,
+            "distractorIoU": null,
+            "centerErrorPx": 3.072701898076852
+          },
+          "policy": {
+            "accepted": true,
+            "status": "tracking",
+            "reason": null,
+            "rect": {
+              "left": 0.6851266384124756,
+              "top": 0.29226401646931965,
+              "right": 0.9949302911758422,
+              "bottom": 0.6674648284912109
+            }
+          }
+        },
+        {
+          "index": 5,
+          "replayTimestampMs": 720,
+          "policyNowMs": 10720,
+          "native": {
+            "phase": "lost",
+            "accepted": false,
+            "measuredElapsedMs": 1.355167,
+            "confidence": null,
+            "lossReason": "out_of_bounds",
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": null,
+            "distractorIoU": null,
+            "centerErrorPx": null
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "out_of_bounds",
+            "rect": null
+          }
+        },
+        {
+          "index": 6,
+          "replayTimestampMs": 840,
+          "policyNowMs": 10840,
+          "native": {
+            "phase": "lost",
+            "accepted": false,
+            "measuredElapsedMs": 0.000083,
+            "confidence": null,
+            "lossReason": "session_ended",
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": null,
+            "distractorIoU": null,
+            "centerErrorPx": null
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "out_of_bounds",
+            "rect": null
+          }
+        },
+        {
+          "index": 7,
+          "replayTimestampMs": 960,
+          "policyNowMs": 10960,
+          "native": {
+            "phase": "lost",
+            "accepted": false,
+            "measuredElapsedMs": 0.000084,
+            "confidence": null,
+            "lossReason": "session_ended",
+            "fullyOccluded": false,
+            "associatedMoreWithDistractor": false,
+            "iou": null,
+            "distractorIoU": null,
+            "centerErrorPx": null
+          },
+          "policy": {
+            "accepted": false,
+            "status": "lost",
+            "reason": "out_of_bounds",
+            "rect": null
+          }
+        }
+      ]
+    }
+  ]
+}

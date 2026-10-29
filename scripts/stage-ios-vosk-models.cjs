@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 function stageIosVoskModels(root) {
-  const names = ['vosk-command-ru', 'vosk-command-uk', 'vosk-command-en'];
+  const names = ['vosk-command-ru', 'vosk-command-uk', 'vosk-command-en', 'vosk-command-de'];
   const source = path.join(root, '.build-assets/vosk');
   // Validate every input before replacing any generated bundle.
   for (const name of names) {

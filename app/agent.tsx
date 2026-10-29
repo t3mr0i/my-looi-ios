@@ -11,7 +11,8 @@ import {
   View,
 } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { DeviceShell } from "@/src/ui/DeviceShell";
+import { AgentConnectionScope, AgentWorkspaceIntro, AgentWorkspaceShell } from "@/src/ui/AgentWorkspace";
+import { agentWorkspaceText } from "@/src/i18n/agent-workspace-strings";
 import { looiTheme } from "@/src/ui/looi-theme";
 import { useUiText } from "@/src/i18n/use-ui-text";
 import { createAgentTranslator } from "@/src/i18n/agent-strings";
@@ -80,6 +81,7 @@ export default function AgentScreen() {
   const [pendingError, setPendingError] = useState("");
   const [taskListError, setTaskListError] = useState("");
   const [taskActionError, setTaskActionError] = useState("");
+  const [editingSetup, setEditingSetup] = useState(false);
 
   const focusedRef = useRef(false);
   const appActiveRef = useRef(AppState.currentState === "active");
@@ -613,6 +615,7 @@ export default function AgentScreen() {
         setServerUrl(normalizedUrl);
         setConfigured(true);
         configuredRef.current = true;
+        setEditingSetup(false);
         setDisconnectedNotice(false);
         setToken("");
         settingsHydratedRef.current = true;
@@ -822,26 +825,42 @@ export default function AgentScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DeviceShell
+      <AgentWorkspaceShell
         title={t("title")}
-        eyebrow="MY LOOI · AGENT"
-        onReturnHome={() => router.replace("/")}
+        language={language}
+        onBack={() => router.replace("/conversation")}
+        onHome={() => router.replace("/")}
       >
-        <Text style={styles.intro}>{t("intro")}</Text>
+        <AgentWorkspaceIntro language={language} onTry={() => router.push("/agent-playground")} onConnect={() => router.push("/agent-connect")} />
 
         <View style={styles.section}>
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionTitle}>{t("setupTitle")}</Text>
-            <View style={[styles.connectionBadge, configured ? styles.connectionBadgeReady : null]}>
-              <Text style={[styles.connectionBadgeText, configured ? styles.connectionBadgeTextReady : null]}>
+          <Text style={styles.sectionTitle}>{t("setupTitle")}</Text>
+          {!configured && !editingSetup ? (
+            <View style={styles.connectedRow}>
+              <Text style={styles.sectionHelp}>{t("connectionNotConfigured")}</Text>
+              <Pressable accessibilityRole="button" onPress={() => setEditingSetup(true)} style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>{agentWorkspaceText(language)("manual")}</Text>
+              </Pressable>
+            </View>
+          ) : configured && !editingSetup ? (
+            <View style={styles.connectedRow}>
+              <Text style={styles.connectedText}>
                 {mutation === "verify" || mutation === "configure"
                   ? t("connectionChecking")
-                  : configured
-                    ? t("connectionConfigured")
-                    : t("connectionNotConfigured")}
+                  : t("connectedTo", { host: getHost(savedUrl) })}
               </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("changeServer")}
+                disabled={Boolean(mutation) || bootstrapLoading}
+                onPress={() => setEditingSetup(true)}
+                style={[styles.secondaryButton, styles.changeButton]}
+              >
+                <Text style={styles.secondaryButtonText}>{t("changeServer")}</Text>
+              </Pressable>
             </View>
-          </View>
+          ) : (
+            <>
           <Text style={styles.sectionHelp}>{t("setupHelp")}</Text>
 
           <Text style={styles.fieldLabel}>{t("serverUrl")}</Text>
@@ -921,6 +940,8 @@ export default function AgentScreen() {
               </Pressable>
             </View>
           ) : null}
+            </>
+          )}
           {connectionMessage ? (
             <Text accessibilityLiveRegion="polite" style={styles.mutedNote}>{connectionMessage}</Text>
           ) : null}
@@ -931,8 +952,12 @@ export default function AgentScreen() {
           ) : null}
         </View>
 
+        {configured ? <AgentConnectionScope language={language} onNous={() => router.push("/agent-nous")} /> : null}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("taskTitle")}</Text>
+          {configured ? (
+            <>
           <Text style={styles.fieldLabel}>{t("taskLabel")}</Text>
           <TextInput
             accessibilityLabel={t("taskLabel")}
@@ -953,14 +978,15 @@ export default function AgentScreen() {
             textAlignVertical="top"
             value={query}
           />
-          <Text style={styles.characterCount}>
-            {t("charactersCount", { count: query.length, max: MAX_AGENT_QUERY_LENGTH })}
-          </Text>
           {queryError || (query.trim().length === 1 ? t("taskTooShort") : "")
             ? <Text accessibilityRole="alert" style={styles.errorText}>{queryError || t("taskTooShort")}</Text>
             : null}
           <Text style={styles.dataNotice}>{t("dataNotice")}</Text>
           <Text style={styles.mutedNote}>{t("continuityNotice")}</Text>
+            </>
+          ) : (
+            <Text style={styles.sectionHelp}>{t("needServerFirst")}</Text>
+          )}
 
           {pendingEntries.map(([pendingUrl, pending]) => {
             const pendingIsForCurrentServer = pendingUrl === savedUrl;
@@ -998,10 +1024,11 @@ export default function AgentScreen() {
               </View>
             );
           })}
-          {pendingEntries.length === 0 ? (
+          {configured && pendingEntries.length === 0 ? (
             <Text style={styles.mutedNote}>{t("taskIdleNote")}</Text>
           ) : null}
 
+          {configured ? (
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: !canStart }}
@@ -1018,9 +1045,11 @@ export default function AgentScreen() {
               )
               : <Text style={[styles.primaryButtonText, !canStart && styles.disabledText]}>{t("startTask")}</Text>}
           </Pressable>
+          ) : null}
           {submitError ? <Text accessibilityRole="alert" style={styles.errorText}>{submitError}</Text> : null}
         </View>
 
+        {configured || taskListError || bootstrapLoading ? (
         <View style={styles.taskSection}>
           <View style={styles.listHeading}>
             <Text style={styles.sectionTitle}>{t("tasksTitle")}</Text>
@@ -1207,7 +1236,8 @@ export default function AgentScreen() {
           ) : null}
           {taskActionError ? <Text accessibilityRole="alert" style={styles.errorText}>{taskActionError}</Text> : null}
         </View>
-      </DeviceShell>
+        ) : null}
+      </AgentWorkspaceShell>
     </>
   );
 }
@@ -1338,13 +1368,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: looiTheme.line,
   },
-  sectionHeadingRow: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
   sectionTitle: {
     color: looiTheme.text,
     fontSize: 18,
@@ -1356,25 +1379,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  connectionBadge: {
-    minHeight: 30,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: looiTheme.line,
-    backgroundColor: looiTheme.surface,
+  connectedRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 12,
   },
-  connectionBadgeReady: {
-    borderColor: "rgba(40, 213, 255, 0.45)",
-    backgroundColor: "rgba(40, 213, 255, 0.08)",
+  connectedText: {
+    flex: 1,
+    minWidth: 180,
+    color: looiTheme.text,
+    fontSize: 15,
+    lineHeight: 21,
   },
-  connectionBadgeText: {
-    color: looiTheme.muted,
-    fontSize: 12,
-    fontWeight: "600",
+  changeButton: {
+    flexGrow: 0,
+    minWidth: 110,
+    minHeight: 48,
   },
-  connectionBadgeTextReady: { color: looiTheme.cyan },
   fieldLabel: {
     color: looiTheme.text,
     fontSize: 14,
@@ -1510,12 +1532,6 @@ const styles = StyleSheet.create({
     color: looiTheme.muted,
     fontSize: 13,
     lineHeight: 19,
-  },
-  characterCount: {
-    alignSelf: "flex-end",
-    color: looiTheme.muted,
-    fontSize: 12,
-    lineHeight: 16,
   },
   taskSection: {
     gap: 12,
@@ -1683,8 +1699,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: "rgba(255, 103, 121, 0.38)",
-    backgroundColor: "rgba(255, 103, 121, 0.06)",
+    borderColor: looiTheme.line,
+    backgroundColor: "transparent",
   },
   dangerText: {
     color: looiTheme.danger,

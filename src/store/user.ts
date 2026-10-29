@@ -34,7 +34,7 @@ export type VoiceState =
   | "processing"
   | "speaking";
 
-export type ConversationMode = "realtime" | "realtime_pcm";
+export type ConversationMode = "budget" | "realtime" | "realtime_pcm";
 
 export type AmbientMotionLevel = "off" | "subtle" | "normal" | "lively";
 
@@ -81,7 +81,7 @@ export function normalizeFacePaletteId(value: unknown, legacySkin?: unknown): Fa
   return "cyan";
 }
 
-export type VoiceCommandLanguage = "ru" | "uk" | "en";
+export type VoiceCommandLanguage = "ru" | "uk" | "en" | "de";
 export type CustomVoiceCommandAction =
   | "emergency_stop"
   | "forward"
@@ -115,7 +115,7 @@ function normalizePhraseList(value: unknown): CustomVoiceCommandPhrase[] {
     if (!item || typeof item !== "object") continue;
     const raw = item as Partial<CustomVoiceCommandPhrase>;
     const text = typeof raw.text === "string" ? raw.text.trim().slice(0, 80) : "";
-    const language: VoiceCommandLanguage = raw.language === "uk" || raw.language === "en" ? raw.language : "ru";
+    const language: VoiceCommandLanguage = raw.language === "uk" || raw.language === "en" || raw.language === "de" ? raw.language : "ru";
     if (text.length < 2) continue;
     const key = `${language}:${text.toLocaleLowerCase()}`;
     if (seen.has(key)) continue;
@@ -159,8 +159,18 @@ export function normalizeAmbientMotionLevel(value: unknown): AmbientMotionLevel 
   return value === "off" || value === "subtle" || value === "normal" || value === "lively" ? value : "normal";
 }
 
+export function normalizeConversationMode(value: unknown): ConversationMode {
+  return value === "budget" || value === "realtime" || value === "realtime_pcm"
+    ? value
+    : "realtime_pcm";
+}
+
 export function isRealtimeConversationMode(mode: ConversationMode): boolean {
   return mode === "realtime" || mode === "realtime_pcm";
+}
+
+export function isManagedConversationMode(mode: ConversationMode): boolean {
+  return mode === "budget" || isRealtimeConversationMode(mode);
 }
 
 
@@ -178,6 +188,8 @@ export type UserPreferences = {
   ttsEnabled: boolean;
   /** OpenAI Realtime conversation model selected for new sessions. */
   realtimeModelId: string;
+  /** Endpointer selected for the next Realtime session; fixed preserves far-field tuning. */
+  realtimeTurnTaking: "fixed" | "semantic";
   ttsVoiceId: string;
   ttsStyleId: TtsStyleId;
   ttsSpeed: number;
@@ -204,7 +216,7 @@ export type UserPreferences = {
   robotAddressRecognitionAliases: string[];
   /** Per-action user-defined deterministic phrases, tagged by listening language. */
   customVoiceCommands: CustomVoiceCommandMap;
-  /** Selectable conversation transport. Older persisted values normalize to Realtime PCM. */
+  /** Selectable conversation transport. Unknown persisted values fall back to Realtime PCM. */
   conversationMode: ConversationMode;
 };
 
@@ -236,7 +248,7 @@ interface UserState {
 }
 
 type StoredPreferences = {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
   preferences: UserPreferences;
 };
 
@@ -249,6 +261,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   language: DEFAULT_RESPONSE_LANGUAGE,
   ttsEnabled: true,
   realtimeModelId: DEFAULT_REALTIME_MODEL_ID,
+  realtimeTurnTaking: "fixed",
   ttsVoiceId: DEFAULT_TTS_VOICE_ID,
   ttsStyleId: DEFAULT_TTS_STYLE_ID,
   ttsSpeed: DEFAULT_TTS_SPEED,
@@ -275,6 +288,11 @@ function loadPreferences(): UserPreferences {
     const stored = JSON.parse(raw) as Partial<StoredPreferences>;
     const preferences = stored.preferences;
     if (!preferences) return DEFAULT_PREFERENCES;
+    // Upgrade the former default robot voice once. Explicit alternate voices
+    // and natural/bright delivery choices stay selected.
+    const migrateDefaultRobotVoice = (stored.version ?? 0) < 19
+      && preferences.ttsVoiceId === "cedar"
+      && (preferences.ttsStyleId == null || preferences.ttsStyleId === "playful-robot");
     const normalized: UserPreferences = {
       // v2.1.121 introduces an independent UI language. Existing installs use
       // the Android/system locale when this preference is absent.
@@ -290,8 +308,9 @@ function loadPreferences(): UserPreferences {
       language: normalizeResponseLanguage(preferences.language),
       ttsEnabled: preferences.ttsEnabled !== false,
       realtimeModelId: normalizeRealtimeModelId((preferences as Partial<UserPreferences>).realtimeModelId),
+      realtimeTurnTaking: preferences.realtimeTurnTaking === "semantic" ? "semantic" : "fixed",
       ttsVoiceId:
-        typeof preferences.ttsVoiceId === "string" &&
+        !migrateDefaultRobotVoice && typeof preferences.ttsVoiceId === "string" &&
         isSupportedRealtimeVoiceId(preferences.ttsVoiceId)
           ? preferences.ttsVoiceId
           : DEFAULT_TTS_VOICE_ID,
@@ -326,15 +345,15 @@ function loadPreferences(): UserPreferences {
       robotAddressAliases: normalizeRobotAddressList((preferences as Partial<UserPreferences>).robotAddressAliases, ["LOOI", "Луї", "Робот", "Robot"]),
       robotAddressRecognitionAliases: normalizeRobotAddressList((preferences as Partial<UserPreferences>).robotAddressRecognitionAliases, ["Луй", "Луни", "Луі", "Уи", "Уй"]),
       customVoiceCommands: normalizeCustomVoiceCommands((preferences as Partial<UserPreferences>).customVoiceCommands),
-      conversationMode: (() => {
-        const mode = (preferences as { conversationMode?: unknown }).conversationMode;
-        return mode === "realtime" ? "realtime" : "realtime_pcm";
-      })(),
+      conversationMode: normalizeConversationMode(
+        (preferences as { conversationMode?: unknown }).conversationMode
+      ),
     };
     if (
       (preferences as Partial<UserPreferences>).interfaceLanguage !== normalized.interfaceLanguage ||
       (preferences as Partial<UserPreferences>).listeningLanguage !== normalized.listeningLanguage ||
       (preferences as Partial<UserPreferences>).realtimeModelId !== normalized.realtimeModelId ||
+      (preferences as Partial<UserPreferences>).realtimeTurnTaking !== normalized.realtimeTurnTaking ||
       preferences.ttsVoiceId !== normalized.ttsVoiceId ||
       preferences.ttsStyleId !== normalized.ttsStyleId ||
       (preferences as Partial<UserPreferences>).voiceOutputGain !== normalized.voiceOutputGain ||
@@ -346,7 +365,7 @@ function loadPreferences(): UserPreferences {
       (preferences as Partial<UserPreferences>).faceStyle !== normalized.faceStyle ||
       (preferences as Partial<UserPreferences>).facePalette !== normalized.facePalette ||
       Object.prototype.hasOwnProperty.call(preferences, "character2Id") ||
-      stored.version !== 17 ||
+      stored.version !== 19 ||
       (preferences as Partial<UserPreferences>).conversationMode !== normalized.conversationMode ||
       Object.prototype.hasOwnProperty.call(preferences, "memoryBackend") ||
       Object.prototype.hasOwnProperty.call(preferences, "cameraEnabled") ||
@@ -362,7 +381,7 @@ function loadPreferences(): UserPreferences {
 }
 
 function savePreferences(preferences: UserPreferences): void {
-  const payload: StoredPreferences = { version: 17, preferences };
+  const payload: StoredPreferences = { version: 19, preferences };
   preferencesStorage.set(USER_PREFERENCES_KEY, JSON.stringify(payload));
 }
 
@@ -399,6 +418,10 @@ export const useUserStore = create<UserState>((set) => ({
           prefs.realtimeModelId === undefined
             ? state.preferences.realtimeModelId
             : normalizeRealtimeModelId(prefs.realtimeModelId),
+        realtimeTurnTaking:
+          prefs.realtimeTurnTaking === undefined
+            ? state.preferences.realtimeTurnTaking
+            : prefs.realtimeTurnTaking === "semantic" ? "semantic" : "fixed",
         ttsSpeed:
           prefs.ttsSpeed === undefined
             ? state.preferences.ttsSpeed

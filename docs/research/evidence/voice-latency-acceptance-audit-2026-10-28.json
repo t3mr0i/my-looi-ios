@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-10-28T20:48:45.164213+00:00",
+  "previousGoalTurnClassification": "progress: B8 native build, B9 targeted fix, full ios:check and physical installation/launch",
+  "currentFollowup": "remaining acceptance evidence unchanged; blocker revalidated without relaunching or changing device preferences",
+  "installedPackage": "regular B9",
+  "installedAppListRevalidated": true,
+  "frozenSourceStillMatches": true,
+  "latestDiagnosticTimestampBefore": "2026-10-28T20:36:09.642Z",
+  "latestDiagnosticTimestampAfter": "2026-10-28T20:36:09.642Z",
+  "newDiagnosticEntries": 0,
+  "newLatencyRecords": 0,
+  "newControlledConversationTrials": 0,
+  "persistenceAudit": [
+    {
+      "goalRound": "early attention implementation",
+      "progress": "runtime and actual-component cue implemented and verified",
+      "sameRemainingBarrier": "no controlled physical spoken comparison, human quality acceptance or onset proof"
+    },
+    {
+      "goalRound": "B8/B9 native installation and tap correction",
+      "progress": "real tap blackout measured, targeted fix installed, full checks passed",
+      "sameRemainingBarrier": "no controlled physical spoken comparison, human quality acceptance or onset proof"
+    },
+    {
+      "goalRound": "current read-only followup",
+      "progress": "no new acceptance data; installed app/source and unchanged diagnostic tail revalidated",
+      "sameRemainingBarrier": "no controlled physical spoken comparison, human quality acceptance or onset proof"
+    }
+  ],
+  "remainingRequirements": [
+    {
+      "requirement": "actual speech start/end references on physical iPhone",
+      "evidence": "missing for a valid controlled series"
+    },
+    {
+      "requirement": "visible/audio and relevant physical onset",
+      "evidence": "proxy/native callbacks only; no verified actual pixel, acoustic or movement onset"
+    },
+    {
+      "requirement": "comparable before/after median and p95",
+      "evidence": "no valid full-response A/B series"
+    },
+    {
+      "requirement": "conversation quality and interruptibility on device",
+      "evidence": "runtime/simulator checks passed; human physical acceptance still missing"
+    }
+  ],
+  "impasse": "required spoken/device observations depend on user availability or a changed external test state; further offline mocks do not establish these requirements",
+  "pendingHumanQuestion": "B9 installed: open Budget, tap once, say Hallo hoerst du mich; report audible response and continued listening. No reply received.",
+  "decision": "mark goal blocked, not complete; preserve regular installed B9",
+  "evidenceSha256": {
+    "device-B9-followup.mmkv": "d2f738416fd0c3286e362d22ec1afbfc679fa3bbee11c4cf44d08e7ae87929e4",
+    "apps-B9-followup.json": "aede08ec7c15005d58b339bc1cbfc527973f44f7317db55f2cde19baad2cb2b7",
+    "B9-ios-check.log": "ee226595b0efd51d80f03f18aeefbe0664cf7a4335c4f8216d8f8cbd8754f8ce"
+  }
+}

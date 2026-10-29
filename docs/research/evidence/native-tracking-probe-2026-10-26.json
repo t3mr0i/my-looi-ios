@@ -1,0 +1,1467 @@
+{
+  "metadata": {
+    "computeDevice": "framework-default",
+    "fixtureSourceVersion": "procedural-object-fixtures-v1",
+    "frameHeight": 240,
+    "frameWidth": 320,
+    "measurementOnly": true,
+    "orientation": "up",
+    "os": "Version 26.6.2 (Build 25G83)",
+    "passClaim": "none; successful process means measurements were collected",
+    "pixelFormat": "32BGRA",
+    "supportedVisionTrackingRevisions": [
+      1,
+      2
+    ],
+    "tracker": "LocalObjectTrackingSession.start/step",
+    "trackingLevel": "accurate",
+    "visionTrackingRevision": 2,
+    "sourceHashes": {
+      "helperPath": "modules/local-face-attention/ios/LocalObjectTrackingSession.swift",
+      "helperSha256": "e059792fd0b6c29d8bd7db8afe4a094211bcd4e92f6d6e8a28ea02f53060d582",
+      "probeDriverPath": "scripts/native/vision-object-tracking-probe.swift",
+      "probeDriverSha256": "ac1c2ea791eb6644b57b4ed8eaa3a86da23b8a8f8e57b9025c0ed71e25e75f8c"
+    },
+    "fixtureInterpretationNote": "The similar-distractor fixture is procedurally similar and intentionally overlapping; association metrics describe this ambiguous synthetic input and do not prove reliable identity discrimination for distinguishable real objects."
+  },
+  "scenarios": [
+    {
+      "endedAfterLoss": false,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 68.637833,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.8116851124029174,
+          "confidence": 0.9539999961853027,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.878917,
+          "expectedRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.46875,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.325,
+            "right": 0.6125,
+            "top": 0.3125,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 1,
+          "iou": 0.9240331229968357,
+          "observedRect": {
+            "bottom": 0.6855960845947265,
+            "centerX": 0.46594567298889156,
+            "centerY": 0.4976090908050537,
+            "height": 0.37597398757934564,
+            "left": 0.31548256874084474,
+            "right": 0.6164087772369384,
+            "top": 0.3096220970153809,
+            "width": 0.3009262084960937
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.5351012682094698,
+          "confidence": 0.968999981880188,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.629167,
+          "expectedRect": {
+            "bottom": 0.7083333333333334,
+            "centerX": 0.49374999999999997,
+            "centerY": 0.5166666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.35,
+            "right": 0.6375,
+            "top": 0.325,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 2,
+          "iou": 0.90405351427778,
+          "observedRect": {
+            "bottom": 0.7030740102132161,
+            "centerX": 0.48918752670288085,
+            "centerY": 0.5186429182688395,
+            "height": 0.36886218388875325,
+            "left": 0.3358210325241089,
+            "right": 0.6425540208816528,
+            "top": 0.3342118263244629,
+            "width": 0.3067329883575439
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.0471224214741022,
+          "confidence": 0.9750000238418579,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.545083,
+          "expectedRect": {
+            "bottom": 0.7208333333333333,
+            "centerX": 0.51875,
+            "centerY": 0.5291666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.375,
+            "right": 0.6625,
+            "top": 0.3375,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 3,
+          "iou": 0.8862548655333056,
+          "observedRect": {
+            "bottom": 0.710680643717448,
+            "centerX": 0.5154839515686035,
+            "centerY": 0.5294353167215984,
+            "height": 0.3624906539916992,
+            "left": 0.361549973487854,
+            "right": 0.669417929649353,
+            "top": 0.34818998972574877,
+            "width": 0.307867956161499
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.1197666838584368,
+          "confidence": 0.9739999771118164,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.542333,
+          "expectedRect": {
+            "bottom": 0.7333333333333333,
+            "centerX": 0.54375,
+            "centerY": 0.5416666666666666,
+            "height": 0.3833333333333333,
+            "left": 0.4,
+            "right": 0.6875,
+            "top": 0.35,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 4,
+          "iou": 0.8745103711866463,
+          "observedRect": {
+            "bottom": 0.7218283335367839,
+            "centerX": 0.5404626965522766,
+            "centerY": 0.5432658513387044,
+            "height": 0.35712496439615893,
+            "left": 0.38663439750671386,
+            "right": 0.6942909955978394,
+            "top": 0.36470336914062496,
+            "width": 0.3076565980911255
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 2.5786878906628483,
+          "confidence": 0.9580000042915344,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.561042,
+          "expectedRect": {
+            "bottom": 0.7458333333333333,
+            "centerX": 0.56875,
+            "centerY": 0.5541666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.425,
+            "right": 0.7125,
+            "top": 0.3625,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 5,
+          "iou": 0.8743751491660398,
+          "observedRect": {
+            "bottom": 0.726565678914388,
+            "centerX": 0.5637258291244507,
+            "centerY": 0.5457660833994546,
+            "height": 0.3615991910298665,
+            "left": 0.40796289443969724,
+            "right": 0.719488763809204,
+            "top": 0.36496648788452146,
+            "width": 0.31152586936950677
+          },
+          "phase": "tracked"
+        }
+      ],
+      "id": "translation",
+      "postLoss": null,
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 68.637833,
+        "status": "accepted"
+      }
+    },
+    {
+      "endedAfterLoss": false,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 1.615042,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.7086637551820156,
+          "confidence": 0.9679999947547913,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.576791,
+          "expectedRect": {
+            "bottom": 0.7,
+            "centerX": 0.44375,
+            "centerY": 0.49166666666666664,
+            "height": 0.41666666666666663,
+            "left": 0.2875,
+            "right": 0.6,
+            "top": 0.2833333333333333,
+            "width": 0.3125
+          },
+          "fullyOccluded": false,
+          "index": 1,
+          "iou": 0.9088524873695744,
+          "observedRect": {
+            "bottom": 0.6876875559488933,
+            "centerX": 0.43842215538024903,
+            "centerY": 0.49213830629984545,
+            "height": 0.3910984992980957,
+            "left": 0.2793841600418091,
+            "right": 0.597460150718689,
+            "top": 0.2965890566507976,
+            "width": 0.31807599067687986
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.0935684223279452,
+          "confidence": 0.9399999976158142,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.60625,
+          "expectedRect": {
+            "bottom": 0.7166666666666667,
+            "centerX": 0.44375000000000003,
+            "centerY": 0.4916666666666667,
+            "height": 0.45,
+            "left": 0.275,
+            "right": 0.6125,
+            "top": 0.26666666666666666,
+            "width": 0.3375
+          },
+          "fullyOccluded": false,
+          "index": 2,
+          "iou": 0.8913448611501337,
+          "observedRect": {
+            "bottom": 0.6979831695556641,
+            "centerX": 0.440349280834198,
+            "centerY": 0.4912169933319092,
+            "height": 0.41353235244750974,
+            "left": 0.2659099578857422,
+            "right": 0.6147886037826538,
+            "top": 0.28445081710815434,
+            "width": 0.3488786458969116
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.2470351319666537,
+          "confidence": 0.9419999718666077,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.642125,
+          "expectedRect": {
+            "bottom": 0.7333333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.49166666666666664,
+            "height": 0.4833333333333333,
+            "left": 0.2625,
+            "right": 0.625,
+            "top": 0.25,
+            "width": 0.3625
+          },
+          "fullyOccluded": false,
+          "index": 3,
+          "iou": 0.880832751914808,
+          "observedRect": {
+            "bottom": 0.7158922831217448,
+            "centerX": 0.4400960445404053,
+            "centerY": 0.4934728781382243,
+            "height": 0.44483880996704095,
+            "left": 0.25000948905944825,
+            "right": 0.6301826000213624,
+            "top": 0.27105347315470385,
+            "width": 0.38017311096191414
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 2.5530003514797595,
+          "confidence": 0.9190000295639038,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.559708,
+          "expectedRect": {
+            "bottom": 0.75,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.5166666666666666,
+            "left": 0.25,
+            "right": 0.6375,
+            "top": 0.23333333333333334,
+            "width": 0.38749999999999996
+          },
+          "fullyOccluded": false,
+          "index": 4,
+          "iou": 0.8817740763452799,
+          "observedRect": {
+            "bottom": 0.7403916676839193,
+            "centerX": 0.44620180130004883,
+            "centerY": 0.501789395014445,
+            "height": 0.4772045453389486,
+            "left": 0.24249634742736817,
+            "right": 0.6499072551727295,
+            "top": 0.26318712234497066,
+            "width": 0.4074109077453614
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.0102258944514164,
+          "confidence": 0.9300000071525574,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.364916,
+          "expectedRect": {
+            "bottom": 0.7666666666666667,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.55,
+            "left": 0.2375,
+            "right": 0.65,
+            "top": 0.21666666666666667,
+            "width": 0.41250000000000003
+          },
+          "fullyOccluded": false,
+          "index": 5,
+          "iou": 0.8899460461427955,
+          "observedRect": {
+            "bottom": 0.7486691157023112,
+            "centerX": 0.44261393547058103,
+            "centerY": 0.49559394518534344,
+            "height": 0.5061503410339355,
+            "left": 0.22872650623321533,
+            "right": 0.6565013647079467,
+            "top": 0.24251877466837568,
+            "width": 0.4277748584747314
+          },
+          "phase": "tracked"
+        }
+      ],
+      "id": "scale",
+      "postLoss": null,
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 1.615042,
+        "status": "accepted"
+      }
+    },
+    {
+      "endedAfterLoss": false,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 1.548708,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 5.255199900668007,
+          "confidence": 0.75,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.601208,
+          "expectedRect": {
+            "bottom": 0.6916666666666667,
+            "centerX": 0.459375,
+            "centerY": 0.5,
+            "height": 0.3833333333333333,
+            "left": 0.315625,
+            "right": 0.603125,
+            "top": 0.30833333333333335,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 1,
+          "iou": 0.8755853670884661,
+          "observedRect": {
+            "bottom": 0.6857025146484375,
+            "centerX": 0.4432636260986328,
+            "centerY": 0.4957579612731934,
+            "height": 0.37988910675048815,
+            "left": 0.2985510349273682,
+            "right": 0.5879762172698975,
+            "top": 0.3058134078979493,
+            "width": 0.2894251823425293
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 8.010277107491515,
+          "confidence": 0.8960000276565552,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.517834,
+          "expectedRect": {
+            "bottom": 0.7,
+            "centerX": 0.475,
+            "centerY": 0.5083333333333333,
+            "height": 0.3833333333333333,
+            "left": 0.33125,
+            "right": 0.61875,
+            "top": 0.31666666666666665,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 2,
+          "iou": 0.8011609372151659,
+          "observedRect": {
+            "bottom": 0.682247797648112,
+            "centerX": 0.451500117778778,
+            "centerY": 0.4968355178833008,
+            "height": 0.37082455952962246,
+            "left": 0.30974493026733396,
+            "right": 0.5932553052902221,
+            "top": 0.3114232381184896,
+            "width": 0.2835103750228881
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 9.183384933759307,
+          "confidence": 0.7689999938011169,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.537584,
+          "expectedRect": {
+            "bottom": 0.7083333333333334,
+            "centerX": 0.490625,
+            "centerY": 0.5166666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.346875,
+            "right": 0.634375,
+            "top": 0.325,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 3,
+          "iou": 0.7855298230725158,
+          "observedRect": {
+            "bottom": 0.6910668690999349,
+            "centerX": 0.4627457141876221,
+            "centerY": 0.5075916608174642,
+            "height": 0.3669504165649413,
+            "left": 0.32223992347717284,
+            "right": 0.6032515048980713,
+            "top": 0.32411645253499355,
+            "width": 0.2810115814208985
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 4.739505161636427,
+          "confidence": 0.8370000123977661,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.5375,
+          "expectedRect": {
+            "bottom": 0.7166666666666667,
+            "centerX": 0.50625,
+            "centerY": 0.525,
+            "height": 0.38333333333333336,
+            "left": 0.3625,
+            "right": 0.65,
+            "top": 0.3333333333333333,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 4,
+          "iou": 0.8716415732364531,
+          "observedRect": {
+            "bottom": 0.699726931254069,
+            "centerX": 0.49281311035156256,
+            "centerY": 0.5166931788126627,
+            "height": 0.3660675048828126,
+            "left": 0.3485522508621216,
+            "right": 0.6370739698410035,
+            "top": 0.33365942637125645,
+            "width": 0.2885217189788819
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 8.24999494841397,
+          "confidence": 0.8899999856948853,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.499541,
+          "expectedRect": {
+            "bottom": 0.725,
+            "centerX": 0.521875,
+            "centerY": 0.5333333333333333,
+            "height": 0.3833333333333333,
+            "left": 0.378125,
+            "right": 0.665625,
+            "top": 0.3416666666666667,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 5,
+          "iou": 0.7996092512413457,
+          "observedRect": {
+            "bottom": 0.7072081883748372,
+            "centerX": 0.4967788338661194,
+            "centerY": 0.5254616419474283,
+            "height": 0.3634930928548178,
+            "left": 0.3525362014770508,
+            "right": 0.641021466255188,
+            "top": 0.34371509552001944,
+            "width": 0.2884852647781372
+          },
+          "phase": "tracked"
+        }
+      ],
+      "id": "partial-occlusion",
+      "postLoss": null,
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 1.548708,
+        "status": "accepted"
+      }
+    },
+    {
+      "endedAfterLoss": false,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 1.558292,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": true,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 2.8690764605341674,
+          "confidence": 0.7200000286102295,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.605208,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.453125,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.309375,
+            "right": 0.596875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": true,
+          "index": 1,
+          "iou": 0.9229688828750916,
+          "observedRect": {
+            "bottom": 0.6830332438151041,
+            "centerX": 0.44482884407043455,
+            "centerY": 0.4871332327524821,
+            "height": 0.391800022125244,
+            "left": 0.2985473871231079,
+            "right": 0.5911103010177612,
+            "top": 0.2912332216898601,
+            "width": 0.2925629138946533
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": true,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 4.553428852997966,
+          "confidence": 0.6949999928474426,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.604917,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.46249999999999997,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.31875,
+            "right": 0.60625,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": true,
+          "index": 2,
+          "iou": 0.8825812393218614,
+          "observedRect": {
+            "bottom": 0.6831751505533854,
+            "centerX": 0.4492072582244873,
+            "centerY": 0.48489670753479003,
+            "height": 0.39655688603719075,
+            "left": 0.301279091835022,
+            "right": 0.5971354246139526,
+            "top": 0.28661826451619465,
+            "width": 0.29585633277893064
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": true,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 5.81515212599871,
+          "confidence": 0.7269999980926514,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.633625,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.471875,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.328125,
+            "right": 0.615625,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": true,
+          "index": 3,
+          "iou": 0.8545659157479767,
+          "observedRect": {
+            "bottom": 0.6837385813395183,
+            "centerX": 0.4546040534973144,
+            "centerY": 0.4841302394866943,
+            "height": 0.3992166837056479,
+            "left": 0.3055222988128662,
+            "right": 0.6036858081817627,
+            "top": 0.28452189763387037,
+            "width": 0.29816350936889646
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": true,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 6.832288511576575,
+          "confidence": 0.7099999785423279,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.522667,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.48125,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3375,
+            "right": 0.625,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": true,
+          "index": 4,
+          "iou": 0.8339067854729019,
+          "observedRect": {
+            "bottom": 0.6840409596761068,
+            "centerX": 0.4607200503349304,
+            "centerY": 0.48384849230448407,
+            "height": 0.40038493474324544,
+            "left": 0.31084632873535156,
+            "right": 0.6105937719345093,
+            "top": 0.28365602493286135,
+            "width": 0.2997474431991577
+          },
+          "phase": "tracked"
+        }
+      ],
+      "id": "full-occlusion",
+      "postLoss": null,
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 1.558292,
+        "status": "accepted"
+      }
+    },
+    {
+      "endedAfterLoss": false,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 1.496667,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": true,
+          "centerErrorPx": 5.250698186088138,
+          "confidence": 0.9670000076293945,
+          "distractorIoU": 0.8943917526084034,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.43124999999999997,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.2875,
+            "right": 0.575,
+            "top": 0.3125,
+            "width": 0.2875
+          },
+          "elapsedMs": 1.617625,
+          "expectedRect": {
+            "bottom": 0.6916666666666667,
+            "centerX": 0.46249999999999997,
+            "centerY": 0.5,
+            "height": 0.3833333333333333,
+            "left": 0.31875,
+            "right": 0.60625,
+            "top": 0.30833333333333335,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 1,
+          "iou": 0.8766564973874542,
+          "observedRect": {
+            "bottom": 0.6949337005615235,
+            "centerX": 0.4465929985046387,
+            "centerY": 0.5053672154744466,
+            "height": 0.3791329701741537,
+            "left": 0.2881464958190918,
+            "right": 0.6050395011901856,
+            "top": 0.3158007303873698,
+            "width": 0.31689300537109377
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 9.213919635288384,
+          "confidence": 0.9649999737739563,
+          "distractorIoU": 0.7964598771564518,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.41875,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.275,
+            "right": 0.5625,
+            "top": 0.3125,
+            "width": 0.2875
+          },
+          "elapsedMs": 1.239958,
+          "expectedRect": {
+            "bottom": 0.7,
+            "centerX": 0.48125,
+            "centerY": 0.5083333333333333,
+            "height": 0.3833333333333333,
+            "left": 0.3375,
+            "right": 0.625,
+            "top": 0.31666666666666665,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 2,
+          "iou": 0.8225880687804805,
+          "observedRect": {
+            "bottom": 0.6947203318277995,
+            "centerX": 0.45252242088317873,
+            "centerY": 0.5057370026906332,
+            "height": 0.3779666582743326,
+            "left": 0.2822209596633911,
+            "right": 0.6228238821029664,
+            "top": 0.31675367355346684,
+            "width": 0.34060292243957524
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": true,
+          "centerErrorPx": 14.958063741348804,
+          "confidence": 0.9419999718666077,
+          "distractorIoU": 0.7286884730400115,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.40625,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.2625,
+            "right": 0.55,
+            "top": 0.3125,
+            "width": 0.28750000000000003
+          },
+          "elapsedMs": 1.338125,
+          "expectedRect": {
+            "bottom": 0.7083333333333334,
+            "centerX": 0.5,
+            "centerY": 0.5166666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.35625,
+            "right": 0.64375,
+            "top": 0.325,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 3,
+          "iou": 0.7186823979296987,
+          "observedRect": {
+            "bottom": 0.7034446716308593,
+            "centerX": 0.4537975907325744,
+            "centerY": 0.5072071234385173,
+            "height": 0.39247509638468414,
+            "left": 0.27120251655578614,
+            "right": 0.6363926649093627,
+            "top": 0.3109695752461752,
+            "width": 0.3651901483535766
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": true,
+          "centerErrorPx": 21.142812629477657,
+          "confidence": 0.921999990940094,
+          "distractorIoU": 0.6624980301081663,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.39375,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.25,
+            "right": 0.5375,
+            "top": 0.3125,
+            "width": 0.2875
+          },
+          "elapsedMs": 1.627583,
+          "expectedRect": {
+            "bottom": 0.7166666666666667,
+            "centerX": 0.51875,
+            "centerY": 0.525,
+            "height": 0.38333333333333336,
+            "left": 0.375,
+            "right": 0.6625,
+            "top": 0.3333333333333333,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 4,
+          "iou": 0.6412547214420776,
+          "observedRect": {
+            "bottom": 0.7145763397216797,
+            "centerX": 0.4530835628509522,
+            "centerY": 0.5152626196543375,
+            "height": 0.3986274401346842,
+            "left": 0.26252920627593995,
+            "right": 0.6436379194259644,
+            "top": 0.31594889958699546,
+            "width": 0.3811087131500244
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": true,
+          "centerErrorPx": 28.92511409890705,
+          "confidence": 0.746999979019165,
+          "distractorIoU": 0.6272918590710319,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.38125,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.2375,
+            "right": 0.525,
+            "top": 0.3125,
+            "width": 0.28750000000000003
+          },
+          "elapsedMs": 1.557834,
+          "expectedRect": {
+            "bottom": 0.725,
+            "centerX": 0.5375,
+            "centerY": 0.5333333333333333,
+            "height": 0.3833333333333333,
+            "left": 0.39375,
+            "right": 0.68125,
+            "top": 0.3416666666666667,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 5,
+          "iou": 0.5381726611504795,
+          "observedRect": {
+            "bottom": 0.72159792582194,
+            "centerX": 0.4479941368103027,
+            "centerY": 0.5165084838867187,
+            "height": 0.41017888387044266,
+            "left": 0.25478396415710447,
+            "right": 0.6412043094635009,
+            "top": 0.3114190419514974,
+            "width": 0.38642034530639646
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": true,
+          "centerErrorPx": 34.09661516131382,
+          "confidence": 0.8100000023841858,
+          "distractorIoU": 0.5622110480768167,
+          "distractorRect": {
+            "bottom": 0.6958333333333333,
+            "centerX": 0.36874999999999997,
+            "centerY": 0.5041666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.225,
+            "right": 0.5125,
+            "top": 0.3125,
+            "width": 0.2875
+          },
+          "elapsedMs": 1.588708,
+          "expectedRect": {
+            "bottom": 0.7333333333333333,
+            "centerX": 0.5562499999999999,
+            "centerY": 0.5416666666666666,
+            "height": 0.3833333333333333,
+            "left": 0.4125,
+            "right": 0.7,
+            "top": 0.35,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 6,
+          "iou": 0.4877800605481075,
+          "observedRect": {
+            "bottom": 0.7340635935465495,
+            "centerX": 0.450551700592041,
+            "centerY": 0.5237195014953613,
+            "height": 0.4206881841023763,
+            "left": 0.25008811950683596,
+            "right": 0.6510152816772461,
+            "top": 0.3133754094441732,
+            "width": 0.40092716217041013
+          },
+          "phase": "tracked"
+        }
+      ],
+      "id": "similar-distractor",
+      "postLoss": null,
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 1.496667,
+        "status": "accepted"
+      }
+    },
+    {
+      "endedAfterLoss": true,
+      "frames": [
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 0,
+          "confidence": 1,
+          "distractorIoU": null,
+          "elapsedMs": 1.553666,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.3,
+            "width": 0.28750000000000003
+          },
+          "fullyOccluded": false,
+          "index": 0,
+          "iou": 0.9999999999999998,
+          "observedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.44375,
+            "centerY": 0.4916666666666667,
+            "height": 0.3833333333333333,
+            "left": 0.3,
+            "right": 0.5875,
+            "top": 0.30000000000000004,
+            "width": 0.28750000000000003
+          },
+          "phase": "seed"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 2.0762525732213857,
+          "confidence": 0.9580000042915344,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.596167,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.54375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.4,
+            "right": 0.6875,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 1,
+          "iou": 0.9316460118282404,
+          "observedRect": {
+            "bottom": 0.6740834554036459,
+            "centerX": 0.5389525532722473,
+            "centerY": 0.48584221204121913,
+            "height": 0.3764824867248535,
+            "left": 0.38917078971862795,
+            "right": 0.6887343168258667,
+            "top": 0.2976009686787924,
+            "width": 0.29956352710723877
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 3.2292130509495025,
+          "confidence": 0.9490000009536743,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.482792,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.64375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.5,
+            "right": 0.7875,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 2,
+          "iou": 0.8870363770404732,
+          "observedRect": {
+            "bottom": 0.6676427205403646,
+            "centerX": 0.6392822027206421,
+            "centerY": 0.47960217793782556,
+            "height": 0.376081085205078,
+            "left": 0.4868593215942383,
+            "right": 0.7917050838470459,
+            "top": 0.29156163533528656,
+            "width": 0.3048457622528076
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 1.9093554364728098,
+          "confidence": 0.9409999847412109,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.505166,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.7437499999999999,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.6,
+            "right": 0.8875,
+            "top": 0.3,
+            "width": 0.2875
+          },
+          "fullyOccluded": false,
+          "index": 3,
+          "iou": 0.9063671741837105,
+          "observedRect": {
+            "bottom": 0.6719384511311849,
+            "centerX": 0.740354335308075,
+            "centerY": 0.48512498537699383,
+            "height": 0.3736269315083821,
+            "left": 0.5868549823760987,
+            "right": 0.8938536882400513,
+            "top": 0.2983115196228028,
+            "width": 0.3069987058639526
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": true,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": 3.072701898076852,
+          "confidence": 0.9440000057220459,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.496791,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.84375,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.7,
+            "right": 0.9875,
+            "top": 0.3,
+            "width": 0.2875000000000001
+          },
+          "fullyOccluded": false,
+          "index": 4,
+          "iou": 0.8745484972612065,
+          "observedRect": {
+            "bottom": 0.6674648284912109,
+            "centerX": 0.8400284647941589,
+            "centerY": 0.4798644224802653,
+            "height": 0.37520081202189126,
+            "left": 0.6851266384124756,
+            "right": 0.9949302911758422,
+            "top": 0.29226401646931965,
+            "width": 0.30980365276336663
+          },
+          "phase": "tracked"
+        },
+        {
+          "accepted": false,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": null,
+          "confidence": null,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 1.355167,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.9,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.8,
+            "right": 1,
+            "top": 0.3,
+            "width": 0.19999999999999996
+          },
+          "fullyOccluded": false,
+          "index": 5,
+          "iou": null,
+          "lossReason": "out_of_bounds",
+          "observedRect": null,
+          "phase": "lost"
+        },
+        {
+          "accepted": false,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": null,
+          "confidence": null,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 0.000083,
+          "expectedRect": {
+            "bottom": 0.6833333333333333,
+            "centerX": 0.95,
+            "centerY": 0.4916666666666667,
+            "height": 0.38333333333333336,
+            "left": 0.9,
+            "right": 1,
+            "top": 0.3,
+            "width": 0.09999999999999998
+          },
+          "fullyOccluded": false,
+          "index": 6,
+          "iou": null,
+          "lossReason": "session_ended",
+          "observedRect": null,
+          "phase": "lost"
+        },
+        {
+          "accepted": false,
+          "acceptedWhileFullyOccluded": false,
+          "associatedMoreWithDistractor": false,
+          "centerErrorPx": null,
+          "confidence": null,
+          "distractorIoU": null,
+          "distractorRect": null,
+          "elapsedMs": 0.000084,
+          "expectedRect": null,
+          "fullyOccluded": false,
+          "index": 7,
+          "iou": null,
+          "lossReason": "session_ended",
+          "observedRect": null,
+          "phase": "lost"
+        }
+      ],
+      "id": "exits-image",
+      "postLoss": {
+        "elapsedMs": 0.000041,
+        "lossReason": "session_ended",
+        "status": "lost"
+      },
+      "seedRect": {
+        "bottom": 0.6833333333333333,
+        "centerX": 0.44375,
+        "centerY": 0.4916666666666667,
+        "height": 0.38333333333333336,
+        "left": 0.3,
+        "right": 0.5875,
+        "top": 0.3,
+        "width": 0.28750000000000003
+      },
+      "start": {
+        "elapsedMs": 1.553666,
+        "status": "accepted"
+      }
+    }
+  ],
+  "measurementStatus": "frames-collected"
+}

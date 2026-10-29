@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { loadTypeScript, deferred } from "./helpers/load-typescript.mjs";
 
 const protocol = loadTypeScript("src/agent/agent-protocol.ts");
-const clientModule = loadTypeScript("src/agent/agent-client.ts", { "./agent-protocol": protocol });
+const capabilities = loadTypeScript("src/agent/agent-capabilities.ts", { "./agent-protocol": protocol });
+const clientModule = loadTypeScript("src/agent/agent-client.ts", { "./agent-protocol": protocol, "./agent-capabilities": capabilities, "./agent-nous": loadTypeScript("src/agent/agent-nous.ts", { "./agent-protocol": protocol }) });
 const core = loadTypeScript("src/agent/agent-service-core.ts", { "./agent-protocol": protocol, "./agent-client": clientModule });
 const id = "01234567-1234-4123-8123-123456789abc";
 const secondId = "01234567-1234-4123-8123-123456789abd";

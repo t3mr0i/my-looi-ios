@@ -106,7 +106,7 @@ export async function restoreLocalMemoryBackup(value: unknown): Promise<LocalMem
   return runLocalMemoryMutation(stopConversationForMemoryChange, () => localMemoryDatabase.restoreBackup(value));
 }
 
-async function stopConversationForMemoryChange(): Promise<void> {
+export async function stopConversationForMemoryChange(): Promise<void> {
   // Deferred import avoids making SQLite initialization depend on native audio.
   const { realtimeConversationService } = await import("../voice/realtime-conversation");
   await realtimeConversationService.stop("local-memory-change");

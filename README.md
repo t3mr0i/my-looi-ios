@@ -19,8 +19,8 @@ See [USER_GUIDE.md](USER_GUIDE.md) for setup, voice commands, visual look, safet
 - **Explicit visual look**: address LOOI and ask it to look at something to add a high-resolution snapshot to the current Realtime conversation; front camera is the default and an explicit rear-camera request can use an autofocus-capable rear sensor for fine text.
 - **Scoped photo discussion**: choose up to four existing images through Android Photo Picker; only those selected photos are read and added to the current Realtime context, with temporary per-selection URI grants when supported, without broad gallery permission or durable app copies.
 - **Natural interruption / barge-in**: speaking while LOOI talks stops playback and truncates the unheard response correctly.
-- **Localized Android interface** in Ukrainian, English and Russian, with an independent interface-language preference.
-- **Multilingual conversation** in Ukrainian, English and Russian, including independent listening/response preferences, voice-requested language switching, and one-off translation/pronunciation requests.
+- **Localized Android interface** in German, Ukrainian, English and Russian, with an independent interface-language preference.
+- **Multilingual conversation** in German, Ukrainian, English and Russian, including independent listening/response preferences, voice-requested language switching, and one-off translation/pronunciation requests.
 - **Dynamic OpenAI Realtime model selection** based on the models available to the user's API key.
 - **Realtime voice selection with preview**, persisted locally.
 - **Independent speech gender**: choose masculine or feminine grammatical self-reference for Russian/Ukrainian without coupling it to voice or character.
@@ -29,7 +29,7 @@ See [USER_GUIDE.md](USER_GUIDE.md) for setup, voice commands, visual look, safet
 - **Local memory and conversation history** stored in SQLite on the Android device.
 - **Memory controls**: search saved facts, inspect their recorded origin, correct a fact or delete it individually. Changes close the current conversation so the next session loads the updated facts.
 - **On-demand web research** from Conversations: enter a question, review the API cost notice and search with your own OpenAI key. Answers include clickable inline citations and a source list.
-- **Optional Agent tasks** from Conversations: connect your own Hermes service, start a text research task and check its status/result after returning to the app. Includes cancellation, older task pages and deletion. [Connection and Fly.io deployment](docs/hermes-agent.md).
+- **Hermes background tasks**: connect your own service to handle explicitly requested research and planning while Realtime continues the conversation. The task screen supports status, results, cancellation, older task pages and deletion. [Connection and deployment](docs/hermes-agent.md).
 - **Local wake and safety command pipeline** for hands-free use.
 - **BLE reconnect and deterministic robot control** with voice-addressed movement and safety guardrails.
 - **Natural idle and conversational micro-movements** with four intensity levels, conservative head gestures while processing/speaking, and optional tiny safety-bounded idle body pivots; actual user speech and explicit commands always take priority.
@@ -39,6 +39,13 @@ See [USER_GUIDE.md](USER_GUIDE.md) for setup, voice commands, visual look, safet
 - **Manual GitHub Releases update flow** with APK checksum/package/version/signing-certificate verification before Android installation.
 
 See [FEATURES.md](FEATURES.md) for a fuller feature list, [CHANGELOG.md](CHANGELOG.md) for release notes, and [docs/architecture.md](docs/architecture.md) for the runtime architecture.
+
+The integrated **Apps** area brings Reachy Mini and MicroDuck apps into My LOOI.
+Browse the Hugging Face catalog, install and start apps, and manage camera/audio
+access from the native interface. Web apps open in the app on iOS. The shared
+execution core connects WebRTC and Pollen Central to the LOOI backend.
+Hosted apps connect directly to the phone through the native Central host.
+See [app connection setup](docs/robot-bridge.md).
 
 The dated [research and implementation report](docs/research/my-looi-entscheidungsbericht.md)
 records the selected improvements, evaluated alternatives, remaining hardware
@@ -101,7 +108,7 @@ Major steps in that evolution included:
 - moving persistent memory and conversation history onto the Android device with SQLite;
 - removing the required companion backend from normal operation;
 - developing local wake, emergency-command, BLE reconnect, movement safety, and privacy lifecycle behavior;
-- adding Ukrainian, English and Russian interface localization and conversation, independent persistent UI/listening/response language preferences, selectable Realtime models, and selectable voices.
+- adding German, Ukrainian, English and Russian interface localization and conversation, independent persistent UI/listening/response language preferences, selectable Realtime models, and selectable voices.
 
 Because the current architecture and product goals differ substantially from the original fork, My LOOI is now maintained as a standalone project with a new public Git history, while preserving acknowledgement of the projects that helped it get started.
 
@@ -121,4 +128,4 @@ Third-party components and model assets retain their own licenses. See [THIRD_PA
 
 ## Contextual behavior with Decisions
 
-Optional Off/Observe/Active behavior modes add contextual gestures, task continuity, attention policies, explicit image-quality assessment and a small shared guessing game. Settings includes recorded usage, a local daily budget and a separate image opt-in. See [the behavior guide](docs/decisions-behavior.md).
+Off/Observe/Active behavior modes add contextual gestures, task continuity, attention policies, explicit image-quality assessment and a small shared guessing game. Active is the default when no preference is saved; a saved choice is preserved. Settings includes recorded usage, a local daily budget and a separate image opt-in. See [the behavior guide](docs/decisions-behavior.md).

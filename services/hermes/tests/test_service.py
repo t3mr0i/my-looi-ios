@@ -13,7 +13,7 @@ from services.hermes.server import dispatch_request
 from services.hermes.service import TaskManager
 from services.hermes.store import QueueFull, TaskStore
 from services.hermes.tests.helpers import fixture_worker
-from services.hermes.worker import _agent_kwargs, _safe_url, prepare_hermes_home, sources_from_messages
+from services.hermes.worker import _agent_kwargs, _safe_url, answer_with_source_status, prepare_hermes_home, sources_from_messages
 from services.hermes.server import valid_agent_token
 
 
@@ -89,7 +89,17 @@ class HttpApiTests(unittest.TestCase):
             "protocol": 1,
             "service": "looi-hermes",
             "capabilities": ["tasks", "cancel", "delete"],
+            "features": [{"id": "public-research", "revision": 1, "availability": "available"}],
+            "connectionProviders": ["nous-v1"],
         })
+
+    def test_german_task_survives_submission_and_result_retrieval(self):
+        status, task, task_id = self.submit("Vergleiche zwei Quellen", language="de")
+        self.assertEqual(status, 202)
+        self.assertEqual(task["language"], "de")
+        completed = self.wait_for_status(task_id, {"completed"})
+        self.assertEqual(completed["language"], "de")
+        self.assertTrue(completed["answer"])
 
     def test_task_list_is_bounded_summary_while_task_detail_has_full_result(self):
         _, _, task_id = self.submit("normal search")
@@ -170,7 +180,7 @@ class HttpApiTests(unittest.TestCase):
         task_id = str(uuid4())
         status, _ = self.request("PUT", f"/v1/tasks/{task_id}", payload={"query": "ok", "language": "en", "secret": "x"})
         self.assertEqual(status, 400)
-        status, _ = self.request("PUT", f"/v1/tasks/{uuid4()}", payload={"query": "ok", "language": "de"})
+        status, _ = self.request("PUT", f"/v1/tasks/{uuid4()}", payload={"query": "ok", "language": "xx"})
         self.assertEqual(status, 400)
         status, _ = self.request("PUT", f"/v1/tasks/{uuid4()}", payload={"query": "x" * 2001, "language": "en"})
         self.assertEqual(status, 400)
@@ -242,6 +252,21 @@ class HttpApiTests(unittest.TestCase):
 
 
 class StoreAndAdapterTests(unittest.TestCase):
+    def test_unverified_provider_citation_is_removed_and_warned_in_german(self):
+        answer, sources = answer_with_source_status("Behauptung citeturn0search0", [], "de")
+        self.assertEqual(sources, [])
+        self.assertIn("keine Quellen", answer)
+        self.assertNotIn("turn0search0", answer)
+
+    def test_failed_search_is_not_presented_as_sourced_but_plain_plan_needs_no_warning(self):
+        messages = [{"role": "assistant", "tool_calls": [{"id": "call1", "function": {"name": "web_search"}}]},
+                    {"role": "tool", "tool_call_id": "call1", "content": '{"success": false}'}]
+        answer, sources = answer_with_source_status("A purported fact.", messages, "en")
+        self.assertEqual(sources, [])
+        self.assertIn("No sources could be verified", answer)
+        plan, plan_sources = answer_with_source_status("1. Tidy the desk.", [], "en")
+        self.assertEqual(plan, "1. Tidy the desk.")
+        self.assertEqual(plan_sources, [])
     def test_agent_pins_openai_responses_route_and_disables_default_reasoning(self):
         kwargs = _agent_kwargs("test-key", "gpt-6-luna")
         self.assertEqual(kwargs["provider"], "openai-api")
@@ -249,6 +274,16 @@ class StoreAndAdapterTests(unittest.TestCase):
         self.assertEqual(kwargs["api_mode"], "codex_responses")
         self.assertEqual(kwargs["reasoning_config"], {"enabled": False})
         self.assertEqual(kwargs["enabled_toolsets"], ["search"])
+
+    def test_companion_personality_reaches_agent_without_expanding_capabilities(self):
+        kwargs = _agent_kwargs("test-key", "gpt-6-luna")
+        prompt = kwargs["ephemeral_system_prompt"]
+        self.assertIn("physical companion robot", prompt)
+        self.assertIn("warm, attentive, naturally curious", prompt)
+        self.assertIn("cannot hear, see, remember previous conversations", prompt)
+        self.assertIn("must call web_search", prompt)
+        self.assertEqual(kwargs["enabled_toolsets"], ["search"])
+        self.assertTrue(kwargs["skip_memory"])
 
     def test_agent_bearer_token_matches_client_base64url_bounds(self):
         self.assertTrue(valid_agent_token("A" * 32))
@@ -291,8 +326,8 @@ class StoreAndAdapterTests(unittest.TestCase):
             path = Path(directory) / "tasks.sqlite3"
             store = TaskStore(path)
             running, _ = store.create(str(uuid4()), "in flight", "en")
-            queued, _ = store.create(str(uuid4()), "not started", "uk")
             store.claim_next_queued()
+            queued, _ = store.create(str(uuid4()), "not started", "uk")
             recovered = TaskManager(store, start_worker=False)
             self.assertEqual(recovered.recovered_count, 1)
             self.assertEqual(store.get(running["id"])["status"], "interrupted")
@@ -372,6 +407,9 @@ class StoreAndAdapterTests(unittest.TestCase):
             self.assertIn('search_backend: "ddgs"', config)
             self.assertIn("keyless_fallback: false", config)
             self.assertIn("keyless_rescue: false", config)
+            self.assertIn("connectors:\n    enabled: false", config)
+            self.assertIn("tool_search:\n    enabled: false", config)
+            self.assertIn("nous:\n  guest: false", config)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download the RU/UA/EN app-side sherpa-onnx models without committing large assets.
+# Download the app-side Sherpa ONNX models without committing large assets.
 
 set -euo pipefail
 
@@ -76,11 +76,13 @@ KEYWORDS_TMP="$KWS_DIR/keywords.txt.new"
 printf '%s\n' \
   'L UW0 IY1 :2.4 #0.20 @LOOI' \
   'L UW0 Y IY1 :2.2 #0.20 @LOOI_PALATALIZED' \
+  'L UW1 IY0 S :2.3 #0.20 @LOOI' \
   'S T AA1 P :4.5 #0.08 @STOP' \
   'S T AO1 P :4.5 #0.08 @STOP' \
   'S T AH1 P :4.3 #0.09 @STOP' \
   'S T EH1 P :4.0 #0.10 @STOP' \
-  'S T OY1 :3.8 #0.10 @STOP' > "$KEYWORDS_TMP"
+  'S T OY1 :3.8 #0.10 @STOP' \
+  'SH T AO1 P :4.5 #0.08 @STOP' > "$KEYWORDS_TMP"
 mv -f "$KEYWORDS_TMP" "$KWS_DIR/keywords.txt"
 
 echo "Downloading the speaker ID model..."
@@ -99,4 +101,5 @@ require_file "$KWS_DIR/keywords.txt"
 require_file "$SPEAKER_DIR/model.onnx"
 
 echo "Models downloaded under: $MODEL_ROOT"
-echo "Whisper will auto-detect Russian, Ukrainian, and English."
+echo "Whisper supports Russian, Ukrainian, English, and German language hints."
+echo "The downloaded tiny multilingual model is shared across all four languages."

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 
@@ -66,8 +68,8 @@ assert.match(settings, /parseRealtimePhysicalCommand\(testText, preferences\)/);
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of ["settings.customPhrasesSummary", "settings.customPhrasesHelp", "settings.faceStyle.cowboy", "settings.faceStyle.bandana"]) {
-  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, 3, `${key} must exist in all UI languages`);
+  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, uiLanguageCount, `${key} must exist in all UI languages`);
 }
-assert.equal((strings.match(/"settings\.faceStyle\.fringe": "(?:Cap|Кепка)"/g) ?? []).length, 3, "legacy fringe option must render as a cap in all UI languages");
+assert.equal((strings.match(/"settings\.faceStyle\.fringe": "(?:Cap|Кепка|Kappe)"/g) ?? []).length, uiLanguageCount, "legacy fringe option must render as a cap in all UI languages");
 
 console.log("v2.1.136 uplink gain + social gaze/head ownership + compact custom phrases + face accessories regression: PASS");

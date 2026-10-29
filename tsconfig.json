@@ -8,6 +8,7 @@
       ]
     }
   },
+  "exclude": ["node_modules", "output"],
   "include": [
     "**/*.ts",
     "**/*.tsx",

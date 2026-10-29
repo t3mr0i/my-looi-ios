@@ -46,41 +46,44 @@ export function parseRealtimePhysicalCommand(
   return command ? { kind: "explicit", command } : null;
 }
 
-function responseLanguage(): "ru" | "uk" | "en" {
+function responseLanguage(): "ru" | "uk" | "en" | "de" {
   const language = useUserStore.getState().preferences.language;
-  return language === "uk" || language === "en" ? language : "ru";
+  return language === "uk" || language === "en" || language === "de" ? language : "ru";
 }
 
 function acknowledgementFor(command: RealtimePhysicalCommand, ok: boolean): string {
   const language = responseLanguage();
   if (!ok) {
-    return language === "en" ? "I couldn't do that." : language === "uk" ? "Не вдалося це зробити." : "Не получилось это сделать.";
+    return language === "en" ? "I couldn't do that." : language === "uk" ? "Не вдалося це зробити." : language === "de" ? "Das hat nicht geklappt." : "Не получилось это сделать.";
   }
   if (command.kind === "emergency-stop") {
-    return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : "Остановился.";
+    return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : language === "de" ? "Ich stehe." : "Остановился.";
   }
   const value = command.command;
   if (value.kind === "sleep") {
-    return language === "en" ? "Good night." : language === "uk" ? "На добраніч." : "Спокойной ночи.";
+    return language === "en" ? "Good night." : language === "uk" ? "На добраніч." : language === "de" ? "Gute Nacht." : "Спокойной ночи.";
   }
   if (value.kind === "gesture") {
     if (language === "en") return value.count > 1 ? `Nodded ${value.count} times.` : "Nodded.";
     if (language === "uk") return value.count > 1 ? `Кивнув ${value.count} рази.` : "Кивнув.";
+    if (language === "de") return value.count > 1 ? `Ich habe ${value.count} Mal genickt.` : "Ich habe genickt.";
     return value.count > 1 ? `Кивнул ${value.count} раза.` : "Кивнул.";
   }
   if (value.kind === "dance") {
-    return language === "en" ? "Done!" : language === "uk" ? "Готово!" : "Готово!";
+    return language === "en" ? "Done!" : language === "de" ? "Fertig!" : language === "uk" ? "Готово!" : "Готово!";
   }
   if (value.kind === "turn") {
     if (language === "en") return value.degrees === 180 ? "Turned around." : value.direction === "left" ? "Turned left." : "Turned right.";
     if (language === "uk") return value.degrees === 180 ? "Розвернувся." : value.direction === "left" ? "Повернув ліворуч." : "Повернув праворуч.";
+    if (language === "de") return value.degrees === 180 ? "Ich habe mich umgedreht." : value.direction === "left" ? "Ich habe mich nach links gedreht." : "Ich habe mich nach rechts gedreht.";
     return value.degrees === 180 ? "Развернулся." : value.direction === "left" ? "Повернул налево." : "Повернул направо.";
   }
   if (value.direction === "stop") {
-    return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : "Остановился.";
+    return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : language === "de" ? "Ich stehe." : "Остановился.";
   }
   if (language === "en") return value.direction === "forward" ? "Moved forward." : "Moved backward.";
   if (language === "uk") return value.direction === "forward" ? "Проїхав уперед." : "Проїхав назад.";
+  if (language === "de") return value.direction === "forward" ? "Ich bin vorwärts gefahren." : "Ich bin zurückgefahren.";
   return value.direction === "forward" ? "Проехал вперёд." : "Проехал назад.";
 }
 

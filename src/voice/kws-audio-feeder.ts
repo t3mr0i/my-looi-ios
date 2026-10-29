@@ -18,6 +18,7 @@ type PermissionResponse = {
 };
 
 type AudioStudioNativeModule = {
+  status?: () => Record<string, unknown>;
   getPermissionsAsync?: () => Promise<PermissionResponse>;
   addListener: (eventName: "AudioData", listener: (event: AudioDataPayload) => void) => EventSubscription;
   prepareRecording: (config: RecordingConfig) => Promise<unknown>;
@@ -256,6 +257,8 @@ export class KwsAudioFeeder {
       }
 
       await AudioStudioModule.startRecording(recordingConfig);
+      let nativeProfile: Record<string, unknown> = {};
+      try { nativeProfile = AudioStudioModule.status?.() ?? {}; } catch {}
       this.started = true;
       this.recordingStartedAt = Date.now();
       this.firstAudioEventLogged = false;
@@ -267,6 +270,9 @@ export class KwsAudioFeeder {
         iosAudioSessionCategory: recordingConfig.ios.audioSession.category,
         iosAudioSessionMode: recordingConfig.ios.audioSession.mode,
         startLatencyMs: this.recordingStartedAt - startRequestedAt,
+        requestedIntervalMs: recordingConfig.interval,
+        reportedIntervalMs: typeof nativeProfile.interval === "number" ? nativeProfile.interval : null,
+        reportedSampleRate: typeof nativeProfile.sampleRate === "number" ? nativeProfile.sampleRate : null,
       });
 
       if (!this.desiredRunning || !this.appCaptureAllowed) {

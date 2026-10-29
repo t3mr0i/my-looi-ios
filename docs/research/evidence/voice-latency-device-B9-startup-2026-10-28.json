@@ -1,0 +1,80 @@
+{
+  "observedAt": "2026-10-28T20:41:58.714Z",
+  "kind": "physical iPhone B9 installation and short lifecycle observation; NOT a controlled response trial",
+  "package": "B9",
+  "installation": "success",
+  "launch": "success",
+  "installedAppUrlSuffix": "/B9.app/",
+  "modeObserved": "budget",
+  "events": [
+    {
+      "at": "2026-10-28T20:35:45.355Z",
+      "event": "bootstrap-start"
+    },
+    {
+      "at": "2026-10-28T20:35:45.635Z",
+      "event": "app-state-changed",
+      "state": "inactive"
+    },
+    {
+      "at": "2026-10-28T20:35:46.021Z",
+      "event": "runtime-paused"
+    },
+    {
+      "at": "2026-10-28T20:35:46.789Z",
+      "event": "app-state-changed",
+      "state": "background"
+    },
+    {
+      "at": "2026-10-28T20:36:07.498Z",
+      "event": "app-state-changed",
+      "state": "active"
+    },
+    {
+      "at": "2026-10-28T20:36:07.762Z",
+      "event": "feeder-started",
+      "startLatencyMs": 135,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:36:07.788Z",
+      "event": "conversation-mode-sync",
+      "mode": "budget"
+    },
+    {
+      "at": "2026-10-28T20:36:08.115Z",
+      "event": "app-state-changed",
+      "state": "inactive"
+    },
+    {
+      "at": "2026-10-28T20:36:08.761Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:36:08.833Z",
+      "event": "runtime-paused"
+    },
+    {
+      "at": "2026-10-28T20:36:09.610Z",
+      "event": "app-state-changed",
+      "state": "background"
+    }
+  ],
+  "freshInputHealthRecords": 0,
+  "ordinaryTaps": 0,
+  "inputAttentionPresentationEvents": 0,
+  "controlledConversationTrials": 0,
+  "micToVisibleMedianMs": null,
+  "micToVisibleP95Ms": null,
+  "speechEndToAudibleMedianMs": null,
+  "speechEndToAudibleP95Ms": null,
+  "diagnosticSha256": "d2f738416fd0c3286e362d22ec1afbfc679fa3bbee11c4cf44d08e7ae87929e4",
+  "appListReceiptSha256": "1fc9e34f78567d4e22063ac97dc0060e84c03f5121d81ec6b970ab7fed672d5b",
+  "limits": [
+    "The app had only short active windows and then entered background.",
+    "The ordinary listening-tap fix was not exercised by fresh physical taps in this observation.",
+    "No cause for foreground loss is inferred.",
+    "No human-confirmed response or external acoustic, pixel or movement onset proof."
+  ]
+}

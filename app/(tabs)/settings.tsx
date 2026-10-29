@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Alert, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { GLASS_PALETTES } from "@/src/character/glass-face";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Alert, AppState, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { requestCameraAccess } from "@/src/permissions/camera";
 import Constants from "expo-constants";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { BehaviorSettings } from "@/src/ui/BehaviorSettings";
 import { DeviceShell } from "@/src/ui/DeviceShell";
 import { looiTheme } from "@/src/ui/looi-theme";
+import { useRobotDebugState } from "@/src/ui/use-robot-debug-state";
+import { createRobotDebugTranslator } from "@/src/i18n/robot-debug-strings";
 import { useUserStore, type ConversationMode, type CustomVoiceCommandAction, type FacePaletteId, type FaceStyleId, type VoiceCommandLanguage } from "@/src/store/user";
 import { voiceRuntime } from "@/src/perceivers/voice-runtime";
 import { parseRealtimePhysicalCommand } from "@/src/voice/realtime-physical-command";
@@ -25,7 +28,7 @@ import { LISTENING_LANGUAGE_OPTIONS } from "@/src/language/listening-language";
 import { INTERFACE_LANGUAGE_OPTIONS } from "@/src/i18n/ui-language";
 import { useUiText } from "@/src/i18n/use-ui-text";
 import { getLocalizedModelDownloadStage, getLocalizedVoiceDescription } from "@/src/i18n/ui-strings";
-import { REALTIME_VOICE_OPTIONS, TTS_SPEED_OPTIONS } from "@/src/voice/tts-voices";
+import { CUTE_ROBOT_VOICE_PREFERENCES, REALTIME_VOICE_OPTIONS, TTS_SPEED_OPTIONS } from "@/src/voice/tts-voices";
 import {
   clearOpenAiApiKey,
   hasOpenAiApiKey,
@@ -84,11 +87,12 @@ import {
   type UpdateRelease,
 } from "@/src/updates/github-release-updater";
 
-const REALTIME_VOICE_ORDER = ["marin", "cedar", "coral", "verse", "sage", "shimmer", "alloy", "ash", "ballad", "echo"];
+const REALTIME_VOICE_ORDER = ["shimmer", "marin", "cedar", "coral", "verse", "sage", "alloy", "ash", "ballad", "echo"];
 const CURATED_VOICES = [...REALTIME_VOICE_OPTIONS].sort(
   (a, b) => REALTIME_VOICE_ORDER.indexOf(a.id) - REALTIME_VOICE_ORDER.indexOf(b.id)
 );
 const VOICE_OUTPUT_GAIN_OPTIONS = [1, 1.15, 1.3, 1.45] as const;
+const HIT_SLOP_44 = { top: 12, bottom: 12, left: 12, right: 12 } as const;
 
 const OPENAI_BILLING_URL = "https://platform.openai.com/settings/organization/billing/overview";
 const MY_LOOI_USER_GUIDE_URL = "https://github.com/razor79/my-looi/blob/main/USER_GUIDE.md";
@@ -104,8 +108,11 @@ type RobotUiState = {
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const robotDebug = useRobotDebugState();
   const { preferences, updatePreferences } = useUserStore();
   const { language: interfaceLanguage, t } = useUiText();
+  const debugText = createRobotDebugTranslator(interfaceLanguage);
   const [advanced, setAdvanced] = useState(false);
   const [voicesExpanded, setVoicesExpanded] = useState(false);
   const [previousModelsExpanded, setPreviousModelsExpanded] = useState(false);
@@ -118,6 +125,7 @@ export default function SettingsScreen() {
   const [openAiModelsBusy, setOpenAiModelsBusy] = useState(false);
   const [openAiModelsResult, setOpenAiModelsResult] = useState<string | null>(null);
   const [voicePreviewBusy, setVoicePreviewBusy] = useState<string | null>(null);
+  const voicePreviewAbort = useRef<AbortController | null>(null);
   const [voicePreviewResult, setVoicePreviewResult] = useState<string | null>(null);
   const [modelStatus, setModelStatus] = useState<SharedModelStatus | null>(null);
   const [modelBusy, setModelBusy] = useState(false);
@@ -203,10 +211,19 @@ export default function SettingsScreen() {
     void refreshModels();
     void refreshMemory();
     void refreshRobot();
-    return () => recordDiagnosticEvent("navigation", "settings-blurred");
+    return () => {
+      voicePreviewAbort.current?.abort();
+      recordDiagnosticEvent("navigation", "settings-blurred");
+    };
   }, [refreshMemory, refreshModels, refreshOpenAi, refreshOpenAiModels, refreshRobot]));
 
   useEffect(() => subscribeLooiRobotRuntimeState(() => setRobotRuntime(getLooiRobotRuntimeState())), []);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") voicePreviewAbort.current?.abort();
+    });
+    return () => { voicePreviewAbort.current?.abort(); subscription.remove(); };
+  }, []);
 
   const selectConversationMode = useCallback((conversationMode: ConversationMode) => {
     updatePreferences({ conversationMode });
@@ -271,18 +288,21 @@ export default function SettingsScreen() {
     }
     setVoicePreviewBusy(voiceId);
     setVoicePreviewResult(null);
+    const controller = new AbortController();
+    voicePreviewAbort.current = controller;
     const wakewordFeedingWasEnabled = kwsAudioFeeder.diagnosticStatus.wakewordFeedingEnabled;
     kwsAudioFeeder.setWakewordFeedingEnabled(false);
     try {
-      await playOpenAiRealtimeVoicePreview(voiceId, preferences.language);
-      setVoicePreviewResult(t("settings.previewPlayed"));
+      await playOpenAiRealtimeVoicePreview(voiceId, preferences.language, preferences.ttsStyleId, preferences.ttsSpeed, controller.signal);
+      if (!controller.signal.aborted) setVoicePreviewResult(t("settings.previewPlayed"));
     } catch (error) {
-      setVoicePreviewResult(t("settings.previewError", { message: error instanceof Error ? error.message : String(error) }));
+      if (!controller.signal.aborted) setVoicePreviewResult(t("settings.previewError", { message: error instanceof Error ? error.message : String(error) }));
     } finally {
-      kwsAudioFeeder.setWakewordFeedingEnabled(wakewordFeedingWasEnabled);
+      if (!controller.signal.aborted) kwsAudioFeeder.setWakewordFeedingEnabled(wakewordFeedingWasEnabled);
+      if (voicePreviewAbort.current === controller) voicePreviewAbort.current = null;
       setVoicePreviewBusy(null);
     }
-  }, [openAiKeyConfigured, preferences.language, t, voicePreviewBusy]);
+  }, [openAiKeyConfigured, preferences.language, preferences.ttsStyleId, preferences.ttsSpeed, t, voicePreviewBusy]);
 
   const downloadModels = useCallback(async () => {
     if (modelBusy) return;
@@ -506,26 +526,109 @@ export default function SettingsScreen() {
           ok={openAiKeyConfigured && openAiApiStatus.kind !== "no_credits" && openAiApiStatus.kind !== "invalid_key"}
         />
         <Summary label={t("settings.summary.local")} value={sharedReady ? t("settings.summary.localReady") : t("settings.summary.localCheck")} ok={sharedReady} />
-        <Summary label={t("settings.summary.robot")} value={robotRuntime.connected ? t("settings.summary.robotConnected") : robotUi.saved ? t("settings.summary.robotSaved") : t("settings.summary.robotNone")} ok={robotRuntime.connected} neutral={!robotRuntime.connected} />
+        <Summary label={t("settings.summary.robot")} value={robotDebug.mode === "mock" ? `${debugText("mockBadge")} · ${debugText(robotRuntime.connected ? "connected" : "notConnected")}` : robotDebug.mode === "disconnected" ? debugText("offlineBadge") : robotRuntime.connected ? t("settings.summary.robotConnected") : robotUi.saved ? t("settings.summary.robotSaved") : t("settings.summary.robotNone")} ok={robotRuntime.connected} neutral={!robotRuntime.connected} />
       </View>
+
+      <Section title={t("settings.robot")}>
+        <Text style={styles.help}>{robotDebug.mode === "hardware" ? `${robotUi.saved ? t("settings.robotSaved", { name: robotUi.saved.name }) : t("settings.robotNotSelected")} · BLE: ${robotRuntime.connected ? "connected" : robotRuntime.connecting ? "connecting" : "offline"}` : debugText(robotDebug.mode === "mock" ? "mockBadge" : "offlineBadge")}</Text>
+        <ButtonRow><Action label={robotUi.scanning ? t("settings.searching") : t("settings.findLooi")} onPress={scanRobot} disabled={robotDebug.mode !== "hardware" || robotUi.scanning || robotUi.busy} /><Action label={t("settings.reconnect")} onPress={() => void connectRobot()} disabled={robotDebug.mode !== "hardware" || !robotUi.saved || robotUi.busy} secondary /></ButtonRow>
+        {robotDebug.mode === "hardware" ? robotUi.candidates.map((candidate) => <Choice key={candidate.id} selected={candidate.selected} label={candidate.name} detail={`${candidate.rssi ?? "?"} dBm`} onPress={() => void connectRobot(candidate)} />) : null}
+        {robotUi.saved ? <Action label={t("settings.forgetRobot")} onPress={forgetRobot} secondary /> : null}
+        {robotUi.result ? <Text style={styles.result}>{robotUi.result}</Text> : null}
+      </Section>
 
       <Section title={t("settings.language")}>
         <Text style={styles.label}>{t("settings.interfaceLanguage")}</Text>
-        <ButtonRow>{INTERFACE_LANGUAGE_OPTIONS.map((item) => <SmallChoice key={item.id} selected={preferences.interfaceLanguage === item.id} label={`${item.shortLabel} · ${item.label}`} onPress={() => updatePreferences({ interfaceLanguage: item.id })} />)}</ButtonRow>
+        <Segmented options={INTERFACE_LANGUAGE_OPTIONS.map((item) => ({ id: item.id, label: item.label }))} value={preferences.interfaceLanguage} onChange={(id) => updatePreferences({ interfaceLanguage: id })} />
         <Text style={styles.label}>{t("settings.listeningLanguage")}</Text>
-        <ButtonRow>{LISTENING_LANGUAGE_OPTIONS.map((item) => <SmallChoice key={item.id} selected={preferences.listeningLanguage === item.id} label={item.shortLabel} onPress={() => updatePreferences({ listeningLanguage: item.id })} />)}</ButtonRow>
+        <Segmented options={LISTENING_LANGUAGE_OPTIONS.map((item) => ({ id: item.id, label: item.shortLabel }))} value={preferences.listeningLanguage} onChange={(id) => updatePreferences({ listeningLanguage: id })} />
         <Text style={styles.label}>{t("settings.responseLanguage")}</Text>
-        <ButtonRow>{RESPONSE_LANGUAGE_OPTIONS.map((item) => <SmallChoice key={item.id} selected={preferences.language === item.id} label={item.shortLabel} onPress={() => updatePreferences({ language: item.id })} />)}</ButtonRow>
+        <Segmented options={RESPONSE_LANGUAGE_OPTIONS.map((item) => ({ id: item.id, label: item.shortLabel }))} value={preferences.language} onChange={(id) => updatePreferences({ language: id })} />
       </Section>
 
-      <Section title="OpenAI">
-        <Text style={styles.help}>{t("settings.openAiHelp")}</Text>
-        <TextInput value={openAiKeyInput} onChangeText={setOpenAiKeyInput} secureTextEntry autoCapitalize="none" autoCorrect={false} placeholder={openAiKeyConfigured ? t("settings.newKey") : "OpenAI API key"} placeholderTextColor={looiTheme.muted} style={styles.input} />
-        <ButtonRow>
-          <Action label={openAiKeyBusy ? t("settings.saving") : openAiKeyConfigured ? t("common.replace") : t("common.save")} onPress={saveKey} disabled={openAiKeyBusy || !openAiKeyInput.trim()} />
-          {openAiKeyConfigured ? <Action label={t("common.delete")} onPress={deleteKey} secondary /> : null}
-        </ButtonRow>
-        {openAiKeyResult ? <Text style={styles.result}>{openAiKeyResult}</Text> : null}
+      <Section title={t("settings.voice")}>
+        <Text style={styles.help}>{t("settings.voiceHelp")}</Text>
+        <Choice
+          selected={preferences.ttsVoiceId === CUTE_ROBOT_VOICE_PREFERENCES.ttsVoiceId && preferences.ttsStyleId === CUTE_ROBOT_VOICE_PREFERENCES.ttsStyleId && preferences.ttsSpeed === CUTE_ROBOT_VOICE_PREFERENCES.ttsSpeed}
+          label={t("settings.cuteRobotVoice")}
+          detail={t("settings.cuteRobotVoiceHelp")}
+          onPress={() => updatePreferences(CUTE_ROBOT_VOICE_PREFERENCES)}
+        />
+        <DisclosureRow label={t("settings.voiceSelected", { voice: curatedVoices.find((voice) => voice.id === preferences.ttsVoiceId)?.name ?? preferences.ttsVoiceId })} expanded={voicesExpanded} onPress={() => setVoicesExpanded((value) => !value)} />
+        {voicesExpanded ? <View style={styles.disclosureBody}>
+          {curatedVoices.map((voice) => <VoiceChoice key={voice.id} selected={preferences.ttsVoiceId === voice.id} label={voice.name} detail={`${getLocalizedVoiceDescription(interfaceLanguage, voice.id, voice.description)}${voice.id === "marin" || voice.id === "cedar" ? ` · ${t("settings.voiceRecommended")}` : ""}`} onSelect={() => updatePreferences({ ttsVoiceId: voice.id })} onPreview={() => void previewVoice(voice.id)} previewing={voicePreviewBusy === voice.id} previewDisabled={Boolean(voicePreviewBusy) || !openAiKeyConfigured} />)}
+          {voicePreviewResult ? <Text style={styles.result}>{voicePreviewResult}</Text> : null}
+        </View> : null}
+        <Text style={styles.label}>{t("settings.speechGender")}</Text>
+        <Text style={styles.help}>{t("settings.speechGenderHelp")}</Text>
+        <Segmented
+          options={[{ id: "masculine" as const, label: t("settings.speechGenderMasculine") }, { id: "feminine" as const, label: t("settings.speechGenderFeminine") }]}
+          value={preferences.speechGender}
+          onChange={(id) => updatePreferences({ speechGender: id })}
+        />
+        <Text style={styles.label}>{t("settings.speed")}</Text>
+        <Segmented options={TTS_SPEED_OPTIONS.map((speed) => ({ id: speed, label: `${speed}×` }))} value={preferences.ttsSpeed} onChange={(speed) => updatePreferences({ ttsSpeed: speed })} />
+        <Text style={styles.label}>{t("settings.voiceOutputGain")}</Text>
+        <Text style={styles.help}>{t("settings.voiceOutputGainHelp")}</Text>
+        <Segmented options={VOICE_OUTPUT_GAIN_OPTIONS.map((gain) => ({ id: gain, label: gain === 1 ? t("settings.voiceOutputGainNormal") : `+${Math.round((gain - 1) * 100)}%` }))} value={preferences.voiceOutputGain} onChange={(gain) => updatePreferences({ voiceOutputGain: gain })} />
+      </Section>
+
+      <Section title={t("settings.behaviour")}>
+        <Text style={styles.label}>{t("settings.ambientMotion")}</Text>
+        <Text style={styles.help}>{t("settings.ambientMotionHelp")}</Text>
+        <Segmented
+          options={[
+            { id: "off" as const, label: t("settings.ambientMotionOff") },
+            { id: "subtle" as const, label: t("settings.ambientMotionSubtle") },
+            { id: "normal" as const, label: t("settings.ambientMotionNormal") },
+            { id: "lively" as const, label: t("settings.ambientMotionLively") },
+          ]}
+          value={preferences.ambientMotionLevel}
+          onChange={(id) => updatePreferences({ ambientMotionLevel: id })}
+        />
+        <View style={styles.subCard}>
+          <Text style={styles.label}>{t("settings.cameraAttention")}</Text>
+          <Text style={styles.help}>{t("settings.cameraAttentionHelp")}</Text>
+          <Segmented
+            options={[{ id: "off" as const, label: t("common.off") }, { id: "on" as const, label: t("common.on") }]}
+            value={preferences.cameraAttentionEnabled ? "on" : "off"}
+            onChange={(id) => void setCameraAttentionEnabled(id === "on")}
+          />
+        </View>
+        <BehaviorSettings />
+      </Section>
+
+      <VoiceCommandsSettings />
+      <FaceAppearanceSettings />
+
+      <Section title={t("settings.aiAccount")}>
+        <Text style={styles.help}>{t("settings.conversationHelp")}</Text>
+        <Choice
+          selected={preferences.conversationMode === "budget"}
+          label={t("settings.modeBudget")}
+          detail={t("settings.modeBudgetDetail")}
+          onPress={() => selectConversationMode("budget")}
+        />
+        <Choice
+          selected={preferences.conversationMode === "realtime_pcm"}
+          label={t("settings.modeRealtimePcm")}
+          detail={t("settings.modeRealtimePcmDetail")}
+          onPress={() => selectConversationMode("realtime_pcm")}
+        />
+        {preferences.conversationMode === "budget" ? <View style={styles.subCard}>
+          <Text style={styles.value}>{t("settings.modeBudgetModels")}</Text>
+          <Text style={styles.help}>{t("settings.modeBudgetData")}</Text>
+          <Text style={[styles.help, styles.budgetNotice]}>{t("settings.modeBudgetExperimental")}</Text>
+        </View> : null}
+        <View style={styles.subCard}>
+          <Text style={styles.help}>{t("settings.openAiHelp")}</Text>
+          <TextInput value={openAiKeyInput} onChangeText={setOpenAiKeyInput} secureTextEntry autoCapitalize="none" autoCorrect={false} placeholder={openAiKeyConfigured ? t("settings.newKey") : "OpenAI API key"} placeholderTextColor={looiTheme.muted} style={styles.input} />
+          <ButtonRow>
+            <Action label={openAiKeyBusy ? t("settings.saving") : openAiKeyConfigured ? t("common.replace") : t("common.save")} onPress={saveKey} disabled={openAiKeyBusy || !openAiKeyInput.trim()} />
+            {openAiKeyConfigured ? <Action label={t("common.delete")} onPress={deleteKey} secondary /> : null}
+          </ButtonRow>
+          {openAiKeyResult ? <Text style={styles.result}>{openAiKeyResult}</Text> : null}
+        </View>
         <View style={styles.subCard}>
           <Text style={styles.label}>{t("settings.openAiBalanceStatus")}</Text>
           <Text style={styles.value}>{t(`settings.openAiStatus.${openAiApiStatus.kind}` as any)}</Text>
@@ -536,10 +639,9 @@ export default function SettingsScreen() {
             <Action label={t("settings.openAiBilling")} onPress={() => void openExternalUrl("openai-billing", OPENAI_BILLING_URL)} secondary />
           </ButtonRow>
         </View>
-        <View style={styles.subCard}>
+        {preferences.conversationMode !== "budget" ? <View style={styles.subCard}>
           <Text style={styles.label}>{t("settings.model")}</Text>
           <Text style={styles.help}>{t("settings.modelsHelp")}</Text>
-          <Action label={openAiModelsBusy ? t("settings.refreshingModels") : t("settings.refreshModels")} onPress={() => void refreshOpenAiModels()} disabled={openAiModelsBusy || !openAiKeyConfigured} secondary />
           {currentRealtimeModels.map((model) => {
             const cost = formatConversationCostPerMinute(model.id, interfaceLanguage);
             const note = model.id === DEFAULT_REALTIME_MODEL_ID
@@ -551,51 +653,10 @@ export default function SettingsScreen() {
             const detail = [cost ?? t("settings.costUnknown"), note].filter(Boolean).join(" · ");
             return <Choice key={model.id} selected={preferences.realtimeModelId === model.id} label={formatRealtimeModelName(model.id)} detail={detail} tone={tone} onPress={() => updatePreferences({ realtimeModelId: model.id })} />;
           })}
-          {previousRealtimeModels.length ? <View style={styles.previousModelsBox}>
-            <DisclosureRow
-              label={t("settings.previousModels")}
-              expanded={previousModelsExpanded}
-              onPress={() => setPreviousModelsExpanded((value) => !value)}
-              compact
-            />
-            {previousModelsExpanded ? <View style={styles.disclosureBody}>
-              <Text style={styles.help}>{t("settings.previousModelsHelp")}</Text>
-              {previousRealtimeModels.map((model) => {
-                const cost = formatConversationCostPerMinute(model.id, interfaceLanguage);
-                const note = model.id === "gpt-realtime-2" ? t("settings.previousFullModel") : model.id === "gpt-realtime-1.5" ? t("settings.previousVoiceModel") : null;
-                const detail = [cost ?? t("settings.costUnknown"), note].filter(Boolean).join(" · ");
-                return <Choice key={model.id} selected={preferences.realtimeModelId === model.id} label={formatRealtimeModelName(model.id)} detail={detail} tone="previous" onPress={() => updatePreferences({ realtimeModelId: model.id })} />;
-              })}
-            </View> : null}
-          </View> : null}
           {!openAiModelsBusy && openAiKeyConfigured && realtimeModels.length === 0 ? <Text style={styles.help}>{t("settings.modelsNotLoaded")}</Text> : null}
           {openAiModelsResult ? <Text style={styles.result}>{openAiModelsResult}</Text> : null}
-          <Text style={styles.help}>{t("settings.costDisclaimer")}</Text>
-        </View>
-      </Section>
-
-      <Section title={t("settings.voice")}>
-        <Text style={styles.help}>{t("settings.voiceHelp")}</Text>
-        <DisclosureRow label={t("settings.voiceSelected", { voice: curatedVoices.find((voice) => voice.id === preferences.ttsVoiceId)?.name ?? preferences.ttsVoiceId })} expanded={voicesExpanded} onPress={() => setVoicesExpanded((value) => !value)} />
-        {voicesExpanded ? <View style={styles.disclosureBody}>
-          {curatedVoices.map((voice) => <VoiceChoice key={voice.id} selected={preferences.ttsVoiceId === voice.id} label={voice.name} detail={`${getLocalizedVoiceDescription(interfaceLanguage, voice.id, voice.description)}${voice.id === "marin" || voice.id === "cedar" ? ` · ${t("settings.voiceRecommended")}` : ""}`} onSelect={() => updatePreferences({ ttsVoiceId: voice.id })} onPreview={() => void previewVoice(voice.id)} previewing={voicePreviewBusy === voice.id} previewDisabled={Boolean(voicePreviewBusy) || !openAiKeyConfigured} />)}
-          {voicePreviewResult ? <Text style={styles.result}>{voicePreviewResult}</Text> : null}
         </View> : null}
-        <Text style={styles.label}>{t("settings.speechGender")}</Text>
-        <Text style={styles.help}>{t("settings.speechGenderHelp")}</Text>
-        <ButtonRow>
-          <SmallChoice selected={preferences.speechGender === "masculine"} label={t("settings.speechGenderMasculine")} onPress={() => updatePreferences({ speechGender: "masculine" })} />
-          <SmallChoice selected={preferences.speechGender === "feminine"} label={t("settings.speechGenderFeminine")} onPress={() => updatePreferences({ speechGender: "feminine" })} />
-        </ButtonRow>
-        <Text style={styles.label}>{t("settings.speed")}</Text>
-        <ButtonRow>{TTS_SPEED_OPTIONS.map((speed) => <SmallChoice key={speed} selected={preferences.ttsSpeed === speed} label={`${speed}×`} onPress={() => updatePreferences({ ttsSpeed: speed })} />)}</ButtonRow>
-        <Text style={styles.label}>{t("settings.voiceOutputGain")}</Text>
-        <Text style={styles.help}>{t("settings.voiceOutputGainHelp")}</Text>
-        <ButtonRow>{VOICE_OUTPUT_GAIN_OPTIONS.map((gain) => <SmallChoice key={gain} selected={preferences.voiceOutputGain === gain} label={gain === 1 ? t("settings.voiceOutputGainNormal") : `+${Math.round((gain - 1) * 100)}%`} onPress={() => updatePreferences({ voiceOutputGain: gain })} />)}</ButtonRow>
       </Section>
-
-      <VoiceCommandsSettings />
-      <FaceAppearanceSettings />
 
       {(Boolean(modelStatus) && !sharedReady) || modelBusy || Boolean(modelError) ? <Section title={t("settings.localModels")}>
         <Text style={styles.help}>{t("settings.localModelsMissingHelp")}</Text>
@@ -607,56 +668,69 @@ export default function SettingsScreen() {
         {modelError ? <Text style={styles.error}>{modelError}</Text> : null}
       </Section> : null}
 
-      <Section title={t("settings.robot")}>
-        <Text style={styles.help}>{robotUi.saved ? t("settings.robotSaved", { name: robotUi.saved.name }) : t("settings.robotNotSelected")} · BLE: {robotRuntime.connected ? "connected" : robotRuntime.connecting ? "connecting" : "offline"}</Text>
-        <ButtonRow><Action label={robotUi.scanning ? t("settings.searching") : t("settings.findLooi")} onPress={scanRobot} disabled={robotUi.scanning || robotUi.busy} /><Action label={t("settings.reconnect")} onPress={() => void connectRobot()} disabled={!robotUi.saved || robotUi.busy} secondary /></ButtonRow>
-        <View style={styles.subCard}>
-          <Text style={styles.label}>{t("settings.ambientMotion")}</Text>
-          <Text style={styles.help}>{t("settings.ambientMotionHelp")}</Text>
-          <ButtonRow>
-            <SmallChoice selected={preferences.ambientMotionLevel === "off"} label={t("settings.ambientMotionOff")} onPress={() => updatePreferences({ ambientMotionLevel: "off" })} />
-            <SmallChoice selected={preferences.ambientMotionLevel === "subtle"} label={t("settings.ambientMotionSubtle")} onPress={() => updatePreferences({ ambientMotionLevel: "subtle" })} />
-            <SmallChoice selected={preferences.ambientMotionLevel === "normal"} label={t("settings.ambientMotionNormal")} onPress={() => updatePreferences({ ambientMotionLevel: "normal" })} />
-            <SmallChoice selected={preferences.ambientMotionLevel === "lively"} label={t("settings.ambientMotionLively")} onPress={() => updatePreferences({ ambientMotionLevel: "lively" })} />
-          </ButtonRow>
-        </View>
-        <View style={styles.subCard}>
-          <Text style={styles.label}>{t("settings.cameraAttention")}</Text>
-          <Text style={styles.help}>{t("settings.cameraAttentionHelp")}</Text>
-          <ButtonRow>
-            <SmallChoice selected={!preferences.cameraAttentionEnabled} label={t("common.off")} onPress={() => void setCameraAttentionEnabled(false)} />
-            <SmallChoice selected={preferences.cameraAttentionEnabled} label={t("common.on")} onPress={() => void setCameraAttentionEnabled(true)} />
-          </ButtonRow>
-        </View>
-        <BehaviorSettings />
-        {robotUi.candidates.map((candidate) => <Choice key={candidate.id} selected={candidate.selected} label={candidate.name} detail={`${candidate.rssi ?? "?"} dBm`} onPress={() => void connectRobot(candidate)} />)}
-        {robotUi.saved ? <Action label={t("settings.forgetRobot")} onPress={forgetRobot} secondary /> : null}
-        {robotUi.result ? <Text style={styles.result}>{robotUi.result}</Text> : null}
-      </Section>
-
-      <Section title={t("settings.helpGuide")}>
+      <Section title={t("settings.helpUpdates")}>
         <Text style={styles.help}>{t("settings.helpGuideText")}</Text>
         <Action label={t("settings.openUserGuide")} onPress={() => void openExternalUrl("user-guide", MY_LOOI_USER_GUIDE_URL)} secondary />
+        {Platform.OS === "android" ? <View style={styles.subCard}>
+          <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
+          {updateRelease?.updateAvailable ? <Text style={styles.value}>{t("settings.updateAvailable", { version: updateRelease.version })}</Text> : null}
+          <ButtonRow>
+            <Action label={updateBusy ? t("common.wait") : t("settings.checkUpdates")} onPress={() => void checkUpdate()} disabled={updateBusy} secondary />
+            {updateRelease?.updateAvailable && !downloadedUpdate ? <Action label={t("settings.downloadVersion", { version: updateRelease.version })} onPress={() => void downloadUpdate()} disabled={updateBusy} /> : null}
+            {downloadedUpdate ? <Action label={t("settings.installVersion", { version: downloadedUpdate.release.version })} onPress={() => void installUpdate()} disabled={updateBusy} /> : null}
+          </ButtonRow>
+          {downloadedUpdate ? <Action label={t("settings.installSettings")} onPress={() => void openInstallSettings()} disabled={updateBusy} secondary /> : null}
+          {updateResult ? <Text style={styles.result}>{updateResult}</Text> : null}
+        </View> : <View style={styles.subCard}>
+          <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
+          <Text style={styles.help}>{t("settings.appleUpdatesHelp")}</Text>
+        </View>}
       </Section>
-
-      {Platform.OS === "android" ? <Section title={t("settings.updates")}>
-        <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
-        {updateRelease?.updateAvailable ? <Text style={styles.value}>{t("settings.updateAvailable", { version: updateRelease.version })}</Text> : null}
-        <ButtonRow>
-          <Action label={updateBusy ? t("common.wait") : t("settings.checkUpdates")} onPress={() => void checkUpdate()} disabled={updateBusy} secondary />
-          {updateRelease?.updateAvailable && !downloadedUpdate ? <Action label={t("settings.downloadVersion", { version: updateRelease.version })} onPress={() => void downloadUpdate()} disabled={updateBusy} /> : null}
-          {downloadedUpdate ? <Action label={t("settings.installVersion", { version: downloadedUpdate.release.version })} onPress={() => void installUpdate()} disabled={updateBusy} /> : null}
-        </ButtonRow>
-        {downloadedUpdate ? <Action label={t("settings.installSettings")} onPress={() => void openInstallSettings()} disabled={updateBusy} secondary /> : null}
-        {updateResult ? <Text style={styles.result}>{updateResult}</Text> : null}
-      </Section> : <Section title={t("settings.updates")}>
-        <Text style={styles.help}>{t("settings.currentVersion", { version })}</Text>
-        <Text style={styles.help}>{t("settings.appleUpdatesHelp")}</Text>
-      </Section>}
 
       <View style={styles.sectionWide}>
         <Pressable onPress={() => setAdvanced(!advanced)} style={styles.advancedHeader}><Text style={styles.sectionTitle}>{t("settings.advanced")}</Text><Text style={styles.value}>{advanced ? t("common.hide") : t("common.open")}</Text></Pressable>
         {advanced ? <View style={styles.card}>
+          <Action label={debugText("openDebug")} onPress={() => router.push("/robot-debug" as never)} secondary />
+
+          {preferences.conversationMode !== "budget" ? <View style={styles.subCard}>
+            <Text style={styles.label}>{t("settings.turnTakingTitle")}</Text>
+            <Text style={styles.help}>{t("settings.turnTakingHelp")}</Text>
+            <Choice
+              selected={preferences.realtimeTurnTaking !== "semantic"}
+              label={t("settings.turnTakingFixed")}
+              detail={t("settings.turnTakingFixedDetail")}
+              onPress={() => updatePreferences({ realtimeTurnTaking: "fixed" })}
+            />
+            <Choice
+              selected={preferences.realtimeTurnTaking === "semantic"}
+              label={t("settings.turnTakingSemantic")}
+              detail={t("settings.turnTakingSemanticDetail")}
+              onPress={() => updatePreferences({ realtimeTurnTaking: "semantic" })}
+            />
+          </View> : null}
+
+          {preferences.conversationMode !== "budget" ? <View style={styles.subCard}>
+            <Action label={openAiModelsBusy ? t("settings.refreshingModels") : t("settings.refreshModels")} onPress={() => void refreshOpenAiModels()} disabled={openAiModelsBusy || !openAiKeyConfigured} secondary />
+            {previousRealtimeModels.length ? <View style={styles.previousModelsBox}>
+              <DisclosureRow
+                label={t("settings.previousModels")}
+                expanded={previousModelsExpanded}
+                onPress={() => setPreviousModelsExpanded((value) => !value)}
+                compact
+              />
+              {previousModelsExpanded ? <View style={styles.disclosureBody}>
+                <Text style={styles.help}>{t("settings.previousModelsHelp")}</Text>
+                {previousRealtimeModels.map((model) => {
+                  const cost = formatConversationCostPerMinute(model.id, interfaceLanguage);
+                  const note = model.id === "gpt-realtime-2" ? t("settings.previousFullModel") : model.id === "gpt-realtime-1.5" ? t("settings.previousVoiceModel") : null;
+                  const detail = [cost ?? t("settings.costUnknown"), note].filter(Boolean).join(" · ");
+                  return <Choice key={model.id} selected={preferences.realtimeModelId === model.id} label={formatRealtimeModelName(model.id)} detail={detail} tone="previous" onPress={() => updatePreferences({ realtimeModelId: model.id })} />;
+                })}
+              </View> : null}
+            </View> : null}
+            <Text style={styles.help}>{t("settings.costDisclaimer")}</Text>
+          </View> : null}
+
           <View style={styles.subCard}>
             <Text style={styles.label}>{t("settings.memoryBackup")}</Text>
             <Text style={styles.help}>{memoryStats ? t("settings.memoryStats", { facts: memoryStats.memoryCount, sessions: memoryStats.sessionCount, messages: memoryStats.messageCount }) : t("settings.memoryCounting")}</Text>
@@ -695,11 +769,11 @@ export default function SettingsScreen() {
 const FACE_STYLE_OPTIONS: FaceStyleId[] = ["classic", "soft", "playful", "fringe", "cowboy", "bandana", "sharp"];
 const FACE_PALETTE_OPTIONS: FacePaletteId[] = ["cyan", "rose", "lime", "amber", "violet"];
 const FACE_PALETTE_SWATCHES: Record<FacePaletteId, [string, string]> = {
-  cyan: ["#54DCF2", "#4050E8"],
-  rose: ["#FF8BD1", "#8D6BFF"],
-  lime: ["#9EF06A", "#2C9CFF"],
-  amber: ["#FFB454", "#FF5F6D"],
-  violet: ["#B99AFF", "#596BFF"],
+  cyan: [GLASS_PALETTES.cyan.moon[1], GLASS_PALETTES.cyan.moon[4]],
+  rose: [GLASS_PALETTES.rose.moon[1], GLASS_PALETTES.rose.moon[4]],
+  lime: [GLASS_PALETTES.lime.moon[1], GLASS_PALETTES.lime.moon[4]],
+  amber: [GLASS_PALETTES.amber.moon[1], GLASS_PALETTES.amber.moon[4]],
+  violet: [GLASS_PALETTES.violet.moon[1], GLASS_PALETTES.violet.moon[4]],
 };
 
 function FaceAppearanceSettings() {
@@ -865,10 +939,10 @@ function VoiceCommandsSettings() {
       <View style={styles.inlineInput}><TextInput value={robotNameDraft} onChangeText={setRobotNameDraft} placeholder="LOOI" placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label={t("common.save")} onPress={() => { const value = robotNameDraft.trim(); if (value.length >= 2) updatePreferences({ robotName: value }); }} disabled={robotNameDraft.trim().length < 2} /></View>
       <Text style={styles.help}>{t("settings.robotNameSafetyHelp")}</Text>
       <Text style={styles.label}>{t("settings.robotOtherAddresses")}</Text>
-      <View style={styles.tagWrap}>{preferences.robotAddressAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressAliases", preferences.robotAddressAliases.filter((value) => value !== item))} style={styles.tag}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View>
+      <View style={styles.tagWrap}>{preferences.robotAddressAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressAliases", preferences.robotAddressAliases.filter((value) => value !== item))} style={styles.tag} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item })}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View>
       <View style={styles.inlineInput}><TextInput value={aliasDraft} onChangeText={setAliasDraft} placeholder={t("settings.addAddress")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(false)} disabled={aliasDraft.trim().length < 2} /></View>
       <DisclosureRow label={t("settings.recognitionAliases")} expanded={recognitionExpanded} onPress={() => setRecognitionExpanded((value) => !value)} compact />
-      {recognitionExpanded ? <View style={styles.disclosureBody}><Text style={styles.help}>{t("settings.recognitionAliasesHelp")}</Text><View style={styles.tagWrap}>{preferences.robotAddressRecognitionAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressRecognitionAliases", preferences.robotAddressRecognitionAliases.filter((value) => value !== item))} style={styles.tag}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View><View style={styles.inlineInput}><TextInput value={recognitionDraft} onChangeText={setRecognitionDraft} placeholder={t("settings.addRecognitionAlias")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(true)} disabled={recognitionDraft.trim().length < 2} /></View></View> : null}
+      {recognitionExpanded ? <View style={styles.disclosureBody}><Text style={styles.help}>{t("settings.recognitionAliasesHelp")}</Text><View style={styles.tagWrap}>{preferences.robotAddressRecognitionAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressRecognitionAliases", preferences.robotAddressRecognitionAliases.filter((value) => value !== item))} style={styles.tag} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item })}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View><View style={styles.inlineInput}><TextInput value={recognitionDraft} onChangeText={setRecognitionDraft} placeholder={t("settings.addRecognitionAlias")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(true)} disabled={recognitionDraft.trim().length < 2} /></View></View> : null}
     </View> : null}
     <DisclosureRow
       label={t("settings.customPhrasesSummary", { count: customPhraseCount })}
@@ -889,9 +963,10 @@ function VoiceCommandsSettings() {
           <DisclosureRow label={`${t(`settings.voiceAction.${action}` as any)} · ${phrases.length}`} expanded={expanded} onPress={() => { setOpen(expanded ? null : action); setDraft(""); setDraftLanguage(preferences.listeningLanguage); }} compact />
           {expanded ? <View style={styles.disclosureBody}>
             <Text style={styles.help}>{action === "emergency_stop" ? t("settings.voiceCommandsEmergencyHelp") : t("settings.voiceCommandsAddressRequired", { name: preferences.robotName })}</Text>
-            {phrases.map((phrase) => <View key={phrase.id} style={styles.phraseRow}><Text style={styles.value}>{phrase.text}</Text><Text style={styles.help}>{phrase.language.toUpperCase()}</Text><Pressable onPress={() => removePhrase(action, phrase.id)}><Text style={styles.deleteText}>×</Text></Pressable></View>)}
+            {phrases.map((phrase) => <View key={phrase.id} style={styles.phraseRow}><Text style={styles.value}>{phrase.text}</Text><Text style={styles.help}>{phrase.language.toUpperCase()}</Text><Pressable onPress={() => removePhrase(action, phrase.id)} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item: phrase.text })}><Text style={styles.deleteText}>×</Text></Pressable></View>)}
             <TextInput value={draft} onChangeText={setDraft} placeholder={t("settings.addPhrase")} placeholderTextColor={looiTheme.muted} style={styles.input} />
-            <ButtonRow>{(["uk", "en", "ru"] as VoiceCommandLanguage[]).map((language) => <SmallChoice key={language} selected={draftLanguage === language} label={language.toUpperCase()} onPress={() => setDraftLanguage(language)} />)}<Action label={t("settings.addPhraseButton")} onPress={() => addPhrase(action)} disabled={draft.trim().length < 3} /></ButtonRow>
+            <Segmented options={(["uk", "en", "ru"] as const).map((id) => ({ id, label: id.toUpperCase() }))} value={draftLanguage} onChange={setDraftLanguage} />
+            <Action label={t("settings.addPhraseButton")} onPress={() => addPhrase(action)} disabled={draft.trim().length < 3} />
           </View> : null}
         </View>;
       })}
@@ -914,7 +989,20 @@ function Section({ title, children }: { title: string; children: ReactNode }) { 
 function Summary({ label, value, ok, neutral }: { label: string; value: string; ok: boolean; neutral?: boolean }) { return <View style={styles.summaryCard}><Text style={styles.summaryLabel}>{label}</Text><Text style={[styles.summaryValue, ok ? styles.ok : neutral ? styles.muted : styles.error]}>{value}</Text></View>; }
 function Choice({ selected, label, detail, tone, onPress }: { selected: boolean; label: string; detail?: string; tone?: "recommended" | "quality" | "previous"; onPress: () => void }) { return <Pressable onPress={onPress} style={[styles.choice, tone === "recommended" && styles.choiceRecommended, tone === "quality" && styles.choiceQuality, tone === "previous" && styles.choicePrevious, selected && styles.choiceSelected]}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable>; }
 function VoiceChoice({ selected, label, detail, onSelect, onPreview, previewing, previewDisabled }: { selected: boolean; label: string; detail?: string; onSelect: () => void; onPreview: () => void; previewing: boolean; previewDisabled: boolean }) { const { t } = useUiText(); return <View style={[styles.voiceChoice, selected && styles.choiceSelected]}><Pressable onPress={onSelect} style={styles.voiceSelect}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable><Pressable onPress={onPreview} disabled={previewDisabled} style={[styles.previewButton, previewDisabled && styles.disabled]}><Text style={styles.previewText}>{previewing ? "…" : `▶ ${t("common.preview")}`}</Text></Pressable></View>; }
-function SmallChoice({ selected, label, onPress }: { selected: boolean; label: string; onPress: () => void }) { return <Pressable onPress={onPress} style={[styles.smallChoice, selected && styles.smallChoiceSelected]}><Text style={styles.value}>{selected ? `✓ ${label}` : label}</Text></Pressable>; }
+function Segmented<T extends string | number>({ options, value, onChange }: { options: { id: T; label: string }[]; value: T; onChange: (id: T) => void }) {
+  const perRow = options.length <= 4 ? options.length : Math.ceil(options.length / 2);
+  const rows: { id: T; label: string }[][] = [];
+  for (let index = 0; index < options.length; index += perRow) rows.push(options.slice(index, index + perRow));
+  return <View style={styles.segmented} accessibilityRole="radiogroup">
+    {rows.map((row, rowIndex) => <View key={rowIndex} style={styles.segmentedRow}>
+      {row.map((option) => {
+        const selected = option.id === value;
+        return <Pressable key={String(option.id)} onPress={() => onChange(option.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.segment, selected && styles.segmentSelected]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.value, styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text></Pressable>;
+      })}
+      {Array.from({ length: perRow - row.length }, (_, padIndex) => <View key={`pad-${padIndex}`} style={styles.segmentSpacer} />)}
+    </View>)}
+  </View>;
+}
 function ButtonRow({ children }: { children: ReactNode }) { return <View style={styles.buttonRow}>{children}</View>; }
 function Action({ label, onPress, disabled, secondary }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) { return <Pressable onPress={onPress} disabled={disabled} style={[styles.action, secondary && styles.actionSecondary, disabled && styles.disabled]}><Text style={secondary ? styles.actionSecondaryText : styles.actionText}>{label}</Text></Pressable>; }
 function ModelLine({ label, status }: { label: string; status: SherpaModelCheck | null | undefined }) { const { t } = useUiText(); return <View style={styles.modelLine}><Text style={styles.value}>{label}</Text><Text style={status?.ready ? styles.ok : styles.muted}>{status?.ready ? t("common.ready") : status ? t("common.notReady") : t("common.notChecked")}</Text></View>; }
@@ -929,6 +1017,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: looiTheme.text, fontSize: 17, fontWeight: "800", marginBottom: 8 },
   card: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 20, backgroundColor: looiTheme.rail, padding: 14, gap: 10 },
   subCard: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: looiTheme.line, paddingTop: 12, gap: 10 },
+  budgetNotice: { color: looiTheme.warn, borderWidth: 1, borderColor: "rgba(255,209,102,0.35)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,209,102,0.04)" },
   help: { color: looiTheme.muted, fontSize: 12, lineHeight: 17 },
   label: { color: looiTheme.muted, fontSize: 12, fontWeight: "700", marginTop: 4 },
   value: { color: looiTheme.text, fontSize: 13, fontWeight: "700" },
@@ -961,13 +1050,18 @@ const styles = StyleSheet.create({
   choiceDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: looiTheme.cyan },
   choiceText: { flex: 1, gap: 2 },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  smallChoice: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
-  smallChoiceSelected: { borderColor: looiTheme.cyan, backgroundColor: "rgba(40,213,255,0.07)" },
+  segmented: { gap: 6 },
+  segmentedRow: { flexDirection: "row", gap: 6 },
+  segment: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 12, paddingHorizontal: 6, paddingVertical: 6 },
+  segmentSelected: { borderColor: looiTheme.cyan, backgroundColor: "rgba(40,213,255,0.07)" },
+  segmentSpacer: { flex: 1 },
+  segmentText: { textAlign: "center" },
+  segmentTextSelected: { color: looiTheme.cyan },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6 },
   pill: { color: looiTheme.muted, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, overflow: "hidden" },
   pillOn: { color: looiTheme.cyan, borderColor: looiTheme.cyan },
   input: { color: looiTheme.text, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, backgroundColor: looiTheme.bg, paddingHorizontal: 12, paddingVertical: 10 },
-  action: { borderRadius: 12, backgroundColor: looiTheme.cyan, paddingHorizontal: 13, paddingVertical: 9 },
+  action: { minHeight: 44, justifyContent: "center", alignItems: "center", borderRadius: 12, backgroundColor: looiTheme.cyan, paddingHorizontal: 13, paddingVertical: 9 },
   actionSecondary: { backgroundColor: "transparent", borderWidth: 1, borderColor: looiTheme.line },
   actionText: { color: "#041319", fontWeight: "800", fontSize: 12 },
   actionSecondaryText: { color: looiTheme.text, fontWeight: "700", fontSize: 12 },

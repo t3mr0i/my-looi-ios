@@ -120,6 +120,15 @@ export function formatConversationCostPerMinute(
   const estimate = estimateRealtimeConversationCost(id);
   if (!estimate) return null;
   const roundedCents = Math.round(estimate.usdPerMinute * 100 + 1e-9) / 100;
-  const suffix = language === "uk" ? "хв розмови" : language === "en" ? "min conversation" : "мин разговора";
-  return `≈ $${roundedCents.toFixed(2)}/${suffix}`;
+  const amount = language === "de"
+    ? roundedCents.toFixed(2).replace(".", ",")
+    : roundedCents.toFixed(2);
+  const suffix = language === "uk"
+    ? "хв розмови"
+    : language === "de"
+      ? "Gesprächsminute"
+      : language === "en"
+        ? "min conversation"
+        : "мин разговора";
+  return `≈ $${amount}/${suffix}`;
 }

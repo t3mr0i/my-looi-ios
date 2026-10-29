@@ -1,0 +1,531 @@
+{
+  "title": "Behavior expression replay",
+  "generatedAt": "2026-10-26",
+  "evidence": "Captured by invoking src/behavior/behavior-expression.ts with a deterministic fake clock and mock head writer.",
+  "scope": "Engine-plan replay only. This is not the native app UI, a physical robot test, or evidence of naturalness.",
+  "timings": {
+    "prepareMs": 150,
+    "accentHeadStubMs": 260,
+    "settleMs": 220,
+    "stopPrepAtMs": 75,
+    "stopAccentAtMs": 250
+  },
+  "scenarios": [
+    {
+      "name": "curious: prepare → accent → settle",
+      "cueId": "replay-curious-01",
+      "gesture": "curious",
+      "gestureMood": "startled",
+      "fixtureVoiceState": "attention",
+      "reducedMotion": false,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "prepare",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.16
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "accent-gate",
+          "accepted": true
+        },
+        {
+          "atMs": 150,
+          "type": "phase",
+          "phase": "accent",
+          "mood": "startled",
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.16
+          },
+          "face": {
+            "emotion": "startled",
+            "leftEyeScaleY": 1.38,
+            "rightEyeScaleY": 1.38,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "dot",
+            "mouthWidth": 11,
+            "headTilt": 0,
+            "lift": 5
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "mock-head-write",
+          "gesture": "curious",
+          "source": "executeHead stub",
+          "completed": null
+        },
+        {
+          "atMs": 410,
+          "type": "mock-head-complete",
+          "gesture": "curious",
+          "completed": true
+        },
+        {
+          "atMs": 410,
+          "type": "phase",
+          "phase": "settle",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": null,
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 630,
+          "type": "settle-callback"
+        },
+        {
+          "atMs": 630,
+          "type": "runner-result",
+          "completed": true,
+          "accentAccepted": true
+        }
+      ],
+      "durationMs": 630,
+      "result": "completed"
+    },
+    {
+      "name": "happy_bob: prepare → accent → settle",
+      "cueId": "replay-happy-02",
+      "gesture": "happy_bob",
+      "gestureMood": "pleased",
+      "fixtureVoiceState": "attention",
+      "reducedMotion": false,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "prepare",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.09
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "accent-gate",
+          "accepted": true
+        },
+        {
+          "atMs": 150,
+          "type": "phase",
+          "phase": "accent",
+          "mood": "pleased",
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.09
+          },
+          "face": {
+            "emotion": "pleased",
+            "leftEyeScaleY": 0.68,
+            "rightEyeScaleY": 0.68,
+            "eyeSmile": 1,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "smile",
+            "mouthWidth": 36,
+            "headTilt": 0,
+            "lift": 2
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "mock-head-write",
+          "gesture": "happy_bob",
+          "source": "executeHead stub",
+          "completed": null
+        },
+        {
+          "atMs": 410,
+          "type": "mock-head-complete",
+          "gesture": "happy_bob",
+          "completed": true
+        },
+        {
+          "atMs": 410,
+          "type": "phase",
+          "phase": "settle",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": null,
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 630,
+          "type": "settle-callback"
+        },
+        {
+          "atMs": 630,
+          "type": "runner-result",
+          "completed": true,
+          "accentAccepted": true
+        }
+      ],
+      "durationMs": 630,
+      "result": "completed"
+    },
+    {
+      "name": "thinking: prepare → accent → settle",
+      "cueId": "replay-thinking-03",
+      "gesture": "thinking",
+      "gestureMood": null,
+      "fixtureVoiceState": "attention",
+      "reducedMotion": false,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "prepare",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": 0.18
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "accent-gate",
+          "accepted": true
+        },
+        {
+          "atMs": 150,
+          "type": "phase",
+          "phase": "accent",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": 0.18
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "mock-head-write",
+          "gesture": "thinking",
+          "source": "executeHead stub",
+          "completed": null
+        },
+        {
+          "atMs": 410,
+          "type": "mock-head-complete",
+          "gesture": "thinking",
+          "completed": true
+        },
+        {
+          "atMs": 410,
+          "type": "phase",
+          "phase": "settle",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": null,
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 630,
+          "type": "settle-callback"
+        },
+        {
+          "atMs": 630,
+          "type": "runner-result",
+          "completed": true,
+          "accentAccepted": true
+        }
+      ],
+      "durationMs": 630,
+      "result": "completed"
+    },
+    {
+      "name": "STOP during preparation",
+      "cueId": "replay-curious-01",
+      "gesture": "curious",
+      "gestureMood": "startled",
+      "fixtureVoiceState": "attention",
+      "reducedMotion": false,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "prepare",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.16
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 75,
+          "type": "STOP",
+          "phaseAtCancel": "prepare"
+        },
+        {
+          "atMs": 80,
+          "type": "runner-result",
+          "completed": false,
+          "accentAccepted": false
+        }
+      ],
+      "durationMs": 80,
+      "result": "cancelled"
+    },
+    {
+      "name": "STOP during head accent",
+      "cueId": "replay-happy-02",
+      "gesture": "happy_bob",
+      "gestureMood": "pleased",
+      "fixtureVoiceState": "attention",
+      "reducedMotion": false,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "prepare",
+          "mood": null,
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.09
+          },
+          "face": {
+            "emotion": "attentive",
+            "leftEyeScaleY": 1.08,
+            "rightEyeScaleY": 1.08,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "none",
+            "mouthWidth": 0,
+            "headTilt": 0,
+            "lift": 1
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "accent-gate",
+          "accepted": true
+        },
+        {
+          "atMs": 150,
+          "type": "phase",
+          "phase": "accent",
+          "mood": "pleased",
+          "fixtureVoiceState": "attention",
+          "gaze": {
+            "x": 0,
+            "y": -0.09
+          },
+          "face": {
+            "emotion": "pleased",
+            "leftEyeScaleY": 0.68,
+            "rightEyeScaleY": 0.68,
+            "eyeSmile": 1,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "smile",
+            "mouthWidth": 36,
+            "headTilt": 0,
+            "lift": 2
+          }
+        },
+        {
+          "atMs": 150,
+          "type": "mock-head-write",
+          "gesture": "happy_bob",
+          "source": "executeHead stub",
+          "completed": null
+        },
+        {
+          "atMs": 250,
+          "type": "STOP",
+          "phaseAtCancel": "accent"
+        },
+        {
+          "atMs": 250,
+          "type": "mock-head-cancelled",
+          "gesture": "happy_bob"
+        },
+        {
+          "atMs": 250,
+          "type": "runner-result",
+          "completed": false,
+          "accentAccepted": true
+        }
+      ],
+      "durationMs": 250,
+      "result": "cancelled"
+    },
+    {
+      "name": "Reduced Motion: accent without spatial holds",
+      "cueId": "replay-curious-01",
+      "gesture": "curious",
+      "gestureMood": "startled",
+      "fixtureVoiceState": "attention",
+      "reducedMotion": true,
+      "startAtMs": 0,
+      "events": [
+        {
+          "atMs": 0,
+          "type": "accent-gate",
+          "accepted": true
+        },
+        {
+          "atMs": 0,
+          "type": "phase",
+          "phase": "accent",
+          "mood": "startled",
+          "fixtureVoiceState": "attention",
+          "gaze": null,
+          "face": {
+            "emotion": "startled",
+            "leftEyeScaleY": 1.38,
+            "rightEyeScaleY": 1.38,
+            "eyeSmile": 0,
+            "leftLid": 0,
+            "rightLid": 0,
+            "mouth": "dot",
+            "mouthWidth": 11,
+            "headTilt": 0,
+            "lift": 5
+          }
+        },
+        {
+          "atMs": 0,
+          "type": "mock-head-write",
+          "gesture": "curious",
+          "source": "executeHead stub",
+          "completed": null
+        },
+        {
+          "atMs": 260,
+          "type": "mock-head-complete",
+          "gesture": "curious",
+          "completed": true
+        },
+        {
+          "atMs": 260,
+          "type": "settle-callback"
+        },
+        {
+          "atMs": 260,
+          "type": "runner-result",
+          "completed": true,
+          "accentAccepted": true
+        }
+      ],
+      "durationMs": 260,
+      "result": "completed"
+    }
+  ]
+}

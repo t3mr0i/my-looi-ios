@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from "expo-audio";
@@ -23,6 +23,8 @@ import { useUserStore } from "@/src/store/user";
 import { useUiText } from "@/src/i18n/use-ui-text";
 import { INTERFACE_LANGUAGE_OPTIONS } from "@/src/i18n/ui-language";
 import { getLocalizedModelDownloadStage, type UiStringKey } from "@/src/i18n/ui-strings";
+import { createRobotDebugTranslator } from "@/src/i18n/robot-debug-strings";
+import { createRobotAppsTranslator } from "@/src/i18n/robot-app-strings";
 
 const setupSteps: { id: SetupStep; labelKey: UiStringKey | null }[] = [
   { id: "openai", labelKey: null },
@@ -73,6 +75,8 @@ export default function OnboardingScreen() {
   const [permissionBusy, setPermissionBusy] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const { language: interfaceLanguageForText, t } = useUiText();
+  const debugText = createRobotDebugTranslator(interfaceLanguageForText);
+  const robotAppsText = createRobotAppsTranslator(interfaceLanguageForText);
   const interfaceLanguage = useUserStore((state) => state.preferences.interfaceLanguage);
   const updatePreferences = useUserStore((state) => state.updatePreferences);
 
@@ -180,9 +184,10 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.page}>
+      <KeyboardAvoidingView style={styles.keyboardArea} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView style={styles.keyboardArea} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerCopy}>
             <Text style={styles.eyebrow}>MY LOOI</Text>
             <Text style={styles.title}>{t("onboarding.localSetup")}</Text>
             <Text style={styles.subtitle}>{t("onboarding.subtitle")}</Text>
@@ -219,7 +224,7 @@ export default function OnboardingScreen() {
           })}
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
           {loadingReadiness && !readiness ? <ActivityIndicator /> : null}
 
           {activeStep === "openai" ? (
@@ -287,8 +292,11 @@ export default function OnboardingScreen() {
               <View style={styles.actions}><PrimaryButton label={t("onboarding.openLooi")} onPress={finishOnboarding} disabled={!canFinish} /></View>
             </Section>
           ) : null}
-        </ScrollView>
-      </View>
+        </View>
+        <SecondaryButton label={debugText("openDebug")} onPress={() => router.push("/robot-debug" as never)} />
+        <SecondaryButton label={robotAppsText("title")} onPress={() => router.push("/apps" as never)} />
+      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -328,7 +336,9 @@ function SecondaryButton({ label, onPress }: { label: string; onPress: () => voi
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: looiTheme.bg },
-  page: { flex: 1, padding: 18, gap: 16 },
+  keyboardArea: { flex: 1 },
+  page: { flexGrow: 1, padding: 18, gap: 16, paddingBottom: 32 },
+  headerCopy: { flex: 1, minWidth: 0 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 },
   eyebrow: { color: looiTheme.cyan, fontSize: 11, fontWeight: "800", letterSpacing: 1.8 },
   title: { color: looiTheme.text, fontSize: 28, fontWeight: "800", marginTop: 4 },
@@ -349,7 +359,7 @@ const styles = StyleSheet.create({
   section: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 22, backgroundColor: looiTheme.rail, padding: 18, gap: 14 },
   sectionTitle: { color: looiTheme.text, fontSize: 19, fontWeight: "800" },
   help: { color: looiTheme.muted, lineHeight: 19, fontSize: 13 },
-  input: { color: looiTheme.text, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: looiTheme.bg },
+  input: { color: looiTheme.text, fontSize: 16, minHeight: 48, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: looiTheme.bg },
   statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: looiTheme.line, paddingVertical: 10 },
   statusLabel: { color: looiTheme.text, fontSize: 14, fontWeight: "600", flex: 1 },
   statusValue: { fontSize: 12, fontWeight: "700", textAlign: "right" },

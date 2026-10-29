@@ -7,6 +7,7 @@ trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 10080
 
 patchedDependencies:
+  '@siteed/audio-studio@3.2.1': patches/@siteed__audio-studio@3.2.1.patch
   "@siteed/sherpa-onnx.rn": "patches/@siteed__sherpa-onnx.rn.patch"
   expo-modules-jsi@56.0.12: patches/expo-modules-jsi-56.0.12.patch
 

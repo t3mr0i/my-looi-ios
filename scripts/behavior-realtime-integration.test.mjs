@@ -6,6 +6,7 @@ const flush = async () => {
 };
 
 const behaviorEvents = loadTypeScript("src/behavior/behavior-events.ts");
+const hermesTaskToolDefinitions = loadTypeScript("src/voice/hermes-task-tool-definitions.ts");
 const behaviorEventsSeen = [];
 const contextUpdates = [];
 const visualInspections = [];
@@ -58,6 +59,7 @@ const conversationStore = new Proxy({ realtimeIssue: null, isUserSpeaking: false
       conversationEvents.push([String(property), ...args]);
       if (property === "setRealtimeIssue") target.realtimeIssue = args[0];
       if (property === "setUserSpeaking") target.isUserSpeaking = args[0] === true;
+      if (property === "setHeardSpeechText") target.heardSpeechText = args[0];
     };
   },
 });
@@ -79,6 +81,19 @@ const physicalCompletion = deferred();
 const sentSessionConfigurations = [];
 const sessionUpdates = [];
 const sockets = [];
+const voskListeners = new Map();
+const voskCommandRecognizer = {
+  addListener(name, callback) {
+    voskListeners.set(name, callback);
+    return { remove: () => { if (voskListeners.get(name) === callback) voskListeners.delete(name); } };
+  },
+  // Native speech recognition is unavailable in this integration harness.
+  // Fail closed so no mock transcript or face expression can be inferred.
+  async beginAssistantOutput() { return { ready: false, generation: 0 }; },
+  feedAssistantPcm24() { return false; },
+  endAssistantOutput() {},
+  cancelAssistantOutput() {},
+};
 let observedVisualAdviceLength = null;
 
 class FakeSocket {
@@ -95,8 +110,10 @@ const captureReadyStatus = {
 };
 const fakeRoute = { supported: false, active: false, speakerSelected: false, modeMatchesCommunication: true };
 const pcmDependencies = {
+  "./input-attention": loadTypeScript("src/voice/input-attention.ts"),
   "../behavior/behavior-events": behaviorEvents,
   "react-native": { Platform: { OS: "ios" }, AppState: { currentState: "active" } },
+  "../core/main-screen-presence": { isMainScreenFocused: () => true },
   "./audio-capture-profile": { isRealtimeCaptureReady: () => true },
   "expo-audio": { async setIsAudioActiveAsync() {} },
   "../core/observation": { createObservation: () => ({}) },
@@ -141,6 +158,14 @@ const pcmDependencies = {
     async stopPcmCapture() {},
     async reservePcmCapture() {},
   },
+  "../../modules/vosk-command-recognizer": { __esModule: true, default: voskCommandRecognizer },
+  "../character/speech-expression": {
+    createSpeechExpressionTracker: () => ({
+      setNativeGeneration() {}, setTranscript() {}, acceptRecognition() {}, advancePlayback() {}, invalidate() {},
+    }),
+  },
+  "./realtime-latency": loadTypeScript("src/voice/realtime-latency.ts"),
+  "../language/response-language": { normalizeResponseLanguage: (value) => value },
   "./kws-audio-feeder": {
     kwsAudioFeeder: {
       diagnosticStatus: { appCaptureAllowed: true },
@@ -182,6 +207,8 @@ const pcmDependencies = {
       async start() {},
     },
   },
+  "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute() { return { ok: true }; } } },
+  "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./realtime-physical-command": {
     executeRealtimePhysicalCommand(command, transcript) {
       physicalCalls.push({ command, transcript });
@@ -196,6 +223,8 @@ const pcmDependencies = {
       return transcript.startsWith("LOOI look") ? { kind: "look-here", cameraFacing: "front" } : null;
     },
   },
+  "./robot-app-skill-tools": { robotAppSkillToolBridge: { async execute() { return { ok: true }; } } },
+  "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
 };
 
 const originalWebSocket = globalThis.WebSocket;
@@ -401,10 +430,14 @@ const webrtcDependencies = {
   "./kws-audio-feeder": pcmDependencies["./kws-audio-feeder"],
   "../../modules/realtime-audio-route": pcmDependencies["../../modules/realtime-audio-route"],
   "./wakeword": pcmDependencies["./wakeword"],
+  "./hermes-task-tools": pcmDependencies["./hermes-task-tools"],
+  "./hermes-task-tool-definitions": pcmDependencies["./hermes-task-tool-definitions"],
   "./realtime-config": pcmDependencies["./realtime-config"],
   "./realtime-physical-command": pcmDependencies["./realtime-physical-command"],
   "./realtime-visual-command": pcmDependencies["./realtime-visual-command"],
   "./realtime-pcm-conversation": { realtimePcmConversationService: { isActive: false } },
+  "./robot-app-skill-tools": { robotAppSkillToolBridge: { async execute() { return { ok: true }; } } },
+  "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
 };
 const { RealtimeConversationService } = loadTypeScript("src/voice/realtime-conversation.ts", webrtcDependencies);
 const webrtc = new RealtimeConversationService();

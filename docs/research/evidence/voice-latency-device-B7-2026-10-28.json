@@ -1,0 +1,38 @@
+{
+  "variant": "B7 Budget streaming and long-turn VAD guard",
+  "preparedAt": "2026-10-28T19:14:10.217778+00:00",
+  "bundleVersion": "2.1.151 (41)",
+  "bundleFormat": "Hermes bytecode v98",
+  "bundleSha256": "8694a8c50815beb919bd4531fc441e1deb9dd8c503a7731ecfc7d3d942847ab8",
+  "bundleBytes": 8078289,
+  "sourceSnapshotSha256": "b7faf84ba4115d5c0672d4aeeca5a10f5879de81da8f8d8ea3f19033ac9c4684",
+  "frozenSourceFiles": 237,
+  "deltaFromB6": [
+    "explicit maxSpeechDuration20 matching Budget turn bound",
+    "native route latency durations added to stream telemetry"
+  ],
+  "nativeCodeReusedFromB6": true,
+  "nativeCodeSha256ExcludingSignature": "011ddb85db022c945bd056fea1f45271e16a51b0400396a40088c07c9a5e6bd7",
+  "nativeTextSectionSha256": "f4112283498954117842ea451df38aeca8625f2b9c8b6546b5987fcb60d78280",
+  "assetGraphReusedFromB6": true,
+  "signature": "codesign --verify --deep --strict passed",
+  "benchmarkAndProbeMarkersAbsent": true,
+  "platform": "signed iPhone package installed and launched; conversation latency unvalidated",
+  "appPath": "/private/tmp/looi-latency-2026-10-28/B7.app",
+  "validation": {
+    "TypeScript": "passed",
+    "mockAssertions": 148,
+    "vadConfigRedThenGreen": true,
+    "longNativeReplay": "twenty-second cap retains one segment; five-second cap causes premature completion",
+    "speechStreaming": "native Simulator proof recorded for unchanged B6 native player; B7 adds route telemetry only",
+    "deviceValidation": false,
+    "externalAcousticValidation": false
+  },
+  "limits": [
+    "No physical iPhone/LOOI response series",
+    "Native Simulator proof is local HTTP output only, not cloud or microphone conversation latency",
+    "B7 restoration completed; app entered background shortly after launch, no valid response trial"
+  ],
+  "installationAndModeVerified": true,
+  "installationEvidence": "voice-latency-device-B7-startup-2026-10-28.json"
+}

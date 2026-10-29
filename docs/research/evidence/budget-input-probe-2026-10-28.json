@@ -1,0 +1,238 @@
+{
+  "platform": "physical iPhone 16, Budget, B3 diagnostic build",
+  "probe": {
+    "probe": "synthetic German question through current Mac default speakers",
+    "phoneRoute": "Budget, actual microphone (acoustic reach unverified)",
+    "launchedAt": "2026-10-28T16:51:12.838061+00:00",
+    "playStartedAt": "2026-10-28T16:51:20.840963+00:00",
+    "playExitCode": 0,
+    "playFinishedAt": "2026-10-28T16:51:23.344409+00:00"
+  },
+  "limitations": [
+    "Mac-to-phone acoustic reach has not been confirmed",
+    "No valid before/after response-latency series"
+  ],
+  "events": [
+    {
+      "at": "2026-10-28T16:51:17.869Z",
+      "event": "realtime-entry-auto-listen",
+      "details": {
+        "pcmFlowing": false
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:17.876Z",
+      "event": "fresh-launch-auto-listen",
+      "details": {
+        "pcmFlowing": false
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:17.883Z",
+      "event": "main-wake-accepted",
+      "details": {}
+    },
+    {
+      "at": "2026-10-28T16:51:19.408Z",
+      "event": "first-pcm",
+      "details": {}
+    },
+    {
+      "at": "2026-10-28T16:51:19.427Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 14400,
+        "frameDurationMs": 900,
+        "windowMs": 1398.3649997711182,
+        "frames": 1,
+        "maxRms": 0.0029907195422097946,
+        "peak": 0.013916015625,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 8.478125095367432,
+        "vadQueueMs": 0.43183374404907227,
+        "queuedAudioMs": 0,
+        "hadSpeech": false
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:19.444Z",
+      "event": "budget-input-attention",
+      "details": {
+        "frameDurationMs": 900
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:20.508Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 17600,
+        "frameDurationMs": 1100,
+        "windowMs": 1079.6760411262512,
+        "frames": 1,
+        "maxRms": 0.0021407380788108898,
+        "peak": 0.014556884765625,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 8.305208206176758,
+        "vadQueueMs": 0.42320775985717773,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:21.607Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 17600,
+        "frameDurationMs": 1100,
+        "windowMs": 1097.251916885376,
+        "frames": 1,
+        "maxRms": 0.002038309566033349,
+        "peak": 0.008209228515625,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 12.169000148773193,
+        "vadQueueMs": 1.456249713897705,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:22.627Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 16000,
+        "frameDurationMs": 1000,
+        "windowMs": 1022.9296669960022,
+        "frames": 1,
+        "maxRms": 0.0036548643925396864,
+        "peak": 0.016632080078125,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 10.710458755493164,
+        "vadQueueMs": 1.0030412673950195,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:23.718Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 17600,
+        "frameDurationMs": 1100,
+        "windowMs": 1091.0888752937317,
+        "frames": 1,
+        "maxRms": 0.006541056868028791,
+        "peak": 0.060089111328125,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 11.9592924118042,
+        "vadQueueMs": 1.2191667556762695,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:24.808Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 17600,
+        "frameDurationMs": 1100,
+        "windowMs": 1089.642707824707,
+        "frames": 1,
+        "maxRms": 0.010190114565901907,
+        "peak": 0.05706787109375,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 11.828708171844482,
+        "vadQueueMs": 1.2154998779296875,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:25.840Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 16000,
+        "frameDurationMs": 1000,
+        "windowMs": 1025.961374759674,
+        "frames": 1,
+        "maxRms": 0.006405775610329114,
+        "peak": 0.051025390625,
+        "vadSpeech": true,
+        "completedSegments": 0,
+        "vadProcessingMs": 13.586041927337646,
+        "vadQueueMs": 1.362290859222412,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:26.932Z",
+      "event": "budget-input-health",
+      "details": {
+        "frameSamples": 17600,
+        "frameDurationMs": 1100,
+        "windowMs": 1094.127125263214,
+        "frames": 1,
+        "maxRms": 0.0002419810801546033,
+        "peak": 0.00421142578125,
+        "vadSpeech": false,
+        "completedSegments": 1,
+        "vadProcessingMs": 19.282917022705078,
+        "vadQueueMs": 1.5226249694824219,
+        "queuedAudioMs": 0,
+        "hadSpeech": true
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:26.976Z",
+      "event": "local-command-start",
+      "details": {
+        "audioDurationMs": 8400
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:27.993Z",
+      "event": "local-command-finished",
+      "details": {
+        "durationMs": 1016
+      }
+    },
+    {
+      "at": "2026-10-28T16:51:30.752Z",
+      "event": "budget-session-stopped",
+      "details": {
+        "reason": "voice-runtime-stop"
+      }
+    }
+  ],
+  "userClarification": "Physical iPhone app, not the simulator; no successful spoken response has been confirmed.",
+  "inferredBottleneck": "Input frames span 900–1100ms. Later native status independently reports interval=1000 for requested interval=100.",
+  "nativeIntervalProfile": {
+    "requestedMs": 100,
+    "reportedMs": 1000,
+    "measuredAt": "2026-10-28T16:59:52.849Z"
+  },
+  "nativeCause": {
+    "expoVersion": "expo-modules-jsi 56.0.12",
+    "numberRepresentation": "JavaScriptValue.getAny -> getDouble()",
+    "oldNativeIntervalCast": "dict[\"interval\"] as? Int",
+    "newNativeIntervalCast": "(dict[\"interval\"] as? NSNumber)?.intValue",
+    "oldParserSwiftRegression": "failed on Double(100)",
+    "patchedParserSwiftRegression": "passed on Double, Int, NSNumber and missing input",
+    "patchSha256": "147d3b63eedfe2149155c5fe7396479a49649a87f1515c4ed1e75edb7e5c0d8f",
+    "deviceAfterPatch": {
+      "variant": "B5",
+      "reportedIntervalMs": 100,
+      "sampledFrameDurationMs": [
+        100,
+        200
+      ],
+      "evidence": "voice-latency-device-B5-2026-10-28.json"
+    }
+  }
+}

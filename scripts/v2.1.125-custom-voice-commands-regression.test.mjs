@@ -1,7 +1,13 @@
+import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
+const loadCharacterModule = createTypeScriptTreeLoader();
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
+import { getStoredPreferencesVersionInfo } from "./helpers/stored-preferences-version.mjs";
+import { loadTypeScript } from "./helpers/load-typescript.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 const patchVersion = Number(pkg.version.split(".")[2]);
@@ -14,7 +20,13 @@ assert.match(user, /robotName: string/);
 assert.match(user, /robotAddressAliases: string\[\]/);
 assert.match(user, /robotAddressRecognitionAliases: string\[\]/);
 assert.match(user, /customVoiceCommands: CustomVoiceCommandMap/);
-assert.match(user, /version: 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9/);
+const preferenceVersions = getStoredPreferencesVersionInfo(user);
+assert.ok(preferenceVersions.currentVersion >= 9);
+assert.equal(preferenceVersions.migrationVersion, preferenceVersions.currentVersion);
+assert.ok(preferenceVersions.supportedVersions.includes(preferenceVersions.currentVersion));
+for (let version = 1; version <= 9; version++) {
+  assert.ok(preferenceVersions.supportedVersions.includes(version), `stored preferences version ${version} remains supported`);
+}
 
 const explicit = read("src/voice/explicit-robot-command.ts");
 assert.match(explicit, /configuredAddresses\(config/);
@@ -46,13 +58,17 @@ const sleep = read("src/core/sleep-mode.ts");
 assert.match(sleep, /wake: "single-tap-face"/);
 const home = read("app/(tabs)/index.tsx");
 assert.match(home, /if \(robotSleeping\)[\s\S]*wakeRobotFromFace\(\)/);
-const face = read("src/ui/RobotFace.tsx");
-assert.match(face, /case "sleeping"[\s\S]*leftEyeScaleY: 0\.12[\s\S]*rightEyeScaleY: 0\.12/);
+const { resolveFaceExpression } = loadCharacterModule("src/character/face-expression.ts");
+const sleepingFace = resolveFaceExpression("sleeping", "", null);
+assert.equal(sleepingFace.emotion, "sleeping");
+assert.equal(sleepingFace.leftEyeScaleY, 0.12);
+assert.equal(sleepingFace.rightEyeScaleY, 0.12);
+assert.equal(sleepingFace.mouth, "none");
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of ["settings.voiceCommands", "settings.robotPrimaryName", "settings.voiceCommandsTest", "settings.voiceAction.forward"]) {
-  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, 3, `${key} must exist in all UI languages`);
+  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, uiLanguageCount, `${key} must exist in all UI languages`);
 }
-assert.equal((strings.match(/"home\.wakeFromSleep":/g) ?? []).length, 3);
+assert.equal((strings.match(/"home\.wakeFromSleep":/g) ?? []).length, uiLanguageCount);
 
 console.log("v2.1.125 custom voice commands + sleep/body calibration regression: PASS");

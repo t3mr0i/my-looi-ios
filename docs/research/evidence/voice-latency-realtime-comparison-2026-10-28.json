@@ -1,0 +1,63 @@
+{
+  "measuredAt": "2026-10-28T17:42:47.785700+00:00",
+  "platform": "physical iPhone 16 over paired Wi-Fi",
+  "authorization": "short existing Realtime comparison; restore Budget afterward",
+  "status": "no valid Realtime latency result",
+  "attempts": [
+    {
+      "variant": "Rfixed initial",
+      "status": "invalid",
+      "reason": "Expo direct exporter ignored --config; device remained Budget; app became inactive before synthetic fixture",
+      "deviceModeObserved": "budget",
+      "backgroundAt": "2026-10-28T17:34:12.223Z",
+      "fixtureStartedAt": "2026-10-28T17:34:14.704488Z"
+    },
+    {
+      "variant": "Rfixed corrected",
+      "status": "installed, launch denied",
+      "configDelivery": "EXPO_OVERRIDE_METRO_CONFIG",
+      "embeddedProfileAndStopMarkersVerified": true,
+      "launchErrorDomain": "FBSOpenApplicationErrorDomain",
+      "launchErrorCode": 7,
+      "reason": "Locked: iPhone could not be unlocked"
+    }
+  ],
+  "realtimeTrials": 0,
+  "medianMs": null,
+  "p95Ms": null,
+  "limitations": [
+    "No Realtime microphone session was observed after corrected test-package installation",
+    "No external acoustic, display or motor-onset verification",
+    "The first Budget pilot is not a controlled before/after or mode comparison"
+  ],
+  "restoration": {
+    "status": "completed: regular B9 installed and launched, Budget observed",
+    "preparedBundle": "regular B5, no forced mode override",
+    "lastObservedPreference": "budget",
+    "installedCorrectedTestWasLaunched": false,
+    "latestDeviceState": "app launch succeeded; brief foreground windows followed by background",
+    "failures": [
+      "CoreDevice4000 control channel invalidated, network timed out",
+      "CoreDevice4016 no requested device states assertable"
+    ],
+    "nextRequiredAction": "valid foreground conversation trials when device/user are available",
+    "installedBundle": "regular B9, no forced mode override",
+    "evidence": "voice-latency-device-B9-2026-10-28.json"
+  },
+  "offlineMock": {
+    "authorization": "du kannst es mocken",
+    "status": "passed",
+    "checks": 148,
+    "report": "voice-latency-mock-2026-10-28.json",
+    "evidenceType": "actual runtime code with virtual-clock, capture, transport and playback mocks; not device/cloud latency",
+    "deviceWorkRequiredForThisMock": false
+  },
+  "nativeSpeechOutputProbe": {
+    "report": "voice-latency-native-stream-simulator-2026-10-28.json",
+    "realEngineStarts": 2,
+    "renderedBeforeDownloadEnd": 2,
+    "microphoneGranted": false,
+    "capturedFrames": 0,
+    "scope": "loopback Speech output only, not Realtime API or iPhone conversation latency"
+  }
+}

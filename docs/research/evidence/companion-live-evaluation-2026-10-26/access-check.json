@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-26",
+  "source": "Observed API tool result from this work session; credential and response body omitted",
+  "request": {
+    "method": "GET",
+    "endpoint": "https://api.openai.com/v1/models/gpt-realtime-2.1-mini",
+    "credentialSource": "OPENAI_API_KEY in the local shell"
+  },
+  "observation": {
+    "status": 401,
+    "returnedModel": null,
+    "errorCode": "invalid_api_key",
+    "errorType": "invalid_request_error"
+  },
+  "inferenceRequestsMade": 0,
+  "retriesMade": 0,
+  "appSecureStoreKeyChecked": false,
+  "modelAvailabilityEstablished": false
+}

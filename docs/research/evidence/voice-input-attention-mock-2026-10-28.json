@@ -1,0 +1,143 @@
+{
+  "createdAt": "2026-10-28T19:57:47.987196+00:00",
+  "kind": "offline runtime and browser presentation verification; NOT a physical-device latency benchmark",
+  "gitHead": "910247a9310b61b10bce36b8275d03ea09fda687",
+  "workingTree": "shared and dirty; hashes identify inspected source, no commit or release",
+  "sourceSha256": {
+    "src/voice/input-attention.ts": "7ee0463bbc98896a7b2a38b1ae5c248ba9d5b9071a1d2ec6f9ee7d4a761a7095",
+    "src/voice/budget-conversation.ts": "214365f7d6df6c966db87f3e9005e82e8dfd98227aae2bd2f4948c324e1bed79",
+    "src/voice/realtime-pcm-conversation.ts": "82384d50362fb0f5dc606c7ebc2c70845456dd9ab92943d34d5e9dc5bd9a94eb",
+    "src/store/conversation.ts": "255bd3dbc9c0f9cc132844c52212b43bddc66a4d5fdfd7d5ae1eb0fbbaba259d",
+    "src/character/face-expression.ts": "0b0c2b3a4ca185c2da8ffe7b92ba3c48686b0349af95e69f329946bbe5fa6411",
+    "src/ui/RobotFace.tsx": "358b5e0c635fd451d11442dd5420b597a958b5864e25d5595cb9b93638d4b623",
+    "src/behavior/behavior-runtime.ts": "3cec5d76fa452627d1758a697d5cb4894317b711e05a4c2a009d3383d36bc0fb",
+    "scripts/input-attention.test.mjs": "c3a91002e0137b15cd6616d5a260194aa4cb2c8fe45f619f1602c2395d30f8c8",
+    "scripts/robot-face-accessibility.test.mjs": "11c9442adb6992757a82ca4f6814eda5d51a4c0bcf6c9c7f06f2d6e8193d520e",
+    "scripts/realtime-latency.test.mjs": "fe49271920039ef27c4ad3165447dea150dea6f1ce2eedb145549efce17000a3",
+    "scripts/voice-latency-report.mjs": "1d294249c4a2b7dad5826104fd243d6b8066f5c01fcc1aea808ce5916e6528b2",
+    "package.json": "1d34d78d56fb10d0c81ad49f41c9c7d24e25de831ba426869a94d1c5b146298a"
+  },
+  "checks": [
+    {
+      "command": "pnpm exec tsc --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm run voice:latency-test",
+      "result": "passed; includes 148 existing offline assertions plus input-attention tests"
+    },
+    {
+      "command": "node scripts/robot-face-accessibility.test.mjs",
+      "result": "passed; production component, static Reduced Motion, priority, expiry and background"
+    },
+    {
+      "command": "node scripts/behavior-runtime.test.mjs",
+      "result": "passed; robot STOP discards input attention"
+    },
+    {
+      "command": "node scripts/budget-conversation-runtime.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/realtime-turn-taking-runtime.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/listening-feedback-runtime.test.mjs",
+      "result": "passed; previous long-turn pause cue preserved"
+    },
+    {
+      "command": "node scripts/realtime-session-isolation.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/realtime-reference-repair.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/behavior-realtime-integration.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/behavior-companion-voice.test.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/face-expression.test.mjs && node scripts/face-motion.test.mjs",
+      "result": "passed"
+    }
+  ],
+  "runtimeEvidence": {
+    "budget": "actual service + real conversation store; cue requested synchronously before queued unresolved VAD",
+    "pcm": "actual service + real conversation store; two 20ms frames request cue without server speech_started; same-native-clock age and ordering guards",
+    "boundariesReplaced": [
+      "microphone",
+      "native playback",
+      "network",
+      "memory",
+      "robot"
+    ]
+  },
+  "browser": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "actualComponents": [
+      "RobotFace",
+      "GlassFace"
+    ],
+    "actualStore": true,
+    "actualDetector": true,
+    "visualStatesInspected": [
+      "ready",
+      "input",
+      "processing interruption",
+      "game priority"
+    ],
+    "consoleWarnings": 0,
+    "consoleErrors": 0,
+    "slowReplay": {
+      "speed": 0.1,
+      "screenshotObservations": 85,
+      "observationDurationMs": 5737.127041999251,
+      "reviewOnly": "transition durations and cue lifetime scaled by ten"
+    },
+    "artifactDirectory": "/Users/U751725/LOOI/my-looi-ios/output/input-attention-review-2026-10-28",
+    "artifactSha256": {
+      "build.cjs": "a919157daaa508eccecefa5b5322bc86513360ce85beb802d39550a77df365dc",
+      "entry.web.tsx": "6586d28de4f127267ba95fc251c608789508a9a1f72879ba2b925cf106ec8c44",
+      "fixture.tsx": "d8d1f28a50949883100555c6df42ecdd0a6ea8b0b106e737af022aece18ebbfa",
+      "slow-motion.ts": "9834e70baa56643b94b10b528d6d48f00afa64eb5e5dee8dca5764a4fce820bb",
+      "main.bundle.js": "23dea15c80665711ccacc93069b0b2e4babc1beac64a8e636cd127d13a1a611e",
+      "ready.png": "56462fe1aab1c21e9f8b8636b8756bb9bf6af3b4a4c9e02c88e2f3c61389ec39",
+      "input.png": "42ca053193557898c47ec13eee86b04c07408dda2776f644b5c2d13845916d02",
+      "processing.png": "1e95324d923467c0b78355d46ca34d1fa966c5bbdfb966defcb2a0a436f28c8f",
+      "game.png": "90fa02a14bb81dec6a32e249ab241872bb16e6085cc6fd9d3ca0a13006d58e1a",
+      "slow-replay.json": "c6f50b94dc69e210826e159e69c4c0bf8fc89b1556d7a8a11d099611725eec66",
+      "comparison.png": "f9a195e0414134db76c0d9de6576c7998fd4f0c297c840bb897ef47a33c9c936"
+    }
+  },
+  "physicalDevice": {
+    "available": false,
+    "newCueInstalled": false,
+    "micToVisibleLatencyMs": null,
+    "speechEndToAudibleLatencyMs": null,
+    "motorOnsetLatencyMs": null,
+    "medianMs": null,
+    "p95Ms": null
+  },
+  "limitations": [
+    "Energy cue is not speech classification; ambient sound can qualify.",
+    "40ms signal duration and 420ms pose are configured bounds, not measured microphone/display latency.",
+    "Budget retains observed 100-200ms audio blocks; pre-JS frame age unavailable.",
+    "React effect diagnostic excludes capture, bridge, compositor and visible pixels.",
+    "B7.app predates this cue; no new signed iPhone package was produced in this continuation.",
+    "No real microphone, OpenAI or robot was used during this continuation."
+  ],
+  "subsequentDeviceUpdate": {
+    "earlyInputAttentionIncludedInInstalledB9": true,
+    "evidence": "voice-latency-device-B9-2026-10-28.json",
+    "micToPixelTimingVerified": false
+  }
+}

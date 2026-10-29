@@ -1,6 +1,12 @@
-export const DEFAULT_TTS_VOICE_ID = "cedar";
+export const DEFAULT_TTS_VOICE_ID = "shimmer";
 export const DEFAULT_TTS_SPEED = 1;
 export const DEFAULT_TTS_STYLE_ID = "playful-robot";
+
+export const CUTE_ROBOT_VOICE_PREFERENCES = {
+  ttsVoiceId: DEFAULT_TTS_VOICE_ID,
+  ttsStyleId: DEFAULT_TTS_STYLE_ID,
+  ttsSpeed: DEFAULT_TTS_SPEED,
+} as const;
 
 export type TtsVoiceOption = {
   id: string;
@@ -60,10 +66,28 @@ export const TTS_STYLE_OPTIONS: readonly TtsStyleOption[] = [
 
 export const TTS_SPEED_OPTIONS = [0.85, 1, 1.15] as const;
 
+/** Shared delivery direction for Realtime conversations and the Settings preview. */
+export function getTtsStyleInstructions(styleId: unknown = DEFAULT_TTS_STYLE_ID): string {
+  if (styleId === "natural") {
+    return "Speak in a warm, natural conversational voice, with relaxed pacing and clear pronunciation.";
+  }
+  if (styleId === "bright") {
+    return "Speak in a bright, cheerful, energetic voice with expressive intonation and clear pronunciation. Keep the pacing comfortable, and soften the energy for serious or sensitive moments.";
+  }
+  return [
+    "Sound like a cute, small, friendly robot companion: use a sweet, light voice in a slightly higher register, a gentle smile, and playful curiosity.",
+    "Use a subtle synthetic cadence with tidy articulation, small melodic rises, and soft sentence endings. Keep the volume gentle and the pacing relaxed.",
+    "Let timing and intonation follow the actual moment: a little lift for a playful idea, a thoughtful pause when useful, and a quieter steady tone for serious news. Vary these naturally rather than using the same singsong pattern every time.",
+    "Preserve clear pronunciation and natural word stress in the requested language, especially German. Let the robot character come from vocal delivery, not from added words.",
+    "Do not add spoken beeps, sound-effect words, baby talk, exaggerated squeaking, or laughter to every reply. For serious or sensitive topics, keep the same gentle voice with calm, restrained delivery.",
+  ].join(" ");
+}
+
 const TTS_PREVIEW_TEXT = {
   ru: "Привет! Вот так теперь звучит мой голос.",
   uk: "Привіт! Ось так тепер звучить мій голос.",
   en: "Hi! This is how my voice sounds now.",
+  de: "Hallo! So klingt meine Stimme jetzt.",
 } as const;
 
 export function getTtsPreviewText(language: keyof typeof TTS_PREVIEW_TEXT): string {

@@ -13,7 +13,7 @@ function normalize(value: string): string {
     .toLocaleLowerCase()
     .replace(/ё/g, "е")
     .replace(/[’'`]/g, "")
-    .replace(/[^a-zа-яіїєґ0-9\s]/giu, " ")
+    .replace(/[^a-zäöüßа-яіїєґ0-9\s]/giu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -30,7 +30,7 @@ function customLookPhraseMatches(command: string, preferences: VisualCommandPref
 
 function stripLeadIns(command: string): string {
   let value = command;
-  const leadIn = /^(?:(?:ну\s+)?давай(?:-ка)?|ну-ка|теперь|а\s+теперь|ладно|хорошо|окей|пожалуйста|будь\s+добр(?:а|ы)?|будь\s+ласка|please)\s+/iu;
+  const leadIn = /^(?:(?:ну\s+)?давай(?:-ка)?|ну-ка|теперь|а\s+теперь|ладно|хорошо|окей|пожалуйста|будь\s+добр(?:а|ы)?|будь\s+ласка|bitte|jetzt|na|also|hey|please)\s+/iu;
   for (let i = 0; i < 3; i += 1) {
     const next = value.replace(leadIn, "").trim();
     if (next === value) break;
@@ -39,8 +39,8 @@ function stripLeadIns(command: string): string {
   return value;
 }
 
-const BACK_CAMERA_RE = /(?:задн(?:ей|юю|ю|яя|я|ьою)\s+камер(?:ой|ою|у|а)|через\s+задн(?:юю|ю)\s+камеру|на\s+задн(?:юю|ю)\s+камеру|тильн(?:ою|у|а)\s+камер(?:ою|ой|у|а)|rear\s+camera|back\s+camera)/iu;
-const FRONT_CAMERA_RE = /(?:фронтал(?:ьной|ьную|ка)|передн(?:ей|юю|яя)\s+камер(?:ой|у|а)|фронтальн(?:ою|у|а)\s+камер(?:ою|у|а)|front\s+camera|selfie\s+camera)/iu;
+const BACK_CAMERA_RE = /(?:задн(?:ей|юю|ю|яя|я|ьою)\s+камер(?:ой|ою|у|а)|через\s+задн(?:юю|ю)\s+камеру|на\s+задн(?:юю|ю)\s+камеру|тильн(?:ою|у|а)\s+камер(?:ою|ой|у|а)|hintere\s+kamera|rückkamera|rueckkamera|kamera\s+hinten|rear\s+camera|back\s+camera)/iu;
+const FRONT_CAMERA_RE = /(?:фронтал(?:ьной|ьную|ка)|передн(?:ей|юю|яя)\s+камер(?:ой|у|а)|фронтальн(?:ою|у|а)\s+камер(?:ою|у|а)|vordere\s+kamera|frontkamera|kamera\s+vorne|front\s+camera|selfie\s+camera)/iu;
 
 function requestedCameraFacing(command: string): VisualCameraFacing {
   if (BACK_CAMERA_RE.test(command)) return "back";
@@ -60,9 +60,11 @@ function looksLikeVisualIntent(command: string): boolean {
   if (/^(?:посмотри|смотри|глянь|взгляни|рассмотри|прочитай|прочти|сфотографируй|сними)(?:\s|$)/iu.test(command)) return true;
   if (/^(?:подивись|дивись|глянь|поглянь|прочитай|сфотографуй|зніми)(?:\s|$)/iu.test(command)) return true;
   if (/^(?:look|see|read|photograph|take\s+(?:a\s+)?(?:look|photo|picture)|show\s+me)(?:\s|$)/iu.test(command)) return true;
+  if (/^(?:schau|schau\s+mal|sieh|sieh\s+mal|sieh\s+dir|sieh\s+dir\s+mal|guck|guck\s+mal|zeig\s+mir|lies|lies\s+mal|fotografiere|mach\s+(?:ein\s+)?foto|nimm\s+(?:ein\s+)?foto\s+auf)(?:\s|$)/iu.test(command)) return true;
   if (/^(?:что|чего)\s+(?:ты\s+)?(?:видишь|видно|здесь|тут)|^что\s+(?:здесь|тут)\s+(?:написано|изображено|нарисовано)/iu.test(command)) return true;
   if (/^що\s+(?:ти\s+)?(?:бачиш|видно|тут|тут\s+написано|це)/iu.test(command)) return true;
   if (/^what(?:\s+do\s+you\s+see|\s+is|'s)\s+(?:this|here)/iu.test(command)) return true;
+  if (/^was\s+(?:siehst\s+du|ist\s+(?:das|hier)|steht\s+(?:da|hier)|ist\s+das\s+hier)/iu.test(command)) return true;
   return false;
 }
 

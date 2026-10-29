@@ -2,6 +2,14 @@ import { create } from "zustand";
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 
 export type CharacterMood =
+  | "listening"
+  | "attentive"
+  | "thoughtful"
+  | "curious"
+  | "repairing"
+  | "clarified"
+  | "petted"
+  | "expectant"
   | "startled"
   | "pleased"
   | "annoyed"

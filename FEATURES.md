@@ -13,10 +13,10 @@
 
 ## Languages
 
-- Localized Android interface in Ukrainian, English and Russian.
+- Localized Android interface in German, Ukrainian, English and Russian.
 - Interface language is independent from listening and response language preferences.
-- First-run interface language follows the Android locale for Ukrainian/Russian and otherwise defaults to English.
-- Ukrainian, English and Russian listening/response preferences.
+- First-run interface language follows the Android locale for German/Ukrainian/Russian and otherwise defaults to English.
+- German, Ukrainian, English and Russian listening/response preferences.
 - Change the default conversation language from the UI or by voice.
 - Ask for a one-off translation or pronunciation without changing the default language.
 - Use different interface, input and response languages when desired.
@@ -43,6 +43,8 @@
 
 ## Robot integration
 
+- Shared Reachy Mini and MicroDuck app discovery, with AI app selection in Realtime conversation through **Apps → With AI**.
+- Python apps install automatically on the connected companion at first use and keep their pinned installation for later use; hosted web apps open their original interface.
 - Local BLE robot discovery and saved-device reconnect.
 - Movement, head position, light, dock-state, and low-level transport support.
 - Deterministic addressed physical voice commands in the primary Realtime PCM path; forward/backward motion stays time-bounded while Realtime owns the microphone.
@@ -59,14 +61,14 @@
 ## Wake and local speech support
 
 - Local wake/command pipeline.
-- Vosk command models for Ukrainian, English and Russian.
+- Vosk command models for German, Ukrainian, English and Russian.
 - Sherpa-based local components used by the wake/safety pipeline.
 - Shared microphone handoff prevents competing microphone owners during Realtime conversation.
 
 ## Privacy and diagnostics
 
 - No required My LOOI backend service.
-- Optional Hermes research tasks use an explicitly configured HTTPS service; entered task text and results are stored on that server. App connection credentials and encrypted admission recovery stay on the device. See [Agent tasks](docs/hermes-agent.md).
+- Hermes background tasks use an explicitly configured HTTPS service for requested research and planning; submitted task text and results are stored on that server. App connection credentials and encrypted admission recovery stay on the device. See [Agent tasks](docs/hermes-agent.md).
 - API key stored in Android SecureStore.
 - Hard sensitive-runtime suspend on background/screen-off.
 - Diagnostic export is explicit and user-triggered.

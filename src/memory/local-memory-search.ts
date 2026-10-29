@@ -15,6 +15,11 @@ const MEMORY_SEARCH_STOPWORDS = new Set([
   // EN
   "a", "an", "the", "is", "are", "am", "i", "me", "my", "mine", "you", "your", "what",
   "which", "who", "where", "when", "how", "do", "does", "did", "about", "of", "to",
+  // DE
+  "der", "die", "das", "ein", "eine", "einer", "eines", "einem", "einen", "und", "oder",
+  "ist", "sind", "bin", "ich", "mir", "mich", "mein", "meine", "meinen", "meinem",
+  "meiner", "meines", "du", "dir", "dich", "dein", "deine", "was", "wer", "wo", "wann",
+  "wie", "welche", "welcher", "welches", "über", "von", "zu", "für", "mit", "an", "auf",
 ]);
 
 export function normalizeMemorySearchText(text: string): string {

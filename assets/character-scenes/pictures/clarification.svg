@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="320" viewBox="0 0 360 320">
+<title>Nachfragen</title><rect width="360" height="320" fill="#000000"/>
+<defs><linearGradient id="mouth" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b3efd7"/><stop offset="1" stop-color="#67b99d"/></linearGradient></defs>
+<g transform="rotate(-3 180 130) translate(0 0)">
+<g transform="translate(78.046 132.439) rotate(0)">
+      <defs>
+        <radialGradient id="left-moon" cx="48%" cy="94%" fx="48%" fy="94%" r="88%"><stop offset="0" stop-color="#d6fff0"/><stop offset="0.25" stop-color="#96e8c8"/><stop offset="0.48" stop-color="#4da58f"/><stop offset="0.76" stop-color="#1b4a48"/><stop offset="1" stop-color="#0c242b"/></radialGradient>
+        <radialGradient id="left-light"><stop stop-color="#d6fff0"/><stop offset=".45" stop-color="#96e8c8" stop-opacity=".6"/><stop offset="1" stop-color="#96e8c8" stop-opacity="0"/></radialGradient>
+        <linearGradient id="left-rim" x1="0" y1="0" x2=".25" y2="1"><stop stop-color="#d6fff0" stop-opacity=".54"/><stop offset=".4" stop-color="#4da58f" stop-opacity=".23"/><stop offset="1" stop-color="#96e8c8" stop-opacity=".82"/></linearGradient>
+        <clipPath id="left-contour"><path d="M0,-65.923C35.971,-65.923 63.978,-37.489 64.455,-0.969C64.933,36.519 37.881,65.438 0.955,65.923C-35.493,66.408 -63.978,38.943 -64.455,1.939C-65.41,-35.55 -37.403,-65.438 0,-65.923Z"/></clipPath><clipPath id="left-aperture"><path d="M-126.04599999999999,-75.415808L-70.58576000000001,-75.415808Q0,-75.20485469090909 70.58576000000001,-75.415808L126.04599999999999,-75.415808L126.04599999999999,76.47057454545454L70.58576000000001,76.47057454545454Q0,76.47057454545454 -70.58576000000001,76.47057454545454L-126.04599999999999,76.47057454545454Z"/></clipPath>
+      </defs>
+      <g clip-path="url(#left-aperture)" opacity="1">
+        <path d="M0,-65.923C35.971,-65.923 63.978,-37.489 64.455,-0.969C64.933,36.519 37.881,65.438 0.955,65.923C-35.493,66.408 -63.978,38.943 -64.455,1.939C-65.41,-35.55 -37.403,-65.438 0,-65.923Z" fill="url(#left-moon)"/>
+        <g clip-path="url(#left-contour)"><path d="M-1.767,41.078C21.437,41.078 40.248,54.099 40.248,70.161C40.248,86.224 21.437,99.245 -1.767,99.245C-24.972,99.245 -43.782,86.224 -43.782,70.161C-43.782,54.099 -24.972,41.078 -1.767,41.078Z" fill="url(#left-light)" opacity=".5"/>
+          <path d="M-52.60606060606061,-24.424242424242422C-58.24242424242424,-5.636363636363636 -56.36363636363637,20.666666666666664 -46.96969696969697,31.93939393939394" fill="none" stroke="#d6fff0" stroke-width="3.193939393939394" stroke-linecap="round" opacity=".18"/>
+          <ellipse cx="-18.78787878787879" cy="-31.93939393939394" rx="11.272727272727273" ry="7.703030303030302" fill="#fffff3" opacity=".85" transform="rotate(-14 -18.78787878787879 -31.93939393939394)"/>
+        </g>
+        <path d="M0,-65.923C35.971,-65.923 63.978,-37.489 64.455,-0.969C64.933,36.519 37.881,65.438 0.955,65.923C-35.493,66.408 -63.978,38.943 -64.455,1.939C-65.41,-35.55 -37.403,-65.438 0,-65.923Z" fill="none" stroke="url(#left-rim)" stroke-width="2.1606060606060606"/>
+      </g>
+      <path d="M-45.37656,1C-18.906899999999997,2.7464788732394365 18.906899999999997,2.7464788732394365 45.37656,1" fill="none" stroke="#96e8c8" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+    </g><g transform="translate(284.713 135.439) rotate(0)">
+      <defs>
+        <radialGradient id="right-moon" cx="48%" cy="94%" fx="48%" fy="94%" r="88%"><stop offset="0" stop-color="#d6fff0"/><stop offset="0.25" stop-color="#96e8c8"/><stop offset="0.48" stop-color="#4da58f"/><stop offset="0.76" stop-color="#1b4a48"/><stop offset="1" stop-color="#0c242b"/></radialGradient>
+        <radialGradient id="right-light"><stop stop-color="#d6fff0"/><stop offset=".45" stop-color="#96e8c8" stop-opacity=".6"/><stop offset="1" stop-color="#96e8c8" stop-opacity="0"/></radialGradient>
+        <linearGradient id="right-rim" x1="0" y1="0" x2=".25" y2="1"><stop stop-color="#d6fff0" stop-opacity=".54"/><stop offset=".4" stop-color="#4da58f" stop-opacity=".23"/><stop offset="1" stop-color="#96e8c8" stop-opacity=".82"/></linearGradient>
+        <clipPath id="right-contour"><path d="M4.933,-61.835C39.649,-60.198 55.179,-43.102 58.651,-5.274C62.122,31.281 43.668,60.016 6.943,61.835C-29.599,63.653 -60.112,43.648 -57.006,5.638C-54.083,-30.917 -33.619,-63.29 4.933,-61.835Z"/></clipPath><clipPath id="right-aperture"><path d="M-120.58999999999999,-65.29740799999999L-67.5304,-65.29740799999999Q0,-64.01124693333333 67.5304,-65.29740799999999L120.58999999999999,-65.29740799999999L120.58999999999999,71.72821333333333L67.5304,71.72821333333333Q0,71.72821333333333 -67.5304,71.72821333333333L-120.58999999999999,71.72821333333333Z"/></clipPath>
+      </defs>
+      <g clip-path="url(#right-aperture)" opacity="1">
+        <path d="M4.933,-61.835C39.649,-60.198 55.179,-43.102 58.651,-5.274C62.122,31.281 43.668,60.016 6.943,61.835C-29.599,63.653 -60.112,43.648 -57.006,5.638C-54.083,-30.917 -33.619,-63.29 4.933,-61.835Z" fill="url(#right-moon)"/>
+        <g clip-path="url(#right-contour)"><path d="M-1.602,38.673C20.598,38.673 38.595,50.887 38.595,65.953C38.595,81.019 20.598,93.233 -1.602,93.233C-23.802,93.233 -41.798,81.019 -41.798,65.953C-41.798,50.887 -23.802,38.673 -1.602,38.673Z" fill="url(#right-light)" opacity=".5"/>
+          <path d="M-52.60606060606061,-24.424242424242422C-58.24242424242424,-5.636363636363636 -56.36363636363637,20.666666666666664 -46.96969696969697,31.93939393939394" fill="none" stroke="#d6fff0" stroke-width="3.193939393939394" stroke-linecap="round" opacity=".18"/>
+          <ellipse cx="-18.78787878787879" cy="-31.93939393939394" rx="11.272727272727273" ry="7.703030303030302" fill="#fffff3" opacity=".85" transform="rotate(-14 -18.78787878787879 -31.93939393939394)"/>
+        </g>
+        <path d="M4.933,-61.835C39.649,-60.198 55.179,-43.102 58.651,-5.274C62.122,31.281 43.668,60.016 6.943,61.835C-29.599,63.653 -60.112,43.648 -57.006,5.638C-54.083,-30.917 -33.619,-63.29 4.933,-61.835Z" fill="none" stroke="url(#right-rim)" stroke-width="2.1606060606060606"/>
+      </g>
+      <path d="M-43.41239999999999,1C-18.088499999999996,2.7464788732394365 18.088499999999996,2.7464788732394365 43.41239999999999,1" fill="none" stroke="#96e8c8" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+    </g><path transform="translate(180 216)" d="M-8,0C-5.684,0 -2.842,0 0,0C2.842,0 5.684,0 8,0C6.737,0 3.789,0.674 0,0.674C-3.789,0.674 -6.737,0 -8,0Z" fill="url(#mouth)" opacity=".92"/>
+<g transform="translate(220 259) rotate(-10) scale(3.667) translate(-12 -12)" fill="none" stroke="#A0E8CE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+  <path d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1" />
+</g>
+</g></svg>

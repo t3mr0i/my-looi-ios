@@ -1,5 +1,7 @@
-const { withInfoPlist, withPodfile, withPodfileProperties, withDangerousMod } = require('expo/config-plugins');
+const { withInfoPlist, withAppDelegate, withPodfile, withPodfileProperties, withDangerousMod } = require('expo/config-plugins');
 const { stageIosVoskModels } = require('../scripts/stage-ios-vosk-models.cjs');
+const { stageIosVoskFramework } = require('../scripts/stage-ios-vosk-framework.cjs');
+const { transformAppDelegate, applySingleSceneManifest } = require('./ios-scene-lifecycle.cjs');
 
 function ensureMinimumPodDeploymentTarget(contents) {
   const marker = '# My LOOI: align pod targets with the application deployment floor';
@@ -33,11 +35,19 @@ module.exports = function withLooiIos(config) {
     // This application's privacy contract is foreground-only audio and BLE.
     plist.UIBackgroundModes = (plist.UIBackgroundModes || []).filter((mode) => !['audio', 'bluetooth-central', 'voip'].includes(mode));
     plist.UIRequiredDeviceCapabilities = ['arm64'];
+    applySingleSceneManifest(plist);
     plist.NSAppTransportSecurity = {
       ...(plist.NSAppTransportSecurity || {}),
       NSAllowsArbitraryLoads: false,
       NSAllowsLocalNetworking: true,
     };
+    return result;
+  });
+  config = withAppDelegate(config, (result) => {
+    if (result.modResults.language !== 'swift') {
+      throw new Error('My LOOI scene lifecycle requires the pinned Swift Expo AppDelegate template');
+    }
+    result.modResults.contents = transformAppDelegate(result.modResults.contents);
     return result;
   });
   config = withPodfile(config, (result) => {
@@ -46,6 +56,7 @@ module.exports = function withLooiIos(config) {
   });
   return withDangerousMod(config, ['ios', async (result) => {
     stageIosVoskModels(result.modRequest.projectRoot);
+    await stageIosVoskFramework(result.modRequest.projectRoot);
     return result;
   }]);
 };

@@ -17,6 +17,8 @@ RUN chmod 0755 /usr/local/bin/looi-hermes-entrypoint && chown -R 10000:10000 /ap
 
 ENV PYTHONPATH="/app:/opt/hermes"
 ENV HERMES_PYTHON="/opt/hermes/looi-agent-venv/bin/python"
+ENV HERMES_HOME="/opt/data/looi-hermes/home"
+ENV HERMES_SHARED_AUTH_DIR="/opt/data/looi-hermes/home/shared"
 ENV PORT=8080
 EXPOSE 8080
 

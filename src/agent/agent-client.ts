@@ -1,4 +1,6 @@
 import { AgentError, isRecord, parseAgentTask, validateAgentTaskId, type AgentConnection, type AgentTask, type PendingAgentTask } from "./agent-protocol";
+import { parseAgentCapabilities } from "./agent-capabilities";
+import { parseNousConnectLink, parseNousSnapshot, type NousProvider } from "./agent-nous";
 
 export type AgentRequestOptions = { signal?: AbortSignal };
 export type AgentPageOptions = AgentRequestOptions & { cursor?: string };
@@ -44,9 +46,19 @@ export function createAgentClient(dependencies: AgentClientDependencies = {}) {
     }
   };
   return {
+    async nousConnections(connection: AgentConnection, options?: AgentRequestOptions) {
+      const manifest = await request(connection, "/v1/capabilities", "GET", undefined, options);
+      parseAgentCapabilities(manifest);
+      if (!isRecord(manifest) || !Array.isArray(manifest.connectionProviders) || manifest.connectionProviders.length > 8 || !manifest.connectionProviders.includes("nous-v1")) throw new AgentError("not_found");
+      return parseNousSnapshot(await request(connection, "/v1/nous", "GET", undefined, options));
+    },
+    async startNousConnection(connection: AgentConnection, provider: NousProvider, subject: string, options?: AgentRequestOptions) {
+      if (!["gmail", "googlecalendar"].includes(provider) || !subject || subject.length > 256) throw new AgentError("response");
+      return parseNousConnectLink(await request(connection, "/v1/nous/connect", "POST", { provider, subject }, options), provider, subject);
+    },
     async verify(connection: AgentConnection, options?: AgentRequestOptions): Promise<void> {
       const value = await request(connection, "/v1/capabilities", "GET", undefined, options);
-      if (!isRecord(value) || value.protocol !== 1 || value.service !== "looi-hermes" || !Array.isArray(value.capabilities) || !["tasks", "cancel", "delete"].every((name) => value.capabilities instanceof Array && value.capabilities.includes(name))) throw new AgentError("response");
+      parseAgentCapabilities(value);
     },
     async listPage(connection: AgentConnection, options: AgentPageOptions = {}): Promise<AgentTaskPage> {
       if (options.cursor !== undefined && !/^[A-Za-z0-9_-]{1,512}$/.test(options.cursor)) throw new AgentError("response");

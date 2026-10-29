@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 const patchVersion = Number(pkg.version.split(".")[2]);
@@ -44,7 +46,7 @@ assert.match(settings, /PaletteChoice/);
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of ["settings.faceAppearanceSelected", "settings.faceStyle.fringe", "settings.faceStyle.playful", "settings.facePalette.cyan", "settings.facePalette.violet"]) {
-  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, 3, `${key} must exist in all UI languages`);
+  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, uiLanguageCount, `${key} must exist in all UI languages`);
 }
 
 // Appearance remains presentation-only; do not alter accepted PCM/movement safety paths.

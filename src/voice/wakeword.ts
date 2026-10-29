@@ -25,7 +25,7 @@ export type WakewordState = "idle" | "listening" | "detected" | "unavailable";
 export type WakewordDetection = {
   source: "kws" | "whisper" | "manual";
   keyword?: string;
-  phraseId?: "ru" | "uk" | "en";
+  phraseId?: "ru" | "uk" | "en" | "de";
   wakeSegmentSamples?: number[];
   commandPrerollSamples?: number[];
   hasCommandSuffix?: boolean;

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { getSupportedInterfaceLanguageCount } from "./helpers/ui-language-count.mjs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const uiLanguageCount = getSupportedInterfaceLanguageCount();
 const pkg = JSON.parse(read("package.json"));
 const app = JSON.parse(read("app.json"));
 
@@ -82,7 +84,7 @@ assert.doesNotMatch(home, /CameraView|launchCamera|ShareIntent/);
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of ["home.choosePhotosA11y", "home.photoPickerErrorTitle", "home.photoPickerErrorBody"]) {
-  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, 3, `${key} must exist in all UI languages`);
+  assert.equal((strings.match(new RegExp(`"${key.replaceAll(".", "\\.")}":`, "g")) ?? []).length, uiLanguageCount, `${key} must exist in all UI languages`);
 }
 
 const privacy = read("PRIVACY.md");

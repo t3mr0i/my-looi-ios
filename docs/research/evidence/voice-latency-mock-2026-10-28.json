@@ -1,0 +1,263 @@
+{
+  "kind": "offline runtime simulation, NOT a device or cloud benchmark",
+  "createdAt": "2026-10-28T19:02:51.260Z",
+  "requestedByUser": "du kannst es mocken",
+  "checks": 148,
+  "actualCode": {
+    "src/voice/budget-conversation.ts": {
+      "sha256": "c15e83782d379990d83a7f40b8f087e9c62157ea7262accd2a5473710cc9cce7"
+    },
+    "src/voice/realtime-pcm-conversation.ts": {
+      "sha256": "e202d71c4915c8472d749dc1f1ff452fc93914f693af3296b4a18602de495b1d"
+    },
+    "src/voice/realtime-config.ts": {
+      "sha256": "b1ed3f081b9226085beefe8e04225dc406d34cc14ef646609866fd301724323f"
+    },
+    "src/voice/realtime-latency.ts": {
+      "sha256": "0f61cbc6249445679a594957a4c5431ebb3b97455597ca11971b1188ef9ad6c7"
+    }
+  },
+  "replaySource": {
+    "path": "docs/research/evidence/budget-endpoint-native-replay-2026-10-28.json",
+    "sha256": "e51a533be5f563f48e253189bbf4ef16cfe977df0d248dc1f0a42e118fa94af1",
+    "origin": "Mac native Sherpa ONNX 1.13.0, supplied Silero model; synthetic German audio, no phone or robot",
+    "fixtures": [
+      "short",
+      "pause"
+    ]
+  },
+  "longReplaySource": {
+    "path": "docs/research/evidence/budget-vad-long-turn-2026-10-28.json",
+    "sha256": "69f1f7ed06e869f9bf70852d3cc548d82aaa163a59ec4e5e7ee9a24f4c37a944",
+    "origin": "native Sherpa ONNX 1.13.0 on Mac; synthetic German voice repeated twice; no iPhone"
+  },
+  "assumptions": [
+    "All dependency delays use virtual time; virtual zero does not mean zero CPU time",
+    "Four Budget stage delays are replayed from ONE B5 pilot; simulated repetition is not a new device distribution; capture-stop and other CPU overhead are excluded",
+    "Realtime packet delays 250/500/1000/2000ms are sensitivity inputs, not predictions or measurements",
+    "Semantic endpoint delay is deliberately injected as 1000ms, not inferred from semantic_vad auto",
+    "Both Realtime profiles receive scripted server events; semantic pause quality cannot be validated without a real server",
+    "Render/route delay is injected as 60ms; no audible, display or motor reaction was measured",
+    "Budget supports tap interruption here; capture is intentionally stopped during output, so voice barge-in is unavailable"
+  ],
+  "summary": {
+    "budgetEndpointToCommitVirtualMs": {
+      "n": 6,
+      "medianMs": 0,
+      "p95Ms": 0
+    },
+    "budgetFourInjectedStagesVirtualMs": {
+      "n": 3,
+      "medianMs": 4094.8123745918274,
+      "p95Ms": 4094.8123745918274
+    },
+    "realtimeFirstPacketToEnqueueVirtualMs": {
+      "n": 8,
+      "medianMs": 0,
+      "p95Ms": 0
+    }
+  },
+  "budget": [
+    {
+      "fixture": "short",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 0,
+      "referenceAudioEndToPlayingVirtualMs": 1082,
+      "injectedDependencies": {
+        "sttMs": 0,
+        "memoryMs": 0,
+        "textMs": 0,
+        "speechMs": 0
+      }
+    },
+    {
+      "fixture": "short",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 4094.8123745918274,
+      "referenceAudioEndToPlayingVirtualMs": 5176.812,
+      "injectedDependencies": {
+        "sttMs": 583.202666759491,
+        "memoryMs": 48.61875009536743,
+        "textMs": 1780.4070000648499,
+        "speechMs": 1682.5839576721191
+      }
+    },
+    {
+      "fixture": "pause",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 0,
+      "referenceAudioEndToPlayingVirtualMs": 952.125,
+      "injectedDependencies": {
+        "sttMs": 0,
+        "memoryMs": 0,
+        "textMs": 0,
+        "speechMs": 0
+      }
+    },
+    {
+      "fixture": "pause",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 4094.8123745918274,
+      "referenceAudioEndToPlayingVirtualMs": 5046.937,
+      "injectedDependencies": {
+        "sttMs": 583.202666759491,
+        "memoryMs": 48.61875009536743,
+        "textMs": 1780.4070000648499,
+        "speechMs": 1682.5839576721191
+      }
+    },
+    {
+      "fixture": "long-pause-max-20",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 0,
+      "referenceAudioEndToPlayingVirtualMs": 968.75,
+      "injectedDependencies": {
+        "sttMs": 0,
+        "memoryMs": 0,
+        "textMs": 0,
+        "speechMs": 0
+      }
+    },
+    {
+      "fixture": "long-pause-max-20",
+      "cancellation": null,
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 4094.8123745918274,
+      "referenceAudioEndToPlayingVirtualMs": 5063.562,
+      "injectedDependencies": {
+        "sttMs": 583.202666759491,
+        "memoryMs": 48.61875009536743,
+        "textMs": 1780.4070000648499,
+        "speechMs": 1682.5839576721191
+      }
+    }
+  ],
+  "budgetCancellation": [
+    {
+      "fixture": "short",
+      "cancellation": "processing",
+      "staleSpeechBlocked": true
+    },
+    {
+      "fixture": "short",
+      "cancellation": "playback",
+      "endpointToCommitVirtualMs": 0,
+      "commitToPlayingVirtualMs": 4094.8123745918274,
+      "referenceAudioEndToPlayingVirtualMs": 5176.812,
+      "injectedDependencies": {
+        "sttMs": 583.202666759491,
+        "memoryMs": 48.61875009536743,
+        "textMs": 1780.4070000648499,
+        "speechMs": 1682.5839576721191
+      }
+    }
+  ],
+  "failureChecks": {
+    "budgetPermissionDenial": "passed",
+    "realtimeCaptureFailure": "passed"
+  },
+  "regressionOracle": "rejects injected 800ms endpoint hold and premature native five-second cap",
+  "realtime": [
+    {
+      "profile": "fixed",
+      "firstPacketDelayMs": 250,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": false,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 1310,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "fixed",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "fixed",
+      "firstPacketDelayMs": 500,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": false,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 1560,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": true,
+      "observedProfile": "fixed",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "fixed",
+      "firstPacketDelayMs": 1000,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": false,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 2060,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "fixed",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "fixed",
+      "firstPacketDelayMs": 2000,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": false,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 3060,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "fixed",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "semantic",
+      "firstPacketDelayMs": 250,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": true,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 1310,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "semantic",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "semantic",
+      "firstPacketDelayMs": 500,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": true,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 1560,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": true,
+      "observedProfile": "semantic",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "semantic",
+      "firstPacketDelayMs": 1000,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": true,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 2060,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "semantic",
+      "activityEndVirtualMs": 100720
+    },
+    {
+      "profile": "semantic",
+      "firstPacketDelayMs": 2000,
+      "serverStopDelayMs": 1000,
+      "semanticEndpointIsAssumed": true,
+      "simulatedRouteDelayMs": 60,
+      "activityEndToEstimatedAudibleVirtualMs": 3060,
+      "firstPacketToEnqueueVirtualMs": 0,
+      "cancellation": false,
+      "observedProfile": "semantic",
+      "activityEndVirtualMs": 100720
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+Window: "LOOI Expression Review", App: Device Hub.
+0 standard window LOOI Expression Review – iOS 18.5, ID: com.apple.dt.DeviceKit.DeviceManagementWindow-AppWindow-1, Secondary Actions: Raise
+	1 split group
+		2 split group com.apple.dt.DeviceKit.DeviceManagementWindow-AppWindow-1, SidebarNavigationSplitView
+			3 scroll area
+				4 list Sidebar
+					5 row (selectable) Description: Available, Value: Expanded
+					6 row (selectable) Description: iphone.gen3, Value: LOOI App Actions
+18.5
+Simulator
+					7 row (selected) Description: iphone.gen3, Value: LOOI Expression Review
+18.5
+Simulator
+					8 row (selectable) Description: iphone.gen3, Value: privates iphone
+27.0
+iPhone 16
+					9 row (selectable) Description: ipad, Value: LOOI Expressive Review iPad
+18.5
+Simulator
+			10 search text field (settable) Search
+				11 button Search
+			12 splitter (disabled, settable, float) 248
+			13 container
+				14 container
+					15 text Description: MY LOOI, Secondary Actions: Cancel
+					16 text Description: Einrichtung auf diesem Gerät, Secondary Actions: Cancel
+					17 text Description: Sprache wird direkt an OpenAI übertragen. Erinnerungen und Verlauf bleiben auf dem Gerät., Secondary Actions: Cancel
+					18 text Description: Anzeigesprache, Secondary Actions: Cancel
+					19 element Description: UA · Українська, Secondary Actions: Cancel
+					20 element Description: EN · English, Secondary Actions: Cancel
+					21 element Description: RU · Русский, Secondary Actions: Cancel
+					22 element Description: DE · Deutsch, Secondary Actions: Cancel
+					23 element Description: OpenAI, Secondary Actions: Cancel
+					24 element Description: Modelle, Secondary Actions: Cancel
+					25 element Description: Zugriff, Secondary Actions: Cancel
+					26 element Description: Fertig, Secondary Actions: Cancel
+					27 text Description: OpenAI Realtime, Secondary Actions: Cancel
+					28 text Secondary Actions: Cancel, Description: Der API-Schlüssel wird nur in SecureStore gespeichert und für eine direkte OpenAI-Realtime-Verbindung verwendet.
+					29 text Description: Schlüssel, Secondary Actions: Cancel
+					30 text Description: Einrichtung erforderlich, Secondary Actions: Cancel
+					31 secure text field (settable) Value: OpenAI API key, Secondary Actions: Cancel
+					32 element (disabled) Description: Schlüssel speichern, Secondary Actions: Cancel
+					33 element Description: Roboterdiagnose, Secondary Actions: Cancel
+					34 element Description: Apps, Secondary Actions: Cancel
+					35 button Description: Zurück, Secondary Actions: Cancel
+					36 heading Description: Roboterverbindung und Diagnose, Secondary Actions: Cancel
+					37 text Description: Teste die LOOI-Steuerung und die Sensorsicherheit, ohne den Roboter vor dir zu haben., Secondary Actions: Cancel
+					38 text Description: Simulierter Roboter, Secondary Actions: Cancel
+					39 text Secondary Actions: Cancel, Description: Nur im Simulationsmodus werden Bewegungen nachgestellt. OpenAI-Anfragen können weiterhin Kosten verursachen.
+					40 text Description: Manuelle Tests funktionieren ohne API-Schlüssel und Mikrofon., Secondary Actions: Cancel
+					41 text Description: Verbindungsmodus, Secondary Actions: Cancel
+					42 button Description: Verbindungsmodus: Hardware, Secondary Actions: Cancel
+					43 button (selected) Description: Verbindungsmodus: Simulierter Roboter, Secondary Actions: Cancel
+					44 button Description: Verbindungsmodus: Getrennt, Secondary Actions: Cancel
+					45 text Description: Verbindungsstatus, Secondary Actions: Cancel
+					46 text Description: Verbunden, Secondary Actions: Cancel
+					47 text Description: Simulierter Roboter verbunden, Secondary Actions: Cancel
+					48 switch Description: Simulierter Roboter verbunden, Value: 1, Secondary Actions: Cancel
+					49 text Description: Mit der Simulation kannst du die echten Befehls- und Sicherheitsabläufe testen., Secondary Actions: Cancel
+					50 text Description: Aktueller Roboterstatus, Secondary Actions: Cancel
+					51 text Description: Kopf, Secondary Actions: Cancel
+					52 text Description: Mittig, Secondary Actions: Cancel
+					53 text Description: Antrieb, Secondary Actions: Cancel
+					54 text Description: Angehalten, Secondary Actions: Cancel
+					55 text Description: Licht, Secondary Actions: Cancel
+					56 text Description: Aus, Secondary Actions: Cancel
+					57 text Description: Bewegungssicherheit, Secondary Actions: Cancel
+					58 text Description: Sicher, Secondary Actions: Cancel
+					59 text Description: Grund, Secondary Actions: Cancel
+					60 text Description: Aktuell gibt es keinen Blockierungsgrund, Secondary Actions: Cancel
+					61 text Description: Sensorszenario, Secondary Actions: Cancel
+					62 button (selected) Description: Sensorszenario: Freier Boden, Secondary Actions: Cancel
+					63 button Description: Sensorszenario: Kante vorn, Secondary Actions: Cancel
+					64 button Description: Sensorszenario: Kante hinten, Secondary Actions: Cancel
+					65 button Description: Sensorszenario: Hindernis voraus, Secondary Actions: Cancel
+					66 button Description: Sensorszenario: Unbekannte Sensorwerte, Secondary Actions: Cancel
+					67 button Description: Offline-Verhalten testen, Öffnen, Secondary Actions: Cancel
+					68 button Description: Live-Test der Decisions API, Öffnen, Secondary Actions: Cancel
+					69 text Description: Manuelle Steuerung, Secondary Actions: Cancel
+					70 text Secondary Actions: Cancel, Description: Bewegungsbefehle sind zeitlich begrenzt und durchlaufen dieselben Sicherheitsprüfungen wie das Verhalten des Roboters.
+					71 button Description: Robotertest in der Simulation ausführen: Nicken, Secondary Actions: Cancel
+					72 button Description: Robotertest in der Simulation ausführen: Nach oben schauen, Secondary Actions: Cancel
+					73 button Description: Robotertest in der Simulation ausführen: Kopf mittig ausrichten, Secondary Actions: Cancel
+					74 button Description: Robotertest in der Simulation ausführen: Nach unten schauen, Secondary Actions: Cancel
+					75 button Description: Robotertest in der Simulation ausführen: Vorwärts · 500 ms, Secondary Actions: Cancel
+					76 button Description: Robotertest in der Simulation ausführen: Nach links drehen · 350 ms, Secondary Actions: Cancel
+					77 button Description: Robotertest in der Simulation ausführen: Licht einschalten, Secondary Actions: Cancel
+					78 button Description: Bewegung des simulierten Roboters anhalten, Secondary Actions: Cancel
+					79 text Description: Letzte Aktivitäten, Secondary Actions: Cancel
+					80 button Description: Aktivitätsprotokoll des simulierten Roboters löschen, Secondary Actions: Cancel
+					81 text Description: Die letzten 6 Einträge werden angezeigt, Secondary Actions: Cancel
+					82 text Description: handshakeControl, Secondary Actions: Cancel
+					83 text Description: 22:01:36, Secondary Actions: Cancel
+					84 text Description: 8101, Secondary Actions: Cancel
+					85 text Description: handshakeData, Secondary Actions: Cancel
+					86 text Description: 22:01:36, Secondary Actions: Cancel
+					87 text Description: 4132303236203130203236203232203031203336, Secondary Actions: Cancel
+					88 text Description: handshakeControl, Secondary Actions: Cancel
+					89 text Description: 22:01:36, Secondary Actions: Cancel
+					90 text Description: 03, Secondary Actions: Cancel
+					91 text Description: notifications, Secondary Actions: Cancel
+					92 text Description: 22:01:36, Secondary Actions: Cancel
+					93 text Description: handshakeData:subscribed, Secondary Actions: Cancel
+					94 text Description: notifications, Secondary Actions: Cancel
+					95 text Description: 22:01:36, Secondary Actions: Cancel
+					96 text Description: dockNotify:subscribed, Secondary Actions: Cancel
+					97 text Description: connected, Secondary Actions: Cancel
+					98 text Description: 22:01:36, Secondary Actions: Cancel
+					99 text Description: Mock LOOI transport connected, Secondary Actions: Cancel
+				100 button Description: Home, ID: app.grid.3x3
+				101 button Description: Screenshot, ID: camera.viewfinder
+				102 button Description: Record, ID: record.circle
+				103 button Rotate Left
+	104 toolbar
+		105 menu button Add, Help: Add Device, ID: plus
+		106 toggle button Description: Filter, Help: Sort and Filter, Value: off
+		107 button Description: Hide Sidebar, Secondary Actions: Increment, Decrement, Delete, Cancel
+		108 toggle button Description: Capture Keyboard, Value: off
+		109 toggle button (disabled) Description: Resize mode, Help: Enter resize mode, Value: off
+		110 Zoom
+			111 radio button Description: Zoom Out, Value: 0, ID: minus.magnifyingglass
+			112 radio button Description: arrowtriangles.up.right.down.left.magnifyingglass, Help: Zoom to Fit, Value: 0
+			113 radio button Description: Zoom To Actual Size, Help: Physical Size, Value: 1, ID: 1.magnifyingglass
+			114 radio button Description: Zoom In, Value: 0, ID: plus.magnifyingglass
+		115 button Description: Switch to compact window, Secondary Actions: Increment, Decrement, Delete, Cancel, Move previous, Move next, Remove from toolbar
+		116 menu button More, Help: More Actions, ID: ellipsis
+		117 Inspector Category
+			118 radio button Description: Edit, Help: Settings, Value: 0, ID: slider.horizontal.3
+			119 radio button Description: text.document, Help: Reports, Value: 0
+			120 radio button Description: Info, Value: 0, ID: info
+	121 close button
+	122 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	123 minimize button
+	124 text LOOI Expression Review iOS 18.5
+125 menu bar
+	126 Device Hub
+	127 File
+	128 Edit
+	129 View
+	130 Device
+	131 Controls
+	132 Window
+	133 Help
+
+Selected:
+	7 row (selected)
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

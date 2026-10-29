@@ -25,6 +25,7 @@ function stripFillers(text: string, language: ListeningLanguage): string {
     ru: /^(?:(?:ну|давай|да|ага|эй|ой|пожалуйста|быстро|сейчас|уже|робот|луи|луй|макс|max|уи|уй)\s+)*/u,
     uk: /^(?:(?:ну|давай|так|ага|ей|ой|будь\s+ласка|швидко|зараз|вже|робот|луї|луі|макс|max)\s+)*/u,
     en: /^(?:(?:well|okay|ok|hey|please|quickly|now|already|robot|looi|louie|max)\s+)*/u,
+    de: /^(?:(?:na|also|okay|ok|hey|bitte|jetzt|los|louis|louie|loui|looi|roboter)\s+)*/u,
   };
   return text.replace(fillers[language], "").trim();
 }
@@ -35,7 +36,7 @@ function stripFillers(text: string, language: ListeningLanguage): string {
  * Safety rule: arbitrary speech never escapes this parser to remote STT/LLM.
  * Only this bounded physical-command vocabulary is executable without the
  * normal "Луи/Робот" address while driving. STOP aliases intentionally work
- * across all three languages regardless of the selected listening language.
+ * across all supported languages regardless of the selected listening language.
  */
 export function parseDrivingCommandTranscript(
   transcript: string,
@@ -55,12 +56,15 @@ export function parseDrivingCommandTranscript(
   if (/^(?:done|finish\s+driving|stop\s+driving|normal\s+mode|conversation\s+mode|let'?s\s+talk)$/u.test(normalized)) {
     return { kind: "exit" };
   }
+  if (/^(?:fertig|fahrmodus\s+beenden|fahrsteuerung\s+beenden|normaler\s+modus|zurück\s+zum\s+(?:gespräch|gespraech)|gesprächsmodus|gespraechsmodus)$/u.test(normalized)) {
+    return { kind: "exit" };
+  }
 
   // STOP is deliberately broad and multilingual. During a local control
   // session, an accidental stop is much safer than an ignored emergency command.
   const padded = ` ${normalized} `;
   if (
-    /(?:^|\s)(?:стоп|стой|стій|stop|halt|замри|завмри|тормози|гальмуй|остановись|останови|зупинись|зупини|хватит|досить|достаточно|не\s+надо|не\s+треба|freeze|brake|enough|hold)(?:$|\s)/u.test(
+    /(?:^|\s)(?:стоп|стой|стій|stop|halt|stopp|anhalten|halte\s+an|bleib\s+stehen|stehen\s+bleiben|bremse|bremsen|beweg\s+dich\s+nicht|nicht\s+weiterfahren|замри|завмри|тормози|гальмуй|остановись|останови|зупинись|зупини|хватит|досить|достаточно|не\s+надо|не\s+треба|freeze|brake|enough|hold)(?:$|\s)/u.test(
       padded
     )
   ) {
@@ -162,6 +166,46 @@ export function parseDrivingCommandTranscript(
       return { kind: "light", enabled: true };
     }
     if (/^(?:вимкни\s+світло|світло\s+вимкни)$/u.test(compact)) {
+      return { kind: "light", enabled: false };
+    }
+  } else if (language === "de") {
+    if (/^(?:dreh\s+dich\s+um|dreh\s+um|drehe\s+dich\s+um|drehe\s+um|wende|wend\s+dich|kehrtwende|umdrehen|180\s+grad\s+drehen)$/u.test(compact)) {
+      return { kind: "turn", direction: "right", degrees: 180 };
+    }
+    if (/^(?:vorwärts|vorwaerts|nach\s+vorne|nach\s+vorn|geradeaus|fahr\s+(?:vorwärts|vorwaerts|nach\s+vorne|geradeaus)|fahre\s+(?:vorwärts|vorwaerts|nach\s+vorne|geradeaus)|beweg\s+dich\s+nach\s+vorn(?:e)?)$/u.test(compact)) {
+      return { kind: "move", direction: "forward" };
+    }
+    if (/^(?:rückwärts|rueckwaerts|zurück|zurueck|nach\s+hinten|fahr\s+(?:rückwärts|rueckwaerts|zurück|zurueck|nach\s+hinten)|fahre\s+(?:rückwärts|rueckwaerts|zurück|zurueck|nach\s+hinten)|setz\s+zurück|setze\s+zurück|beweg\s+dich\s+zurück)$/u.test(compact)) {
+      return { kind: "move", direction: "backward" };
+    }
+    if (/^(?:links|nach\s+links|links\s+drehen|dreh\s+(?:dich\s+)?nach\s+links|biege?\s+links\s+ab|lenk\s+nach\s+links)$/u.test(compact)) {
+      return { kind: "turn", direction: "left", degrees: 90 };
+    }
+    if (/^(?:rechts|nach\s+rechts|rechts\s+drehen|dreh\s+(?:dich\s+)?nach\s+rechts|biege?\s+rechts\s+ab|lenk\s+nach\s+rechts)$/u.test(compact)) {
+      return { kind: "turn", direction: "right", degrees: 90 };
+    }
+    if (/^(?:nick|nicke|nick\s+mit\s+dem\s+kopf|nicke\s+mit\s+dem\s+kopf|mach\s+einen\s+nick|nick\s+einmal)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 1 };
+    }
+    if (/^(?:nick\s+zweimal|nicke\s+zweimal|nicke\s+zwei\s+mal|zweimal\s+nicken)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 2 };
+    }
+    if (/^(?:nick\s+dreimal|nicke\s+dreimal|nicke\s+drei\s+mal|dreimal\s+nicken)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 3 };
+    }
+    if (/^(?:schüttle\s+den\s+kopf|schuettle\s+den\s+kopf|beweg\s+den\s+kopf|bewege\s+den\s+kopf|wackle\s+mit\s+dem\s+kopf)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "happy_bob", count: 1 };
+    }
+    if (/^(?:tanz|tanze|tanz\s+für\s+mich|tanze\s+für\s+mich|zeig\s+mir\s+einen\s+tanz|mach\s+einen\s+tanz)$/u.test(compact)) {
+      return { kind: "dance" };
+    }
+    if (/^(?:schlaf|schlafe|geh\s+schlafen|schlaf\s+ein|geh\s+ins\s+bett|zeit\s+zum\s+schlafen|gute\s+nacht)$/u.test(compact)) {
+      return { kind: "sleep" };
+    }
+    if (/^(?:licht\s+an|mach\s+(?:das\s+)?licht\s+an|schalte\s+(?:das\s+)?licht\s+ein|schalte\s+licht\s+ein)$/u.test(compact)) {
+      return { kind: "light", enabled: true };
+    }
+    if (/^(?:licht\s+aus|mach\s+(?:das\s+)?licht\s+aus|schalte\s+(?:das\s+)?licht\s+aus)$/u.test(compact)) {
       return { kind: "light", enabled: false };
     }
   } else {

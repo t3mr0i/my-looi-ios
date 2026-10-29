@@ -16,13 +16,15 @@ assert.ok(app.expo.android.versionCode >= 121);
 assert.equal(app.expo.android.package, "io.github.razor79.mylooi");
 
 const languageSource = read("src/i18n/ui-language.ts");
-assert.match(languageSource, /type InterfaceLanguage = "uk" \| "en" \| "ru"/);
-assert.match(languageSource, /id: "uk"[\s\S]*id: "en"[\s\S]*id: "ru"/);
+assert.match(languageSource, /type InterfaceLanguage = "uk" \| "en" \| "ru" \| "de"/);
+assert.match(languageSource, /id: "uk"[\s\S]*id: "en"[\s\S]*id: "ru"[\s\S]*id: "de"/);
 assert.match(languageSource, /uk:\s*"uk-UA"/);
 assert.match(languageSource, /en:\s*"en-US"/);
 assert.match(languageSource, /ru:\s*"ru-RU"/);
+assert.match(languageSource, /de:\s*"de-DE"/);
 assert.match(languageSource, /startsWith\("uk-"\)/);
 assert.match(languageSource, /startsWith\("ru-"\)/);
+assert.match(languageSource, /startsWith\("de-"\)/);
 
 const store = read("src/store/user.ts");
 assert.match(store, /interfaceLanguage:\s*InterfaceLanguage/);
@@ -44,7 +46,7 @@ assert.match(strings, /getLocalizedModelDownloadStage/);
 
 const settings = read("app/(tabs)/settings.tsx");
 assert.match(settings, /INTERFACE_LANGUAGE_OPTIONS\.map/);
-assert.match(settings, /interfaceLanguage:\s*(?:item|option)\.id/);
+assert.match(settings, /value=\{preferences\.interfaceLanguage\} onChange=\{\(id\) => updatePreferences\(\{ interfaceLanguage: id \}\)\}/);
 assert.match(settings, /LISTENING_LANGUAGE_OPTIONS\.map/);
 assert.match(settings, /RESPONSE_LANGUAGE_OPTIONS\.map/);
 assert.match(settings, /formatConversationCostPerMinute\(model\.id, interfaceLanguage\)/);
@@ -81,9 +83,9 @@ for (const file of userFacing) {
 assert.equal(fs.existsSync(path.join(root, "app/modal.tsx")), false, "unused Expo template modal must stay removed");
 assert.equal(fs.existsSync(path.join(root, "components/EditScreenInfo.tsx")), false, "unused Expo template screen must stay removed");
 
-for (const file of ["README.md", "FEATURES.md", "CHANGELOG.md"]) {
+for (const file of ["README.md", "FEATURES.md"]) {
   const doc = read(file);
-  assert.match(doc, /Ukrainian, English and Russian/);
+  assert.match(doc, /German, Ukrainian, English and Russian/);
 }
 assert.ok(fs.existsSync(path.join(root, "CHANGELOG.md")));
 

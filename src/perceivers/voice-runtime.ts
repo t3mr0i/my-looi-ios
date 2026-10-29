@@ -1,6 +1,6 @@
 import { BasePerceiver } from "../core/perceiver";
 import { getRuntimeProfile } from "../core/runtime-profile";
-import { isRealtimeConversationMode, useUserStore } from "../store/user";
+import { isManagedConversationMode, useUserStore } from "../store/user";
 import { getVoiceModule } from "../voice/lazy-services";
 
 /**
@@ -12,8 +12,22 @@ export class VoiceRuntime extends BasePerceiver {
   private loaded = false;
   private unsubscribeVoice: (() => void) | null = null;
   private mainScreenTransitionQueue: Promise<void> = Promise.resolve();
+  private externalMediaOwner: string | null = null;
+
+  get isMediaExternallyOwned(): boolean { return this.externalMediaOwner !== null; }
+
+  /** Close the admission gate synchronously before the lifecycle queue drains. */
+  blockForExternalMedia(owner: string): void {
+    if (this.externalMediaOwner && this.externalMediaOwner !== owner) throw new Error("Voice media is owned by another app");
+    this.externalMediaOwner = owner;
+  }
+
+  releaseExternalMedia(owner: string): void {
+    if (this.externalMediaOwner === owner) this.externalMediaOwner = null;
+  }
 
   async start(): Promise<void> {
+    if (this.isMediaExternallyOwned) return;
     if (this.isActive) {
       await this.sync();
       return;
@@ -27,31 +41,38 @@ export class VoiceRuntime extends BasePerceiver {
 
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.start();
   }
 
   async sync(): Promise<void> {
-    if (!this.isActive) return;
+    if (!this.isActive || this.isMediaExternallyOwned) return;
     const prefs = useUserStore.getState().preferences;
     if (!getRuntimeProfile().allowsWakewordAutostart || !prefs.wakeWordEnabled) {
       if (!this.loaded) return;
       const { voicePerceiver } = await getVoiceModule();
+      if (this.isMediaExternallyOwned || !this.isActive) return;
       await voicePerceiver.syncWakewordRuntime();
       return;
     }
 
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.start();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.syncConversationMode();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.syncWakewordRuntime();
   }
 
   async rearmWakewordAfterNavigation(): Promise<void> {
-    if (!this.isActive || useUserStore.getState().robotSleeping) return;
+    if (!this.isActive || useUserStore.getState().robotSleeping || this.isMediaExternallyOwned) return;
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.start();
+    if (this.isMediaExternallyOwned || !this.isActive) return;
     await voicePerceiver.rearmWakewordAfterNavigation();
   }
 
@@ -68,10 +89,12 @@ export class VoiceRuntime extends BasePerceiver {
     source: "navigation-return" | "foreground-resume"
   ): Promise<void> {
     return this.enqueueMainScreenTransition(async () => {
-      if (!this.isActive || useUserStore.getState().robotSleeping) return;
+      if (!this.isActive || useUserStore.getState().robotSleeping || this.isMediaExternallyOwned) return;
       await this.ensureLoaded();
       const { voicePerceiver } = await getVoiceModule();
+      if (this.isMediaExternallyOwned || !this.isActive) return;
       await voicePerceiver.start();
+      if (this.isMediaExternallyOwned || !this.isActive) return;
 
       const { realtimeConversationService } = await import("../voice/realtime-conversation");
       if (realtimeConversationService.isActive) {
@@ -106,13 +129,15 @@ export class VoiceRuntime extends BasePerceiver {
       }
 
       const { recordDiagnosticEvent } = await import("../diagnostics/diagnostic-log");
+      // Imports above may settle after an external app has acquired the devices.
+      if (this.isMediaExternallyOwned || !this.isActive || useUserStore.getState().robotSleeping) return;
       const conversationMode = useUserStore.getState().preferences.conversationMode;
       recordDiagnosticEvent("navigation", "main-return-auto-listen", {
         source,
         conversationMode,
-        realtimeEntryPreparation: isRealtimeConversationMode(conversationMode) ? "pcm-stability-gate" : "n/a",
+        realtimeEntryPreparation: isManagedConversationMode(conversationMode) ? "pcm-stability-gate" : "n/a",
       });
-      if (isRealtimeConversationMode(conversationMode)) {
+      if (isManagedConversationMode(conversationMode)) {
         await voicePerceiver.resumeRealtimeConversationFromMain(source);
         return;
       }
@@ -129,16 +154,22 @@ export class VoiceRuntime extends BasePerceiver {
   }
 
   async trigger(): Promise<void> {
+    if (this.isMediaExternallyOwned) return;
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned) return;
     await voicePerceiver.start();
+    if (this.isMediaExternallyOwned) return;
     await voicePerceiver.trigger();
   }
 
   async interruptAndListen(): Promise<void> {
+    if (this.isMediaExternallyOwned) return;
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned) return;
     await voicePerceiver.start();
+    if (this.isMediaExternallyOwned) return;
     await voicePerceiver.interruptAndListen("tap");
   }
 
@@ -150,9 +181,12 @@ export class VoiceRuntime extends BasePerceiver {
   }
 
   async prepareIdleCharacterReaction(): Promise<{ ok: boolean; reason: string }> {
+    if (this.isMediaExternallyOwned) return { ok: false, reason: "external-robot-app" };
     await this.ensureLoaded();
     const { voicePerceiver } = await getVoiceModule();
+    if (this.isMediaExternallyOwned) return { ok: false, reason: "external-robot-app" };
     await voicePerceiver.start();
+    if (this.isMediaExternallyOwned) return { ok: false, reason: "external-robot-app" };
     return voicePerceiver.prepareIdleCharacterReaction();
   }
 

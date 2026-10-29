@@ -1,0 +1,211 @@
+# id|lucide icon|Deutsch|English|Українська|Русский|mood|motion|clear context phrases (semicolon separated)
+@food
+ drink|cup-soda|Einen Drink nehmen|Take a drink|Випити води|Выпить воды|pleased|sip|ich habe durst;i am thirsty;хочу пити;хочу пить
+ coffee|coffee|Kaffeepause|Coffee break|Кавова перерва|Кофейная пауза|pleased|coffee|kaffeepause;coffee break;кавова перерва;кофейная пауза
+ snack|cookie|Einen Keks essen|Have a cookie|З’їсти печиво|Съесть печенье|pleased|bite|einen keks;a cookie;з’їсти печиво;съесть печенье
+ tea|tabler:teapot|Teepause|Tea break|Чайна перерва|Чайная пауза|petted|offer|eine tasse tee;a cup of tea;чашку чаю;чашку чая
+ breakfast|egg-fried|Frühstück|Breakfast|Сніданок|Завтрак|pleased|offer|zum frühstück;for breakfast;на сніданок;на завтрак
+ lunch|utensils|Mittagessen|Lunch|Обід|Обед|pleased|offer|zum mittagessen;for lunch;на обід;на обед
+ dinner|cooking-pot|Abendessen|Dinner|Вечеря|Ужин|petted|hold|zum abendessen;for dinner;на вечерю;на ужин
+ soup|soup|Warme Suppe|Warm soup|Теплий суп|Тёплый суп|petted|hold|eine suppe;a bowl of soup;теплий суп;тёплый суп
+ pizza|pizza|Pizza teilen|Share a pizza|Поділитися піцою|Поделиться пиццей|pleased|offer|eine pizza;a pizza;замовити піцу;заказать пиццу
+ cake|cake-slice|Ein Stück Kuchen|A slice of cake|Шматочок торта|Кусочек торта|pleased|bite|stück kuchen;slice of cake;шматочок торта;кусочек торта
+ ice-cream|ice-cream-cone|Ein Eis genießen|Enjoy an ice cream|Поласувати морозивом|Полакомиться мороженым|pleased|bite|ein eis essen;have an ice cream;хочу морозиво;хочу мороженое
+ apple|apple|Ein Apfel|An apple|Яблуко|Яблоко|pleased|bite|einen apfel;an apple;з’їсти яблуко;съесть яблоко
+ banana|banana|Eine Banane|A banana|Банан|Банан|pleased|bite|eine banane;a banana;з’їсти банан;съесть банан
+ sandwich|sandwich|Ein Sandwich|A sandwich|Сендвіч|Сэндвич|pleased|bite|ein sandwich;a sandwich;зробити сендвіч;сделать сэндвич
+ salad|salad|Frischer Salat|Fresh salad|Свіжий салат|Свежий салат|attentive|offer|einen salat;a salad;свіжий салат;свежий салат
+ popcorn|popcorn|Popcorn teilen|Share popcorn|Поділитися попкорном|Поделиться попкорном|pleased|offer|popcorn machen;make popcorn;їсти попкорн;есть попкорн
+ toast|tabler:bread|Ein belegtes Brot|Make a sandwich|Зробити бутерброд|Сделать бутерброд|attentive|offer|brot belegen;make a sandwich;зробити бутерброд;сделать бутерброд
+ cooking|chef-hat|Gemeinsam kochen|Cook together|Готувати разом|Готовить вместе|curious|inspect|lass uns kochen;let us cook;готувати разом;готовить вместе
+ baking|croissant|Etwas backen|Bake something|Щось спекти|Что-нибудь испечь|pleased|offer|lass uns backen;let us bake;давай спечемо;давай испечём
+ water-bottle|tabler:bottle|Trinkpause|Water break|Перерва на воду|Перерыв на воду|attentive|sip|wasser trinken;drink some water;попити води;попить воды
+@feelings
+ joy|sun|Freude|Joy|Радість|Радость|pleased|cheer|ich freue mich;i am happy;я радію;я радуюсь
+ affection|heart-handshake|Zuneigung|Affection|Прихильність|Привязанность|petted|offer|ich hab dich lieb;i love you;я тебе люблю;я тебя люблю
+ gratitude|hand-heart|Dankbarkeit|Gratitude|Вдячність|Благодарность|petted|offer|vielen dank;thank you so much;дуже дякую;большое спасибо
+ pride|medal|Stolz|Pride|Гордість|Гордость|victory|cheer|ich bin stolz;i am proud;я пишаюся;я горжусь
+ celebration|party-popper|Grund zum Feiern|Time to celebrate|Час святкувати|Время праздновать|victory|cheer|das feiern wir;let us celebrate;треба святкувати;нужно отпраздновать
+ surprise|sparkles|Überraschung|Surprise|Здивування|Удивление|startled|inspect|welch eine überraschung;what a surprise;яка несподіванка;какой сюрприз
+ curiosity|telescope|Neugier|Curiosity|Цікавість|Любопытство|curious|inspect|ich bin neugierig;i am curious;мені цікаво;мне любопытно
+ doubt|circle-question-mark|Zweifel|Doubt|Сумнів|Сомнение|thoughtful|inspect|ich bin unsicher;i am unsure;я не впевнений;я не уверен
+ confusion|waypoints|Verwirrung|Confusion|Розгубленість|Растерянность|repairing|inspect|ich bin verwirrt;i am confused;я заплутався;я запутался
+ sadness|cloud-drizzle|Traurigkeit|Sadness|Сум|Грусть|concerned|rest|ich bin traurig;i am sad;мені сумно;мне грустно
+ comfort|heart-plus|Trost anbieten|Offer comfort|Запропонувати підтримку|Предложить поддержку|concerned|offer|brauche trost;need some comfort;потрібна підтримка;нужна поддержка
+ sympathy|flower|Anteilnahme|Sympathy|Співчуття|Сочувствие|concerned|rest|ist gestorben;passed away;померла;умерла;помер;умер
+ frustration|cloud-alert|Frust|Frustration|Роздратування|Раздражение|annoyed|hold|das frustriert mich;i am frustrated;це мене дратує;это меня раздражает
+ anger|flame|Wut|Anger|Гнів|Гнев|angry|hold|ich bin wütend;i am angry;я злюся;я злюсь
+ overwhelmed|waves-horizontal|Überforderung|Overwhelmed|Перевантаження|Перегрузка|concerned|rest|alles zu viel;feel overwhelmed;всього забагато;всего слишком много
+ shy|shell|Schüchtern|Shy|Сором’язливість|Застенчивость|petted|rest|ich bin schüchtern;i am shy;я соромлюся;я стесняюсь
+ patience|hourglass|Geduld|Patience|Терпіння|Терпение|attentive|rest|hab geduld;be patient;май терпіння;имей терпение
+ relief|feather|Erleichterung|Relief|Полегшення|Облегчение|petted|rest|bin erleichtert;i am relieved;мені полегшало;мне полегчало
+ hope|sprout|Hoffnung|Hope|Надія|Надежда|attentive|offer|ich habe hoffnung;i have hope;я сподіваюся;я надеюсь
+ apology|flower-2|Entschuldigung|Apology|Вибачення|Извинение|concerned|offer|das tut mir leid;i am sorry;пробач мені;прости меня
+@conversation
+ greeting|hand|Begrüßung|Greeting|Привітання|Приветствие|attentive|offer|guten morgen;good morning;доброго ранку;доброе утро
+ welcome-back|door-open|Willkommen zurück|Welcome back|З поверненням|С возвращением|pleased|offer|bin wieder da;i am back;я повернувся;я вернулся
+ goodbye|signpost|Verabschiedung|Goodbye|Прощання|Прощание|petted|offer|bis später;see you later;до зустрічі;до встречи
+ listening|ear|Aufmerksam zuhören|Listen closely|Уважно слухати|Внимательно слушать|attentive|inspect|hör mir zu;listen to me;послухай мене;послушай меня
+ thinking|brain|Nachdenken|Thinking|Міркування|Размышление|thoughtful|inspect|lass mich nachdenken;let me think;дай подумати;дай подумать
+ idea|lightbulb|Eine Idee|An idea|Ідея|Идея|curious|cheer|ich habe eine idee;i have an idea;маю ідею;есть идея
+ explaining|presentation|Etwas erklären|Explain something|Щось пояснити|Что-нибудь объяснить|attentive|inspect|erklär mir;explain to me;поясни мені;объясни мне
+ question|message-circle-question-mark|Eine Frage|A question|Запитання|Вопрос|curious|inspect|ich habe eine frage;i have a question;маю запитання;у меня вопрос
+ clarification|messages-square|Nachfragen|Ask for clarity|Уточнення|Уточнение|repairing|inspect|was meinst du damit;what do you mean;що ти маєш на увазі;что ты имеешь в виду
+ understood|check-check|Verstanden|Understood|Зрозуміло|Понятно|attentive|hold|
+ story|book-open-text|Eine Geschichte|A story|Історія|История|curious|read|erzähl eine geschichte;tell a story;розкажи історію;расскажи историю
+ joke|drama|Ein Witz|A joke|Жарт|Шутка|pleased|cheer|erzähl einen witz;tell a joke;розкажи жарт;расскажи шутку
+ secret|key-round|Ein Geheimnis|A secret|Таємниця|Тайна|curious|rest|ein geheimnis erzählen;tell you a secret;розповісти таємницю;рассказать секрет
+ agreement|handshake|Einverstanden|Agreement|Згода|Согласие|attentive|offer|
+ disagreement|split|Andere Meinung|Different opinion|Інша думка|Другое мнение|thoughtful|hold|anderer meinung;different opinion;іншої думки;другого мнения
+ remembering|notebook-tabs|Sich erinnern|Remembering|Пригадування|Воспоминание|thoughtful|inspect|erinnerst du dich;do you remember;ти пам’ятаєш;ты помнишь
+ searching|search|Etwas suchen|Look for something|Щось шукати|Что-нибудь искать|curious|inspect|ich suche gerade;i am looking for;я шукаю;я ищу
+ comparing|scale|Abwägen|Weighing options|Зважити варіанти|Взвесить варианты|thoughtful|inspect|vor und nachteile;pros and cons;плюси та мінуси;плюсы и минусы
+ planning|map|Einen Plan machen|Make a plan|Скласти план|Составить план|thoughtful|read|einen plan machen;make a plan;скласти план;составить план
+ pause-conversation|pause|Gesprächspause|Conversation pause|Пауза в розмові|Пауза в разговоре|attentive|rest|kurze gesprächspause;pause our conversation;пауза в розмові;пауза в разговоре
+@learning
+ read|book-open|Ein Buch lesen|Read a book|Почитати книжку|Почитать книгу|thoughtful|read|ein buch lesen;read a book;почитати книжку;почитать книгу
+ writing|pen-line|Etwas schreiben|Write something|Щось написати|Что-нибудь написать|attentive|inspect|einen text schreiben;write a text;написати текст;написать текст
+ notes|notepad-text|Notizen machen|Take notes|Зробити нотатки|Сделать заметки|thoughtful|inspect|notizen machen;take notes;зробити нотатки;сделать заметки
+ checklist|list-checks|Eine Liste abhaken|Check a list|Відмітити список|Отметить список|attentive|inspect|checkliste durchgehen;go through a checklist;перевірити список;проверить список
+ focus|focus|Konzentrieren|Focus|Зосередитися|Сосредоточиться|attentive|inspect|muss mich konzentrieren;i need to focus;треба зосередитися;нужно сосредоточиться
+ study|graduation-cap|Etwas lernen|Study|Навчатися|Учиться|thoughtful|read|muss lernen;need to study;треба вчитися;нужно учиться
+ homework|notebook-pen|Hausaufgaben|Homework|Домашнє завдання|Домашнее задание|thoughtful|read|meine hausaufgaben;my homework;домашнє завдання;домашнее задание
+ math|calculator|Mathematik|Mathematics|Математика|Математика|thoughtful|inspect|mathe lernen;study mathematics;вчити математику;учить математику
+ language|languages|Sprachen üben|Practice a language|Практикувати мову|Практиковать язык|curious|inspect|sprache üben;practice a language;практикувати мову;практиковать язык
+ translation|book-a|Übersetzen|Translation|Переклад|Перевод|thoughtful|read|übersetze bitte;please translate;переклади будь ласка;переведи пожалуйста
+ research|microscope|Etwas erforschen|Research|Дослідження|Исследование|curious|inspect|genauer erforschen;research this;дослідити це;исследовать это
+ coding|code-xml|Programmieren|Coding|Програмування|Программирование|thoughtful|inspect|ich programmiere;i am coding;я програмую;я программирую
+ fixing|wrench|Einen Fehler suchen|Find a bug|Знайти помилку|Найти ошибку|thoughtful|inspect|fehler im code;bug in my code;помилка в коді;ошибка в коде
+ experiment|flask-conical|Ein Experiment|An experiment|Експеримент|Эксперимент|curious|inspect|ein experiment machen;run an experiment;зробити експеримент;провести эксперимент
+ exam|clipboard-check|Prüfung vorbereiten|Prepare for an exam|Готуватися до іспиту|Готовиться к экзамену|expectant|read|habe eine prüfung;i have an exam;у мене іспит;у меня экзамен
+ finished|circle-check-big|Fertig geworden|Finished|Завершено|Завершено|victory|cheer|bin fertig geworden;i have finished;я завершив;я закончил
+ deadline|calendar-clock|Eine Frist|A deadline|Термін|Срок|thoughtful|inspect|meine deadline;my deadline;мій дедлайн;мой дедлайн
+ meeting|users-round|Besprechung|A meeting|Нарада|Совещание|attentive|hold|habe eine besprechung;i have a meeting;у мене нарада;у меня совещание
+ presentation|projector|Etwas vorstellen|Give a presentation|Презентація|Презентация|expectant|offer|halte eine präsentation;give a presentation;роблю презентацію;делаю презентацию
+ achievement|badge-check|Etwas geschafft|Achievement|Досягнення|Достижение|victory|cheer|ich habe es geschafft;i did it;у мене вийшло;у меня получилось
+@play
+ music|list-music|Musik hören|Listen to music|Слухати музику|Слушать музыку|petted|hold|musik hören;listen to music;слухати музику;слушать музыку
+ headphones|headphones|Ganz in der Musik|Lost in music|Поринути в музику|Погрузиться в музыку|petted|rest|kopfhörer auf;headphones on;вдягнути навушники;надеть наушники
+ singing|mic-vocal|Singen|Singing|Спів|Пение|pleased|offer|lass uns singen;let us sing;давай співати;давай петь
+ guitar|guitar|Gitarre spielen|Play guitar|Грати на гітарі|Играть на гитаре|pleased|hold|gitarre spielen;play guitar;грати на гітарі;играть на гитаре
+ piano|piano|Klavier spielen|Play piano|Грати на піаніно|Играть на пианино|attentive|hold|klavier spielen;play piano;грати на піаніно;играть на пианино
+ drumming|drum|Trommeln|Drumming|Барабанити|Барабанить|pleased|cheer|trommel spielen;play drums;грати на барабані;играть на барабане
+ dance|disc-3|Tanzen auf dem Display|On-screen dance|Танець на екрані|Танец на экране|pleased|cheer|
+ drawing|pencil-ruler|Zeichnen|Drawing|Малювати|Рисовать|curious|inspect|etwas zeichnen;draw something;щось намалювати;что-нибудь нарисовать
+ painting|palette|Malen|Painting|Малювати фарбами|Рисовать красками|pleased|offer|mit farben malen;paint a picture;малювати фарбами;рисовать красками
+ craft|scissors|Basteln|Crafting|Майструвати|Мастерить|attentive|inspect|etwas basteln;make some crafts;щось змайструвати;что-нибудь смастерить
+ photography|camera|Fotografieren|Photography|Фотографування|Фотография|curious|inspect|ich fotografiere;i am taking photos;я фотографую;я фотографирую
+ movie|clapperboard|Filmabend|Movie night|Кіновечір|Киновечер|pleased|hold|ein filmabend;movie night;кіновечір;киновечер
+ gaming|gamepad-2|Videospiele|Video games|Відеоігри|Видеоигры|expectant|hold|videospiele spielen;play video games;грати у відеоігри;играть в видеоигры
+ dice|dices|Würfelspiel|Dice game|Гра в кості|Игра в кости|expectant|cheer|würfelspiel;dice game;гра в кості;игра в кости
+ puzzle|puzzle|Ein Puzzle legen|Do a puzzle|Збирати пазл|Собирать пазл|thoughtful|inspect|ein puzzle legen;do a puzzle;збирати пазл;собирать пазл
+ chess|chess-knight|Schach spielen|Play chess|Грати в шахи|Играть в шахматы|thoughtful|inspect|schach spielen;play chess;грати в шахи;играть в шахматы
+ magic|wand-sparkles|Ein Zaubertrick|A magic trick|Фокус|Фокус|curious|cheer|einen zaubertrick;a magic trick;покажи фокус;покажи фокус
+ balloon|balloon|Mit einem Ballon spielen|Play with a balloon|Гратися з кулькою|Играть с шариком|pleased|cheer|mit einem ballon;play with a balloon;гратися з кулькою;играть с шариком
+ blocks|blocks|Etwas bauen|Build something|Щось побудувати|Что-нибудь построить|curious|inspect|mit bausteinen;building blocks;з кубиків;из кубиков
+ origami|origami|Papier falten|Fold paper|Складати папір|Складывать бумагу|attentive|inspect|papier falten;fold paper;складати папір;складывать бумагу
+@travel
+ walk|footprints|Spazieren gehen|Go for a walk|Піти на прогулянку|Пойти на прогулку|attentive|hold|spazieren gehen;go for a walk;піти на прогулянку;пойти на прогулку
+ running|route|Eine Runde laufen|Go for a run|Пробіжка|Пробежка|expectant|cheer|joggen gehen;go for a run;піти на пробіжку;пойти на пробежку
+ cycling|bike|Radfahren|Cycling|Їзда на велосипеді|Езда на велосипеде|pleased|hold|fahrrad fahren;ride a bike;їхати на велосипеді;ехать на велосипеде
+ hiking|mountain|Wandern|Hiking|Похід у гори|Поход в горы|curious|hold|wandern gehen;go hiking;піти в похід;пойти в поход
+ exercise|dumbbell|Sport machen|Exercise|Тренування|Тренировка|expectant|hold|sport machen;do a workout;робити вправи;делать упражнения
+ yoga|tabler:yoga|Yoga|Yoga|Йога|Йога|petted|rest|yoga machen;do yoga;займатися йогою;заниматься йогой
+ swimming|waves-ladder|Schwimmen|Swimming|Плавання|Плавание|pleased|hold|schwimmen gehen;go swimming;піти плавати;пойти плавать
+ football|volleyball|Ball spielen|Play ball|Грати в м’яч|Играть в мяч|expectant|hold|ball spielen;play ball;грати в м’яч;играть в мяч
+ tennis|tabler:ping-pong|Tischtennis|Table tennis|Настільний теніс|Настольный теннис|expectant|hold|tischtennis spielen;play table tennis;грати в настільний теніс;играть в настольный теннис
+ target|target|Ein Ziel erreichen|Reach a goal|Досягти мети|Достичь цели|victory|cheer|ziel erreicht;reached my goal;досяг мети;достиг цели
+ packing|backpack|Rucksack packen|Pack a backpack|Зібрати рюкзак|Собрать рюкзак|attentive|inspect|rucksack packen;pack a backpack;зібрати рюкзак;собрать рюкзак
+ suitcase|luggage|Koffer packen|Pack a suitcase|Зібрати валізу|Собрать чемодан|expectant|inspect|koffer packen;pack a suitcase;зібрати валізу;собрать чемодан
+ car|car|Mit dem Auto fahren|Travel by car|Їхати автомобілем|Ехать на автомобиле|attentive|hold|mit dem auto;by car;на автомобілі;на автомобиле
+ train|train-front|Zugreise|Train journey|Подорож потягом|Поездка на поезде|curious|hold|mit dem zug;by train;їхати потягом;ехать поездом
+ bus|bus|Busfahrt|Bus ride|Поїздка автобусом|Поездка на автобусе|attentive|hold|mit dem bus;by bus;їхати автобусом;ехать автобусом
+ flight|plane|Flugreise|Flight|Авіаподорож|Авиапутешествие|expectant|hold|mit dem flugzeug;by plane;летіти літаком;лететь самолётом
+ boat|sailboat|Segeln|Sailing|Вітрильна прогулянка|Парусная прогулка|petted|hold|segeln gehen;go sailing;під вітрилами;под парусом
+ navigation|compass|Orientierung|Find the way|Знайти дорогу|Найти дорогу|curious|inspect|habe mich verlaufen;i am lost;я заблукав;я заблудился
+ destination|map-pin|Angekommen|Arrived|Прибули|Прибыли|pleased|hold|bin angekommen;i have arrived;я прибув;я прибыл
+ camping|tent-tree|Campen|Camping|Кемпінг|Кемпинг|petted|hold|campen gehen;go camping;їхати з наметом;поехать с палаткой
+@nature
+ sunny|sun-medium|Sonnenschein|Sunshine|Сонячно|Солнечно|pleased|hold|die sonne scheint;the sun is shining;світить сонце;светит солнце
+ cloudy|cloud|Wolken|Cloudy|Хмарно|Облачно|thoughtful|hold|es ist bewölkt;it is cloudy;хмарна погода;облачная погода
+ rain|cloud-rain|Regen|Rain|Дощ|Дождь|attentive|hold|es regnet;it is raining;іде дощ;идёт дождь
+ thunder|cloud-lightning|Gewitter|Thunderstorm|Гроза|Гроза|startled|hold|ein gewitter;a thunderstorm;почалася гроза;началась гроза
+ snow|snowflake|Schnee|Snow|Сніг|Снег|curious|offer|es schneit;it is snowing;іде сніг;идёт снег
+ windy|wind|Wind|Wind|Вітер|Ветер|startled|hold|es ist windig;it is windy;сильний вітер;сильный ветер
+ rainbow|rainbow|Regenbogen|Rainbow|Веселка|Радуга|pleased|cheer|ein regenbogen;a rainbow;бачу веселку;вижу радугу
+ fog|cloud-fog|Nebel|Fog|Туман|Туман|thoughtful|hold|es ist neblig;it is foggy;густий туман;густой туман
+ hot|thermometer-sun|Hitze|Hot weather|Спека|Жара|annoyed|hold|mir ist heiß;i feel hot;мені спекотно;мне жарко
+ cold|thermometer-snowflake|Kälte|Cold weather|Холод|Холод|concerned|rest|mir ist kalt;i feel cold;мені холодно;мне холодно
+ sunrise|sunrise|Sonnenaufgang|Sunrise|Схід сонця|Восход солнца|petted|rest|sonnenaufgang;sunrise;схід сонця;восход солнца
+ sunset|sunset|Sonnenuntergang|Sunset|Захід сонця|Закат|petted|rest|sonnenuntergang;sunset;захід сонця;закат
+ night-sky|moon-star|Sternennacht|Starry night|Зоряна ніч|Звёздная ночь|petted|rest|sternenhimmel;starry sky;зоряне небо;звёздное небо
+ forest|trees|Wald|Forest|Ліс|Лес|curious|hold|im wald;in the forest;у лісі;в лесу
+ garden|shovel|Gartenarbeit|Gardening|Садівництво|Садоводство|attentive|inspect|im garten arbeiten;do gardening;працювати в саду;работать в саду
+ watering|droplets|Blumen gießen|Water the plants|Полити квіти|Полить цветы|attentive|offer|blumen gießen;water the plants;полити квіти;полить цветы
+ plant|leaf|Pflanzen|Plants|Рослини|Растения|petted|hold|meine pflanze;my plant;моя рослина;моё растение
+ bird|bird|Vögel beobachten|Watch birds|Спостерігати за птахами|Наблюдать за птицами|curious|inspect|vögel beobachten;watch birds;спостерігати за птахами;наблюдать за птицами
+ butterfly|bug|Kleine Tiere entdecken|Discover small creatures|Помічати комах|Замечать насекомых|curious|inspect|einen käfer;a beetle;бачу жука;вижу жука
+ beach|umbrella|Strandtag|Beach day|День на пляжі|День на пляже|petted|hold|am strand;at the beach;на пляжі;на пляже
+@home
+ home|house|Zuhause sein|At home|Удома|Дома|petted|hold|bin zuhause;i am home;я вдома;я дома
+ sofa|sofa|Gemütlich machen|Get comfortable|Влаштуватися зручно|Устроиться поудобнее|petted|rest|gemütlich machen;get comfortable;влаштуватися зручно;устроиться поудобнее
+ bedtime|bed-double|Schlafenszeit|Bedtime|Час спати|Время спать|petted|rest|ich gehe schlafen;i am going to bed;я йду спати;я иду спать
+ nap|alarm-clock|Ein Nickerchen|A nap|Подрімати|Вздремнуть|petted|rest|ein nickerchen;take a nap;трохи подрімати;немного вздремнуть
+ wake-up|sun-dim|Aufwachen|Wake up|Прокинутися|Проснуться|attentive|rest|bin gerade aufgewacht;just woke up;щойно прокинувся;только проснулся
+ shower|shower-head|Duschen|Take a shower|Прийняти душ|Принять душ|attentive|hold|gehe duschen;take a shower;піду в душ;пойду в душ
+ teeth|tabler:dental|Zahnpflege|Dental care|Догляд за зубами|Уход за зубами|attentive|inspect|zähne putzen;brush my teeth;чистити зуби;чистить зубы
+ washing|washing-machine|Wäsche waschen|Do the laundry|Прати білизну|Стирать бельё|attentive|inspect|wäsche waschen;do the laundry;прати білизну;стирать бельё
+ cleaning|brush|Sauber machen|Clean up|Прибрати|Убраться|attentive|inspect|sauber machen;clean up;час прибрати;пора убраться
+ tidy|archive|Aufräumen|Tidy up|Навести лад|Навести порядок|thoughtful|inspect|zimmer aufräumen;tidy my room;прибрати кімнату;убрать комнату
+ dishes|glass-water|Abwaschen|Wash the dishes|Помити посуд|Помыть посуд|attentive|inspect|geschirr spülen;wash the dishes;мити посуд;мыть посуд
+ shopping|shopping-basket|Einkaufen|Shopping|Покупки|Покупки|attentive|hold|einkaufen gehen;go shopping;піти за покупками;пойти за покупками
+ groceries|shopping-bag|Einkäufe auspacken|Unpack groceries|Розкласти покупки|Разобрать покупки|pleased|inspect|einkäufe auspacken;unpack groceries;розкласти покупки;разобрать покупки
+ medicine|pill|Gute Besserung|Get well soon|Одужуй|Выздоравливай|concerned|offer|bin krank;i am ill;я захворів;я заболел
+ bandage|bandage|Kleine Verletzung|A small injury|Невелика травма|Небольшая травма|concerned|offer|habe mich verletzt;i hurt myself;я поранився;я поранился
+ breathing|heart-pulse|Ruhig atmen|Breathe slowly|Спокійно дихати|Спокойно дышать|attentive|rest|ruhig atmen;breathe slowly;спокійно дихати;спокойно дышать
+ rest|armchair|Ausruhen|Take a rest|Відпочити|Отдохнуть|petted|rest|muss mich ausruhen;need to rest;треба відпочити;нужно отдохнуть
+ cat|cat|Zeit mit der Katze|Time with a cat|Час із котом|Время с котом|petted|hold|meine katze;my cat;мій кіт;мой кот
+ dog|dog|Zeit mit dem Hund|Time with a dog|Час із собакою|Время с собакой|pleased|hold|mein hund;my dog;мій собака;моя собака
+ pet-care|paw-print|Tierpflege|Pet care|Догляд за тваринами|Уход за животными|attentive|offer|haustier pflegen;care for a pet;доглядати тварину;ухаживать за животным
+@occasions
+ birthday|cake|Geburtstag|Birthday|День народження|День рождения|victory|cheer|habe geburtstag;my birthday;мій день народження;мой день рождения
+ gift|gift|Ein Geschenk|A gift|Подарунок|Подарок|pleased|offer|ein geschenk;a gift;маю подарунок;есть подарок
+ invitation|mail-open|Eine Einladung|An invitation|Запрошення|Приглашение|expectant|offer|eine einladung;an invitation;маю запрошення;есть приглашение
+ visitors|door-closed|Besuch kommt|Visitors arriving|Приходять гості|Приходят гости|pleased|offer|bekomme besuch;visitors coming;прийдуть гості;придут гости
+ friendship|users|Freundschaft|Friendship|Дружба|Дружба|petted|offer|mein bester freund;my best friend;мій найкращий друг;мой лучший друг
+ together|heart|Zusammen sein|Being together|Бути разом|Быть вместе|petted|rest|zusammen sein;being together;бути разом;быть вместе
+ message|message-square-heart|Liebe Nachricht|A kind message|Тепле повідомлення|Тёплое сообщение|petted|offer|liebe nachricht;kind message;тепле повідомлення;тёплое сообщение
+ phone-call|phone|Ein Anruf|A phone call|Телефонний дзвінок|Телефонный звонок|attentive|hold|bekomme einen anruf;getting a call;мені телефонують;мне звонят
+ letter|mail|Ein Brief|A letter|Лист|Письмо|curious|read|einen brief;a letter;отримав лист;получил письмо
+ picnic|tabler:picnic-table|Picknick|Picnic|Пікнік|Пикник|pleased|offer|ein picknick;a picnic;на пікнік;на пикник
+ barbecue|beef|Grillen|Barbecue|Барбекю|Барбекю|pleased|offer|grillen gehen;have a barbecue;готувати барбекю;готовить барбекю
+ spring|tree-deciduous|Frühling|Spring|Весна|Весна|pleased|offer|es wird frühling;spring is coming;приходить весна;приходит весна
+ summer|sun-snow|Sommer|Summer|Літо|Лето|pleased|hold|endlich sommer;summer at last;нарешті літо;наконец лето
+ autumn|tabler:leaf|Herbst|Autumn|Осінь|Осень|petted|hold|es ist herbst;it is autumn;прийшла осінь;наступила осень
+ winter|cloud-snow|Winter|Winter|Зима|Зима|petted|hold|es ist winter;it is winter;прийшла зима;наступила зима
+ christmas|tree-pine|Weihnachtszeit|Christmas time|Різдвяний час|Рождественская пора|petted|offer|frohe weihnachten;merry christmas;веселого різдва;с рождеством
+ new-year|calendar-heart|Neujahr|New year|Новий рік|Новый год|victory|cheer|frohes neues jahr;happy new year;з новим роком;с новым годом
+ halloween|ghost|Gruselige Geschichten|Spooky stories|Страшні історії|Страшные истории|curious|inspect|halloween;spooky stories;страшні історії;страшные истории
+ anniversary|calendar-check|Jahrestag|Anniversary|Річниця|Годовщина|petted|offer|unser jahrestag;our anniversary;наша річниця;наша годовщина
+ milestone|flag|Ein Meilenstein|A milestone|Важливий етап|Важный этап|victory|cheer|ein meilenstein;a milestone;важливий етап;важный этап
+@technology
+ charging|battery-charging|Laden|Charging|Заряджання|Зарядка|attentive|rest|
+ low-battery|battery-low|Wenig Akku|Low battery|Мало заряду|Мало заряда|concerned|rest|
+ battery-full|battery-full|Voller Akku|Full battery|Повний заряд|Полный заряд|pleased|hold|
+ connected|bluetooth-connected|Verbunden|Connected|Підключено|Подключено|attentive|hold|
+ disconnected|bluetooth-off|Verbindung getrennt|Disconnected|Від’єднано|Отключено|concerned|hold|
+ wifi|wifi|WLAN|Wi-Fi|Wi-Fi|Wi-Fi|attentive|inspect|
+ offline|wifi-off|Offline|Offline|Офлайн|Офлайн|concerned|hold|
+ microphone|mic|Mikrofon|Microphone|Мікрофон|Микрофон|attentive|inspect|
+ muted|mic-off|Stummgeschaltet|Muted|Звук вимкнено|Звук отключён|attentive|hold|
+ audio|volume-2|Tonausgabe|Audio output|Відтворення звуку|Воспроизведение звука|attentive|hold|
+ download|download|Herunterladen|Downloading|Завантаження|Загрузка|thoughtful|inspect|
+ update|refresh-cw|Aktualisieren|Updating|Оновлення|Обновление|thoughtful|inspect|
+ setup|settings-2|Einrichten|Setup|Налаштування|Настройка|curious|inspect|
+ tools|tool-case|Werkzeug bereitlegen|Prepare tools|Підготувати інструменти|Подготовить инструменты|attentive|inspect|
+ privacy|shield-check|Privatsphäre|Privacy|Приватність|Конфиденциальность|attentive|hold|
+ locked|lock-keyhole|Gesperrt|Locked|Заблоковано|Заблокировано|attentive|hold|
+ notification|bell|Eine Meldung|A notification|Сповіщення|Уведомление|attentive|inspect|
+ maintenance|cog|Wartung|Maintenance|Обслуговування|Обслуживание|thoughtful|inspect|
+ help|life-buoy|Hilfe holen|Get help|Покликати допомогу|Позвать на помощь|concerned|offer|
+ stop|octagon|STOP|STOP|СТОП|СТОП|attentive|hold|

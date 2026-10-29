@@ -59,7 +59,7 @@ export function parseAgentTask(value: unknown, expectedId?: string, summary = fa
   if (!isRecord(value)) throw new AgentError("response");
   const id = validateAgentTaskId(value.id);
   if (expectedId && id !== expectedId) throw new AgentError("response");
-  if (typeof value.query !== "string" || !value.query.trim() || Array.from(value.query).length > MAX_AGENT_QUERY_LENGTH || !["en", "ru", "uk"].includes(String(value.language)) || !AGENT_TASK_STATUSES.includes(value.status as AgentTaskStatus)) throw new AgentError("response");
+  if (typeof value.query !== "string" || !value.query.trim() || Array.from(value.query).length > MAX_AGENT_QUERY_LENGTH || !["en", "ru", "uk", "de"].includes(String(value.language)) || !AGENT_TASK_STATUSES.includes(value.status as AgentTaskStatus)) throw new AgentError("response");
   if (!isTimestamp(value.createdAt) || !isTimestamp(value.updatedAt)) throw new AgentError("response");
   if (value.answer !== null && (typeof value.answer !== "string" || value.answer.length > 32_000)) throw new AgentError("response");
   if (value.error !== null && (typeof value.error !== "string" || value.error.length > 120)) throw new AgentError("response");

@@ -1,4 +1,5 @@
-import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, isBehaviorGameActive, publishBehaviorEvent } from "../behavior/behavior-events";
+import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, readCompanionInterests, getBehaviorInteractionRevision, getBehaviorInteractionSnapshot, requiresBehaviorTurnCommit, performBehaviorCompanionAction, publishBehaviorEvent, type BehaviorInteractionSnapshot, type BehaviorSignalResponseRequest } from "../behavior/behavior-events";
+import type { CompanionAction, CompanionActionResult } from "../behavior/behavior-companion";
 import { AppState, Platform } from "react-native";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from "react-native-webrtc";
@@ -26,6 +27,8 @@ import {
 import { wakewordService, type WakewordDetection } from "./wakeword";
 import {
   buildRealtimeSessionUpdate,
+  buildSharedCountdownInstructions,
+  buildHermesCompletionInstructions,
   bytesToBase64,
   floatSamplesToPcm16Bytes,
   REALTIME_MODEL,
@@ -34,6 +37,10 @@ import {
 import { parseRealtimePhysicalCommand } from "./realtime-physical-command";
 import { parseRealtimeVisualCommand } from "./realtime-visual-command";
 import { realtimePcmConversationService } from "./realtime-pcm-conversation";
+import { hermesTaskVoiceBridge } from "./hermes-task-tools";
+import { HERMES_TASK_TOOL_NAMES } from "./hermes-task-tool-definitions";
+import { robotAppSkillToolBridge } from "./robot-app-skill-tools";
+import { ROBOT_APP_SKILL_TOOL_NAMES } from "./robot-app-skill-tool-definitions";
 
 const DATA_CHANNEL_OPEN_TIMEOUT_MS = 9_000;
 const STARTUP_PREROLL_RECENT_MS = 900;
@@ -69,6 +76,90 @@ type LooseDataChannel = Record<string, any> & {
   send?: (value: string) => void;
   close?: () => void;
 };
+type CompanionTurnContext = BehaviorInteractionSnapshot & {
+  sessionId: string;
+  itemId: string;
+  text: string;
+};
+const MAX_RESPONSE_COMPANION_CONTEXTS = 8;
+const COMPANION_TOOL_NAMES = new Set([
+  "propose_shared_experience",
+  "list_shared_experiences",
+  "correct_shared_experience",
+  "search_shared_experiences",
+  "recall_shared_experience",
+  "forget_shared_experience",
+  "offer_small_interest",
+  "propose_visual_memory",
+  "compare_shared_object",
+  "prepare_shared_ritual",
+  "manage_shared_activity",
+  "set_episode_ritual",
+]);
+
+type ArmedSharedRitual = {
+  sessionId: string;
+  revision: number;
+  userTurnRevision: number;
+  episodeTitle: string;
+};
+
+function getCurrentCompanionSnapshot(sessionId: string | null): BehaviorInteractionSnapshot | null {
+  return typeof getBehaviorInteractionSnapshot === "function"
+    ? getBehaviorInteractionSnapshot(sessionId)
+    : null;
+}
+
+function normalizeEpisodeMatchText(value: string): string {
+  return value.normalize("NFKD").replace(/\p{M}/gu, "").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function sharedEpisodeMemoryBlock(note: string, sessionId: string | null): string | null {
+  if (!sessionId) return null;
+  let context: Record<string, any>;
+  try { context = JSON.parse(getBehaviorConversationContext(sessionId) || "{}"); } catch { return null; }
+  const companion = context.companion;
+  if (!companion || typeof companion !== "object") return null;
+  if (companion.pendingConfirmation) return "pending-shared-experience";
+
+  const normalizedNote = normalizeEpisodeMatchText(note);
+  if (!normalizedNote) return null;
+  const noteTerms = new Set(normalizedNote.split(" ").filter((term) => term.length >= 4));
+  for (const episode of Array.isArray(companion.episodes) ? companion.episodes : []) {
+    if (!episode || typeof episode !== "object") continue;
+    const title = typeof episode.title === "string" ? normalizeEpisodeMatchText(episode.title) : "";
+    const fields = [episode.title, episode.detail, episode.outcome, episode.source?.evidence]
+      .filter((value): value is string => typeof value === "string")
+      .map(normalizeEpisodeMatchText)
+      .filter((value) => value.length >= 12);
+    if (fields.some((field) => normalizedNote.includes(field) || field.includes(normalizedNote))) return "duplicate-shared-experience";
+    if (title.length >= 4 && normalizedNote.includes(title)) {
+      const relatedField = fields.some((field) => {
+        const fieldTerms = [...new Set(field.split(" ").filter((term) => term.length >= 4))];
+        const overlap = fieldTerms.filter((term) => noteTerms.has(term)).length;
+        return overlap >= Math.min(3, Math.max(2, Math.ceil(fieldTerms.length * 0.6)));
+      });
+      if (relatedField) return "duplicate-shared-experience";
+    }
+  }
+  return null;
+}
+
+function hasPendingSharedConfirmation(sessionId: string | null): boolean {
+  if (!sessionId) return false;
+  try {
+    const context = JSON.parse(getBehaviorConversationContext(sessionId) || "{}");
+    return Boolean(context.companion?.pendingConfirmation);
+  } catch { return false; }
+}
+
+function hasReferenceRepairContext(sessionId: string | null): boolean {
+  if (!sessionId) return false;
+  try {
+    const context = JSON.parse(getBehaviorConversationContext(sessionId) || "{}");
+    return typeof context.referenceRepair === "string" && context.referenceRepair.length > 0;
+  } catch { return false; }
+}
 
 function makeLocalRealtimeSessionId(): string {
   return `realtime-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -98,6 +189,7 @@ export class RealtimeConversationService {
   private active = false;
   private configured = false;
   private generationActive = false;
+  private activeResponseId: string | null = null;
   private playbackActive = false;
   private playbackResponseId: string | null = null;
   private playbackTerminal: "stopped" | "cleared" | "interrupted" | null = null;
@@ -113,6 +205,20 @@ export class RealtimeConversationService {
   private assistantTranscript = "";
   private userTranscriptItems = new Set<string>();
   private handledToolCalls = new Set<string>();
+  private currentCompanionUserTurn: CompanionTurnContext | null = null;
+  private companionResponseRequestSerial = 0;
+  private correctionResponseFence: CompanionTurnContext | null = null;
+  private requestedCompanionResponses = new Map<string, CompanionTurnContext>();
+  private rejectedResponseIds = new Set<string>();
+  private responseCompanionContexts = new Map<string, CompanionTurnContext | null>();
+  private preTranscriptCompanionRevision: BehaviorInteractionSnapshot | null = null;
+  private preTranscriptResponseRevisions = new Map<string, BehaviorInteractionSnapshot>();
+  private pendingCompanionToolCalls = new Map<string, any[]>();
+  private lastCompanionActionUserTurnRevision: number | null = null;
+  private rememberBlockedUserTurnRevision: number | null = null;
+  private rememberBlockedReason: "pending-shared-experience" | "shared-experience-capacity" = "pending-shared-experience";
+  private armedSharedRituals = new Map<string, ArmedSharedRitual>();
+  private attemptedSharedRituals = new Set<string>();
   private toolCallsInFlight = 0;
   private pendingPreroll: { samples: number[]; sampleRate: number; source: "wake-command" | "startup" } | null = null;
   private startupPrerollSamples: number[] = [];
@@ -142,6 +248,7 @@ export class RealtimeConversationService {
   private speakerRouteActive = false;
   private speakerRouteRestorePromise: Promise<void> | null = null;
   private sessionModel = REALTIME_MODEL;
+  private sessionTurnTaking: "fixed" | "semantic" = "fixed";
 
   get isActive(): boolean {
     return this.active;
@@ -244,6 +351,18 @@ export class RealtimeConversationService {
     this.assistantTranscript = "";
     this.userTranscriptItems.clear();
     this.handledToolCalls.clear();
+    this.currentCompanionUserTurn = null;
+    this.responseCompanionContexts.clear();
+    this.activeResponseId = null;
+    this.requestedCompanionResponses.clear();
+    this.correctionResponseFence = null;
+    this.preTranscriptCompanionRevision = null;
+    this.preTranscriptResponseRevisions.clear();
+    this.pendingCompanionToolCalls.clear();
+    this.lastCompanionActionUserTurnRevision = null;
+    this.rememberBlockedUserTurnRevision = null;
+    this.armedSharedRituals.clear();
+    this.attemptedSharedRituals.clear();
     this.toolCallsInFlight = 0;
     this.remoteTracks = [];
     this.configuredAt = 0;
@@ -263,6 +382,7 @@ export class RealtimeConversationService {
     this.lastBargeInAssistAt = 0;
     this.speakerRouteActive = false;
     this.sessionModel = useUserStore.getState().preferences.realtimeModelId;
+    this.sessionTurnTaking = useUserStore.getState().preferences.realtimeTurnTaking === "semantic" ? "semantic" : "fixed";
     this.pendingPreroll = detection?.hasCommandSuffix && detection.commandPrerollSamples?.length
       ? {
           samples: detection.commandPrerollSamples.slice(),
@@ -278,6 +398,7 @@ export class RealtimeConversationService {
     conversationStore.setUserSpeaking(false);
     conversationStore.setCurrentTranscript("");
     conversationStore.setStreamingText("");
+    conversationStore.setHeardSpeechText(null);
     conversationStore.setOverlayVisible(true);
     conversationStore.setRealtimeReadiness("connecting");
     useUserStore.getState().setVoiceState("listening");
@@ -313,13 +434,22 @@ export class RealtimeConversationService {
 
       const localSessionId = makeLocalRealtimeSessionId();
       this.sessionId = localSessionId;
+      this.currentCompanionUserTurn = null;
+      this.responseCompanionContexts.clear();
+      this.activeResponseId = null;
+      this.requestedCompanionResponses.clear();
+      this.correctionResponseFence = null;
+      this.preTranscriptCompanionRevision = null;
+      this.preTranscriptResponseRevisions.clear();
+      this.pendingCompanionToolCalls.clear();
+      this.rememberBlockedUserTurnRevision = null;
       beginBehaviorSession(localSessionId, () => {
         if (this.active && this.sessionId === localSessionId) this.applySessionPreferences("behavior-context");
-      });
+      }, (signal) => this.requestSharedCountdown(signal, localSessionId));
       conversationStore.setActiveSession(localSessionId);
       mirrorSessionTouch(localSessionId, "realtime");
 
-      const sessionUpdate = buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId));
+      const sessionUpdate = buildRealtimeSessionUpdate({ ...useUserStore.getState().preferences, realtimeTurnTaking: this.sessionTurnTaking }, undefined, undefined, getBehaviorConversationContext(this.sessionId), requiresBehaviorTurnCommit(this.sessionId));
       const sessionConfig = (sessionUpdate.session ?? {}) as Record<string, unknown>;
 
       // BYOK: the owner's standard key stays in SecureStore. It is used only to
@@ -556,22 +686,65 @@ export class RealtimeConversationService {
     }
   }
 
-  applySessionPreferences(source: string): void {
-    if (!this.active) return;
-    const preferences = useUserStore.getState().preferences;
-    this.send(buildRealtimeSessionUpdate(preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId)));
+  applySessionPreferences(source: string): boolean {
+    if (!this.active) return false;
+    const preferences = { ...useUserStore.getState().preferences, realtimeTurnTaking: this.sessionTurnTaking };
+    const sent = this.send(buildRealtimeSessionUpdate(preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), requiresBehaviorTurnCommit(this.sessionId)));
     recordDiagnosticEvent("realtime", "webrtc-session-preferences-updated", {
       source,
       listeningLanguage: preferences.listeningLanguage,
       responseLanguage: preferences.language,
       voice: preferences.ttsVoiceId,
+      style: preferences.ttsStyleId,
       speed: preferences.ttsSpeed,
+    });
+    return sent;
+  }
+
+  private requestSharedCountdown(signal: BehaviorSignalResponseRequest, sessionId: string): boolean {
+    if (signal.kind === "hermes-completed") {
+      const revision = getBehaviorInteractionSnapshot(sessionId);
+      const store = useConversationStore.getState();
+      if (!revision || revision.revision !== signal.revision || revision.userTurnRevision !== signal.userTurnRevision ||
+        this.sessionId !== sessionId || !this.active || !this.configured || this.dataChannel?.readyState !== "open" ||
+        AppState.currentState !== "active" || !isMainScreenFocused() || useUserStore.getState().robotSleeping ||
+        store.isUserSpeaking || this.generationActive || this.playbackActive || this.pendingAssistantCompletion !== null ||
+        this.toolCallsInFlight > 0 || requiresBehaviorTurnCommit(sessionId)) return false;
+      if (!this.applySessionPreferences("hermes-completed")) return false;
+      const preferences = useUserStore.getState().preferences;
+      return this.send({ type: "response.create", response: { instructions: buildHermesCompletionInstructions(preferences.language, preferences.ttsStyleId) } });
+    }
+    const armed = this.armedSharedRituals.get(signal.id);
+    if (!armed || this.attemptedSharedRituals.has(signal.id) || armed.sessionId !== sessionId ||
+      armed.episodeTitle !== signal.episodeTitle || this.sessionId !== sessionId) return false;
+    const revision = getBehaviorInteractionRevision(sessionId);
+    if (!revision || revision.revision !== armed.revision || revision.userTurnRevision !== armed.userTurnRevision) {
+      this.armedSharedRituals.delete(signal.id);
+      this.attemptedSharedRituals.add(signal.id);
+      return false;
+    }
+
+    // Consume a valid accepted signal before checking transport readiness. If the
+    // channel is busy, the caller closes the ritual instead of retrying it later.
+    this.attemptedSharedRituals.add(signal.id);
+    this.armedSharedRituals.delete(signal.id);
+    const store = useConversationStore.getState();
+    if (!this.active || !this.configured || this.dataChannel?.readyState !== "open" ||
+      AppState.currentState !== "active" || !isMainScreenFocused() || useUserStore.getState().robotSleeping ||
+      store.isUserSpeaking || this.generationActive || this.playbackActive || this.pendingAssistantCompletion !== null ||
+      this.toolCallsInFlight > 0) return false;
+    if (!this.applySessionPreferences("shared-ritual-countdown")) return false;
+    const preferences = useUserStore.getState().preferences;
+    return this.send({
+      type: "response.create",
+      response: { instructions: buildSharedCountdownInstructions(preferences.language, preferences.ttsStyleId) },
     });
   }
 
-  async interruptAndListen(source = "tap"): Promise<void> {
+  async interruptAndListen(source = "tap", publishInterrupt = true): Promise<void> {
     if (!this.active) return;
-    publishBehaviorEvent({ type: "interrupt", reason: source, sessionId: this.sessionId ?? undefined });
+    this.armedSharedRituals.clear();
+    if (publishInterrupt) publishBehaviorEvent({ type: "interrupt", reason: source, sessionId: this.sessionId ?? undefined });
     recordDiagnosticEvent("realtime", "interaction-interrupt", {
       source,
       transport: "webrtc",
@@ -587,6 +760,7 @@ export class RealtimeConversationService {
     this.playbackActive = false;
     this.playbackTerminal = "cleared";
     const store = useConversationStore.getState();
+    store.setHeardSpeechText(null);
     store.setSpeaking(false);
     store.setUserSpeaking(false);
     store.setProcessing(false);
@@ -613,6 +787,18 @@ export class RealtimeConversationService {
     if (this.sessionId) endBehaviorSession(this.sessionId);
     this.lastStopReason = reason;
     this.active = false;
+    this.currentCompanionUserTurn = null;
+    this.responseCompanionContexts.clear();
+    this.activeResponseId = null;
+    this.requestedCompanionResponses.clear();
+    this.correctionResponseFence = null;
+    this.preTranscriptCompanionRevision = null;
+    this.preTranscriptResponseRevisions.clear();
+    this.pendingCompanionToolCalls.clear();
+    this.lastCompanionActionUserTurnRevision = null;
+    this.rememberBlockedUserTurnRevision = null;
+    this.armedSharedRituals.clear();
+    this.attemptedSharedRituals.clear();
     this.configured = false;
     this.generationActive = false;
     this.playbackActive = false;
@@ -717,6 +903,7 @@ export class RealtimeConversationService {
     store.setListening(false);
     store.setProcessing(false);
     store.setSpeaking(false);
+    store.setHeardSpeechText(null);
     store.setUserSpeaking(false);
     store.setRealtimeReadiness("idle");
     store.setOverlayVisible(false);
@@ -1062,6 +1249,8 @@ export class RealtimeConversationService {
         voice: event.session?.audio?.output?.voice ?? "unknown",
         interruptResponse: event.session?.audio?.input?.turn_detection?.interrupt_response ?? true,
         turnDetectionType: event.session?.audio?.input?.turn_detection?.type ?? "unknown",
+        effectiveTurnTakingProfile: event.session?.audio?.input?.turn_detection?.type === "semantic_vad" ? "semantic" : event.session?.audio?.input?.turn_detection?.type === "server_vad" ? "fixed" : "unknown",
+        semanticEagerness: event.session?.audio?.input?.turn_detection?.eagerness ?? null,
         vadThreshold: event.session?.audio?.input?.turn_detection?.threshold ?? null,
         prefixPaddingMs: event.session?.audio?.input?.turn_detection?.prefix_padding_ms ?? null,
         silenceDurationMs: event.session?.audio?.input?.turn_detection?.silence_duration_ms ?? null,
@@ -1080,20 +1269,60 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "response.created") {
+      const responseId = String(event.response?.id ?? "").trim();
+      if (responseId) {
+        if (this.rejectedResponseIds.has(responseId)) {
+          this.recordResponseCompanionContext(responseId, null);
+          this.preTranscriptResponseRevisions.delete(responseId);
+          return;
+        }
+        const requestId = typeof event.response?.metadata?.looi_companion_request === "string" ? event.response.metadata.looi_companion_request : "";
+        const requestedTurn = requestId ? this.requestedCompanionResponses.get(requestId) : undefined;
+        if (requestId) this.requestedCompanionResponses.delete(requestId);
+        const fenced = this.correctionResponseFence?.sessionId === this.sessionId;
+        if (fenced && !requestedTurn) {
+          this.rejectResponseId(responseId);
+          this.recordResponseCompanionContext(responseId, null);
+          this.preTranscriptResponseRevisions.delete(responseId);
+          return;
+        }
+        const turn = requestedTurn ?? (fenced ? null : this.currentCompanionUserTurn);
+        const snapshot = turn?.sessionId === this.sessionId ? getCurrentCompanionSnapshot(this.sessionId) : null;
+        const captured = turn && snapshot &&
+          snapshot.revision === turn.revision &&
+          snapshot.userTurnRevision === turn.userTurnRevision
+          ? { ...turn }
+          : null;
+        this.recordResponseCompanionContext(responseId, captured);
+        const preTranscriptRevision = this.preTranscriptCompanionRevision;
+        const currentRevision = getBehaviorInteractionRevision(this.sessionId);
+        if (!fenced && !captured && preTranscriptRevision && currentRevision &&
+          currentRevision.revision === preTranscriptRevision.revision &&
+          currentRevision.userTurnRevision === preTranscriptRevision.userTurnRevision) {
+          this.preTranscriptResponseRevisions.set(responseId, { ...preTranscriptRevision });
+        } else {
+          this.preTranscriptResponseRevisions.delete(responseId);
+        }
+      }
+      this.activeResponseId = responseId || null;
+      useConversationStore.getState().setHeardSpeechText(null);
       this.generationActive = true;
       this.playbackTerminal = null;
       this.pendingAssistantCompletion = null;
       recordDiagnosticEvent("realtime", "response-generation-started", {
-        responseId: event.response?.id ?? null,
+        responseId: responseId || null,
       });
       return;
     }
     if (type === "output_audio_buffer.started") {
+      if (!this.activeResponseId && !this.correctionResponseFence && event.response_id) this.activeResponseId = String(event.response_id);
+      if (!this.isCurrentResponseEvent(event)) return;
       if (this.sessionId) publishBehaviorEvent({ type: "assistant-start", sessionId: this.sessionId });
       this.markPlaybackStarted(event);
       return;
     }
     if (type === "output_audio_buffer.stopped") {
+      if (!this.isCurrentResponseEvent(event)) return;
       const playbackOutcome = this.playbackInterrupted ? "interrupted" : "stopped";
       this.stopBargeInAssistMonitor("playback-stopped");
       this.playbackActive = false;
@@ -1106,11 +1335,23 @@ export class RealtimeConversationService {
         interrupted: this.playbackInterrupted,
       });
       this.playbackInterrupted = false;
+      useConversationStore.getState().setHeardSpeechText(null);
       await this.finalizeAssistantTurnIfReady(playbackOutcome);
+      if (!this.generationActive) this.activeResponseId = null;
       return;
     }
     if (type === "input_audio_buffer.speech_started") {
+      this.armedSharedRituals.clear();
       publishBehaviorEvent({ type: "user-speech-start", sessionId: this.sessionId ?? undefined });
+      if (this.activeResponseId) this.rejectResponseId(this.activeResponseId);
+      this.activeResponseId = null;
+      this.generationActive = false;
+      this.pendingAssistantCompletion = null;
+      this.assistantTranscript = "";
+      this.correctionResponseFence = null;
+      this.currentCompanionUserTurn = null;
+      this.clearPreTranscriptCompanionAuthorization();
+      this.preTranscriptCompanionRevision = getBehaviorInteractionRevision(this.sessionId);
       const wasOutputActive = this.playbackActive;
       this.lastServerSpeechAt = Date.now();
       this.vadHealthProbeSentAt = 0;
@@ -1136,6 +1377,15 @@ export class RealtimeConversationService {
         // interrupt_response=true handles conversation truncation server-side.
         this.playbackInterrupted = true;
         this.setRemotePlaybackMuted(true, "voice-barge-in");
+        // Retire local ownership immediately. The server may deliver this
+        // response's terminal events later, after a replacement has started;
+        // those events are deliberately rejected by the response-id guard.
+        // Keep the remote track muted until fresh output starts.
+        this.stopBargeInAssistMonitor("voice-barge-in");
+        this.playbackActive = false;
+        this.playbackResponseId = null;
+        this.playbackTerminal = "interrupted";
+        this.lastPlaybackEndedAt = Date.now();
         recordDiagnosticEvent("realtime", "voice-barge-in", {
           automatic: true,
           serverManagedTruncation: true,
@@ -1146,7 +1396,8 @@ export class RealtimeConversationService {
         });
       }
       const store = useConversationStore.getState();
-      if (wasOutputActive) store.setStreamingText("");
+      store.setHeardSpeechText(null);
+      store.setStreamingText("");
       store.setUserSpeaking(true);
       store.setSpeaking(false);
       store.setProcessing(false);
@@ -1159,6 +1410,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "output_audio_buffer.cleared") {
+      if (!this.isCurrentResponseEvent(event)) return;
       this.stopBargeInAssistMonitor("buffer-cleared");
       const sentAt = this.lastOutputClearAt;
       const clearSource = this.lastOutputClearSource;
@@ -1168,6 +1420,7 @@ export class RealtimeConversationService {
       this.playbackInterrupted = false;
       this.lastPlaybackEndedAt = Date.now();
       this.setRemotePlaybackMuted(false, "buffer-cleared");
+      useConversationStore.getState().setHeardSpeechText(null);
       recordDiagnosticEvent("realtime", "output-buffer-cleared", {
         source: clearSource ?? "other",
         responseId: event.response_id ?? null,
@@ -1193,6 +1446,8 @@ export class RealtimeConversationService {
       const itemId = String(event.item_id ?? `unknown-${Date.now()}`);
       if (transcript && !this.userTranscriptItems.has(itemId)) {
         this.userTranscriptItems.add(itemId);
+        this.currentCompanionUserTurn = null;
+        this.armedSharedRituals.clear();
         const store = useConversationStore.getState();
         store.setCurrentTranscript(transcript);
         store.addMessage({ role: "user", content: transcript });
@@ -1200,16 +1455,41 @@ export class RealtimeConversationService {
           mirrorSessionMessage(this.sessionId, { role: "user", content: transcript });
           const physical = parseRealtimePhysicalCommand(transcript, useUserStore.getState().preferences);
           const visual = parseRealtimeVisualCommand(transcript, useUserStore.getState().preferences);
-          const wasGame = isBehaviorGameActive(this.sessionId);
+          const wasManualTurn = requiresBehaviorTurnCommit(this.sessionId);
           if (physical || visual) {
             publishBehaviorEvent({ type: "interrupt", reason: physical?.kind === "emergency-stop" ? "emergency-stop" : "explicit-command", sessionId: this.sessionId });
+            if (this.activeResponseId) this.rejectResponseId(this.activeResponseId);
+            this.activeResponseId = null;
+            this.correctionResponseFence = null;
+            this.clearPreTranscriptCompanionAuthorization();
           } else {
+            const resolvesPendingSharedConfirmation = hasPendingSharedConfirmation(this.sessionId);
             publishBehaviorEvent({ type: "user-turn", text: transcript, sessionId: this.sessionId, turnId: itemId });
-          }
-          if ((wasGame || isBehaviorGameActive(this.sessionId)) && !store.isUserSpeaking) {
-            if (this.playbackActive) void this.interruptAndListen("local-game-turn").catch(() => undefined);
-            if (!wasGame || this.generationActive) this.send({ type: "response.cancel" });
-            this.send({ type: "response.create" });
+            const manualTurn = requiresBehaviorTurnCommit(this.sessionId);
+            const correctionTurn = manualTurn && hasReferenceRepairContext(this.sessionId);
+            const snapshot = getCurrentCompanionSnapshot(this.sessionId);
+            this.rememberBlockedUserTurnRevision = resolvesPendingSharedConfirmation ? snapshot?.userTurnRevision ?? null : null;
+            this.rememberBlockedReason = "pending-shared-experience";
+            if (!wasManualTurn && manualTurn) {
+              if (this.activeResponseId) this.rejectResponseId(this.activeResponseId);
+              this.clearPreTranscriptCompanionAuthorization();
+            }
+            if (!correctionTurn) this.correctionResponseFence = null;
+            if (snapshot) {
+              const turn = { ...snapshot, sessionId: this.sessionId, itemId, text: transcript };
+              this.currentCompanionUserTurn = turn;
+              if (correctionTurn) this.correctionResponseFence = { ...turn };
+              if (wasManualTurn || !manualTurn) this.bindPreTranscriptCompanionResponses(turn);
+            } else {
+              this.clearPreTranscriptCompanionAuthorization();
+            }
+            if ((wasManualTurn || manualTurn) && !store.isUserSpeaking) {
+              if (manualTurn) this.activeResponseId = null;
+              if (this.playbackActive) void this.interruptAndListen("local-manual-turn", false).catch(() => undefined);
+              else if (!wasManualTurn || this.generationActive) this.send({ type: "response.cancel" });
+              if (correctionTurn && this.currentCompanionUserTurn) this.requestCompanionTurnResponse(this.currentCompanionUserTurn);
+              else this.send({ type: "response.create" });
+            }
           }
         }
         recordDiagnosticEvent("realtime", "input-transcript", {
@@ -1221,6 +1501,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "response.output_audio.delta") {
+      if (!this.isCurrentResponseEvent(event)) return;
       // WebRTC consumes model audio as a native remote media track. Audio deltas
       // show generation progress only; audible speaking state comes from the
       // WebRTC-specific output_audio_buffer.started/stopped events.
@@ -1228,6 +1509,7 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "response.output_audio_transcript.delta") {
+      if (!this.isCurrentResponseEvent(event)) return;
       this.markGenerationStarted();
       const delta = String(event.delta ?? "");
       this.assistantTranscript += delta;
@@ -1235,20 +1517,53 @@ export class RealtimeConversationService {
       return;
     }
     if (type === "response.output_audio_transcript.done") {
+      if (!this.isCurrentResponseEvent(event)) return;
       const transcript = String(event.transcript ?? "").trim();
       if (transcript) this.assistantTranscript = transcript;
       useConversationStore.getState().setStreamingText(this.assistantTranscript);
       return;
     }
     if (type === "response.output_item.done" && event.item?.type === "function_call") {
-      void this.executeToolCall(event.item);
+      const responseId = String(event.response_id ?? "").trim();
+      const context = responseId ? this.responseCompanionContexts.get(responseId) ?? null : null;
+      if (responseId && this.rejectedResponseIds.has(responseId)) {
+        this.replyStaleToolCall(event.item);
+        return;
+      }
+      if (!responseId || !this.activeResponseId || responseId !== this.activeResponseId || !this.responseCompanionContexts.has(responseId)) {
+        this.replyStaleToolCall(event.item);
+        return;
+      }
+      if (responseId && !context && this.isAwaitingCompanionTranscript(responseId)) {
+        const calls = this.pendingCompanionToolCalls.get(responseId) ?? [];
+        if (calls.length < 4) this.pendingCompanionToolCalls.set(responseId, [...calls, event.item]);
+        else this.replyStaleToolCall(event.item);
+        return;
+      }
+      void this.executeToolCall(event.item, context);
       return;
     }
     if (type === "response.done") {
+      const completedResponseId = String(event.response?.id ?? "").trim();
+      if ((completedResponseId && completedResponseId !== this.activeResponseId) || !this.activeResponseId) return;
       this.generationActive = false;
+      if (!this.playbackActive) this.activeResponseId = null;
       const hasFunctionCall = Array.isArray(event.response?.output) &&
         event.response.output.some((item: any) => item?.type === "function_call");
-      if (hasFunctionCall || this.toolCallsInFlight > 0) return;
+      const awaitingCompanionTranscript = completedResponseId &&
+        this.isAwaitingCompanionTranscript(completedResponseId) &&
+        (this.pendingCompanionToolCalls.get(completedResponseId)?.length ?? 0) > 0;
+      if (hasFunctionCall || this.toolCallsInFlight > 0) {
+        if (completedResponseId && !awaitingCompanionTranscript) {
+          this.responseCompanionContexts.delete(completedResponseId);
+          this.preTranscriptResponseRevisions.delete(completedResponseId);
+        }
+        return;
+      }
+      if (completedResponseId) {
+        this.responseCompanionContexts.delete(completedResponseId);
+        this.preTranscriptResponseRevisions.delete(completedResponseId);
+      }
       await this.finishAssistantTurn(event);
       return;
     }
@@ -1333,6 +1648,7 @@ export class RealtimeConversationService {
     const completion = this.pendingAssistantCompletion;
     if (!completion) {
       const store = useConversationStore.getState();
+      store.setHeardSpeechText(null);
       store.setSpeaking(false);
       store.setProcessing(false);
       store.setListening(true);
@@ -1340,11 +1656,12 @@ export class RealtimeConversationService {
       return;
     }
 
-    if (completion.transcript && completion.status === "completed" && playbackOutcome === "stopped") {
+    const heardSessionId = this.sessionId;
+    const heard = Boolean(completion.transcript) && completion.status === "completed" && playbackOutcome === "stopped";
+    if (heard) {
       useConversationStore.getState().addMessage({ role: "assistant", content: completion.transcript });
       if (this.sessionId) {
         mirrorSessionMessage(this.sessionId, { role: "assistant", content: completion.transcript });
-        publishBehaviorEvent({ type: "assistant-end", text: completion.transcript, sessionId: this.sessionId });
       }
     }
 
@@ -1362,11 +1679,15 @@ export class RealtimeConversationService {
     this.playbackTerminal = null;
     this.playbackActive = false;
     const store = useConversationStore.getState();
+    store.setHeardSpeechText(null);
     store.setSpeaking(false);
     store.setProcessing(false);
     store.setListening(true);
     if (playbackOutcome !== "stopped") store.setStreamingText("");
     useUserStore.getState().setVoiceState("listening");
+    if (heard && heardSessionId && this.sessionId === heardSessionId) {
+      publishBehaviorEvent({ type: "assistant-end", text: completion.transcript, sessionId: heardSessionId });
+    }
   }
 
   private setRemotePlaybackMuted(muted: boolean, reason: string): void {
@@ -1494,16 +1815,111 @@ export class RealtimeConversationService {
     }
   }
 
-  private async executeToolCall(item: any): Promise<void> {
+  private isCurrentCompanionTurn(context: CompanionTurnContext | null, sessionId: string | null): context is CompanionTurnContext {
+    if (!context || !sessionId || context.sessionId !== sessionId || this.sessionId !== sessionId) return false;
+    const current = this.currentCompanionUserTurn;
+    const snapshot = getCurrentCompanionSnapshot(sessionId);
+    return !!current && !!snapshot &&
+      current.sessionId === context.sessionId &&
+      current.itemId === context.itemId &&
+      current.userTurnRevision === context.userTurnRevision &&
+      context.userTurnRevision === snapshot.userTurnRevision &&
+      context.revision === snapshot.revision;
+  }
+
+  private clearPreTranscriptCompanionAuthorization(): void {
+    for (const [responseId, calls] of this.pendingCompanionToolCalls) {
+      for (const item of calls) this.replyStaleToolCall(item);
+      this.responseCompanionContexts.set(responseId, null);
+    }
+    this.pendingCompanionToolCalls.clear();
+    this.preTranscriptResponseRevisions.clear();
+    this.preTranscriptCompanionRevision = null;
+  }
+
+  private bindPreTranscriptCompanionResponses(turn: CompanionTurnContext): void {
+    for (const [responseId, revision] of this.preTranscriptResponseRevisions) {
+      const matchesImmediatelyFollowingTurn =
+        revision.revision + 1 === turn.revision &&
+        revision.userTurnRevision + 1 === turn.userTurnRevision;
+      if (!matchesImmediatelyFollowingTurn) continue;
+      this.responseCompanionContexts.set(responseId, { ...turn });
+      const calls = this.pendingCompanionToolCalls.get(responseId) ?? [];
+      this.pendingCompanionToolCalls.delete(responseId);
+      for (const item of calls) void this.executeToolCall(item, { ...turn });
+    }
+    for (const [responseId, calls] of this.pendingCompanionToolCalls) {
+      for (const item of calls) this.replyStaleToolCall(item);
+      this.responseCompanionContexts.set(responseId, null);
+    }
+    this.pendingCompanionToolCalls.clear();
+    this.preTranscriptResponseRevisions.clear();
+    this.preTranscriptCompanionRevision = null;
+  }
+
+  private requestCompanionTurnResponse(turn: CompanionTurnContext): void {
+    const requestId = `manual-${++this.companionResponseRequestSerial}`;
+    this.requestedCompanionResponses.set(requestId, { ...turn });
+    while (this.requestedCompanionResponses.size > 8) {
+      const oldest = this.requestedCompanionResponses.keys().next().value;
+      if (oldest === undefined) break;
+      this.requestedCompanionResponses.delete(oldest);
+    }
+    this.send({ type: "response.create", response: { metadata: { looi_companion_request: requestId } } });
+  }
+
+  private isCurrentResponseEvent(event: any): boolean {
+    const responseId = String(event?.response_id ?? event?.response?.id ?? "").trim();
+    return !responseId || responseId === this.activeResponseId;
+  }
+
+  private recordResponseCompanionContext(responseId: string, context: CompanionTurnContext | null): void {
+    this.responseCompanionContexts.set(responseId, context);
+    while (this.responseCompanionContexts.size > MAX_RESPONSE_COMPANION_CONTEXTS) {
+      const oldest = this.responseCompanionContexts.keys().next().value;
+      if (oldest === undefined) break;
+      this.responseCompanionContexts.delete(oldest);
+    }
+  }
+
+  private rejectResponseId(responseId: string): void {
+    this.rejectedResponseIds.add(responseId);
+    while (this.rejectedResponseIds.size > 64) this.rejectedResponseIds.delete(this.rejectedResponseIds.values().next().value!);
+  }
+
+  private replyStaleToolCall(item: any): void {
+    const callId = String(item?.call_id ?? item?.id ?? "");
+    if (!callId || this.handledToolCalls.has(callId) || !this.active) return;
+    this.handledToolCalls.add(callId);
+    this.send({
+      type: "conversation.item.create",
+      item: { type: "function_call_output", call_id: callId, output: JSON.stringify({ ok: false, status: "stale-turn" }) },
+    });
+  }
+
+  private isAwaitingCompanionTranscript(responseId: string): boolean {
+    return this.preTranscriptResponseRevisions.has(responseId);
+  }
+
+  private async executeToolCall(item: any, companionTurnContext: CompanionTurnContext | null = null): Promise<void> {
     const sessionId = this.sessionId;
+    const interactionRevision = getBehaviorInteractionRevision(sessionId);
     const callId = String(item.call_id ?? item.id ?? "");
     if (!callId || this.handledToolCalls.has(callId) || !this.active) return;
     this.handledToolCalls.add(callId);
     this.toolCallsInFlight += 1;
     const name = String(item.name ?? "");
-    let output: Record<string, unknown>;
+    let output: Record<string, unknown> = { ok: false, error: "tool-not-completed" };
+    let createFollowupResponse = true;
     try {
-      const args = item.arguments ? JSON.parse(String(item.arguments)) : {};
+      let args: any = {};
+      if (item.arguments) {
+        try { args = JSON.parse(String(item.arguments)); }
+        catch (error) {
+          if (ROBOT_APP_SKILL_TOOL_NAMES.has(name)) args = null;
+          else throw error;
+        }
+      }
       if (name === "search_memory") {
         const query = String(args.query ?? "").trim();
         if (!query) throw new Error("query is required");
@@ -1520,16 +1936,31 @@ export class RealtimeConversationService {
       } else if (name === "remember") {
         const note = String(args.note ?? "").trim();
         if (!note) throw new Error("note is required");
-        await localMemoryDatabase.remember(
-          [{ role: "user", content: note }],
-          { ...createObservation(note, "voice", "note").metadata, origin: "conversation", sourceSessionId: sessionId ?? undefined },
-          () => this.active && this.sessionId === sessionId
-        );
-        output = { ok: true, remembered: note };
+        const interactionRevision = getBehaviorInteractionRevision(sessionId);
+        const block = interactionRevision && interactionRevision.userTurnRevision === this.rememberBlockedUserTurnRevision
+          ? this.rememberBlockedReason
+          : sharedEpisodeMemoryBlock(note, sessionId);
+        if (block) {
+          output = { ok: false, status: block, instruction: block === "shared-experience-capacity"
+            ? "The new shared episode was not saved because its memory is full. Do not bypass that result with an ordinary fact or choose an old episode to delete."
+            : "Use the shared-experience confirmation flow; do not save this as an ordinary fact." };
+        } else {
+          const isCurrentMemoryTurn = () => this.active && this.sessionId === sessionId &&
+            (!companionTurnContext || this.isCurrentCompanionTurn(companionTurnContext, sessionId));
+          await localMemoryDatabase.remember(
+            [{ role: "user", content: note }],
+            { ...createObservation(note, "voice", "note").metadata, origin: "conversation", sourceSessionId: sessionId ?? undefined },
+            isCurrentMemoryTurn
+          );
+          if (!isCurrentMemoryTurn()) {
+            output = { ok: false, status: "stale-turn" };
+            createFollowupResponse = false;
+          } else output = { ok: true, remembered: note };
+        }
       } else if (name === "set_language_preferences") {
         const responseLanguage = String(args.response_language ?? "").trim();
-        if (responseLanguage !== "ru" && responseLanguage !== "uk" && responseLanguage !== "en") {
-          throw new Error("response_language must be ru, uk, or en");
+        if (responseLanguage !== "ru" && responseLanguage !== "uk" && responseLanguage !== "en" && responseLanguage !== "de") {
+          throw new Error("response_language must be ru, uk, en, or de");
         }
         const requestedListeningLanguage = args.listening_language == null
           ? null
@@ -1538,9 +1969,10 @@ export class RealtimeConversationService {
           requestedListeningLanguage !== null &&
           requestedListeningLanguage !== "ru" &&
           requestedListeningLanguage !== "uk" &&
-          requestedListeningLanguage !== "en"
+          requestedListeningLanguage !== "en" &&
+          requestedListeningLanguage !== "de"
         ) {
-          throw new Error("listening_language must be ru, uk, or en when provided");
+          throw new Error("listening_language must be ru, uk, en, or de when provided");
         }
 
         const before = useUserStore.getState().preferences;
@@ -1568,14 +2000,188 @@ export class RealtimeConversationService {
           ok: true,
           response_language: after.language,
           listening_language: after.listeningLanguage,
-          next_reply_language: after.language === "en" ? "English" : after.language === "uk" ? "Ukrainian" : "Russian",
+          next_reply_language: after.language === "en" ? "English" : after.language === "uk" ? "Ukrainian" : after.language === "de" ? "German" : "Russian",
           instruction: "Acknowledge the change and continue in next_reply_language.",
           persistent: true,
         };
+      } else if (ROBOT_APP_SKILL_TOOL_NAMES.has(name)) {
+        if (!this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+          output = { ok: false, status: "stale-turn" };
+          createFollowupResponse = false;
+        } else {
+          output = await robotAppSkillToolBridge.execute(name, args, {
+            sessionId: companionTurnContext.sessionId,
+            userTurnRevision: companionTurnContext.userTurnRevision,
+            userText: companionTurnContext.text,
+            isCurrent: () => this.isCurrentCompanionTurn(companionTurnContext, sessionId),
+          });
+        }
+      } else if (HERMES_TASK_TOOL_NAMES.has(name)) {
+        if (!this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+          output = { ok: false, status: "stale-turn" };
+          createFollowupResponse = false;
+        } else {
+          output = await hermesTaskVoiceBridge.execute(name, args, {
+            sessionId: companionTurnContext.sessionId,
+            userTurnRevision: companionTurnContext.userTurnRevision,
+            userText: companionTurnContext.text,
+            language: useUserStore.getState().preferences.language,
+            isCurrent: () => this.isCurrentCompanionTurn(companionTurnContext, sessionId),
+            canWatchCompletion: () => this.active && AppState.currentState === "active" && isMainScreenFocused() && !useUserStore.getState().robotSleeping && !!getBehaviorConversationContext(sessionId),
+          });
+        }
+      } else if (name === "list_companion_interests") {
+        if (!this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+          output = { ok: false, status: "stale-turn" };
+          createFollowupResponse = false;
+        } else if (!args || typeof args !== "object" || Array.isArray(args) || Object.keys(args).length > 0) {
+          output = { ok: false, status: "invalid_action" };
+        } else {
+          output = readCompanionInterests(companionTurnContext.text);
+        }
+      } else if (COMPANION_TOOL_NAMES.has(name)) {
+        if (!this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+          output = { ok: false, status: "stale-turn" };
+          createFollowupResponse = false;
+        } else if (this.lastCompanionActionUserTurnRevision === companionTurnContext.userTurnRevision) {
+          output = { ok: false, status: "already-handled-this-turn" };
+        } else {
+          let action: CompanionAction | null = null;
+          if (name === "propose_shared_experience") {
+            const title = String(args.title ?? "").trim();
+            const detail = String(args.detail ?? "").trim();
+            const outcome = String(args.outcome ?? "").trim();
+            const motif = String(args.motif ?? "").trim();
+            const evidence = String(args.evidence ?? "").trim();
+            if (!title || !detail || !outcome || !evidence) throw new Error("title, detail, outcome, and evidence are required");
+            if (!(["hold", "curious", "happy_bob", "nod"] as string[]).includes(motif)) {
+              throw new Error("motif must be hold, curious, happy_bob, or nod");
+            }
+            if (!companionTurnContext.text.includes(evidence)) {
+              output = { ok: false, status: "evidence-not-in-current-turn" };
+              recordDiagnosticEvent("realtime", "tool-finished", { name, ok: false });
+              action = null;
+            } else {
+              action = { type: "propose_experience", title, detail, outcome, motif: motif as "hold" | "curious" | "happy_bob" | "nod", evidence };
+            }
+          } else if (name === "list_shared_experiences") {
+            if (!args || typeof args !== "object" || Array.isArray(args) || Object.keys(args).length > 0) {
+              output = { ok: false, status: "invalid_action", instruction: "List confirmed shared experiences with an empty argument object." };
+            } else action = { type: "list_experiences" };
+          } else if (name === "correct_shared_experience") {
+            const id = String(args.id ?? "").trim();
+            const field = args.field;
+            const replacement = args.replacement;
+            const evidence = args.evidence;
+            if (!id || (field !== "detail" && field !== "outcome") || typeof replacement !== "string" || typeof evidence !== "string") {
+              throw new Error("id, detail/outcome field, exact replacement, and evidence are required");
+            }
+            action = { type: "correct_experience", id, field, replacement, evidence };
+          } else if (name === "search_shared_experiences") {
+            const query = args.query;
+            if (typeof query !== "string" || !query.trim()) throw new Error("query must be a non-empty string");
+            action = { type: "search_experiences", query };
+          } else if (name === "recall_shared_experience") {
+            const id = String(args.id ?? "").trim();
+            if (!id) throw new Error("id is required");
+            action = { type: "recall_experience", id };
+          } else if (name === "forget_shared_experience") {
+            const id = String(args.id ?? "").trim();
+            if (!id) throw new Error("id is required");
+            action = { type: "forget_experience", id };
+          } else if (name === "offer_small_interest") {
+            const topic = String(args.topic ?? "").trim();
+            const question = String(args.question ?? "").trim();
+            if (!topic || !question) throw new Error("topic and question are required");
+            action = { type: "offer_interest", topic, question };
+          } else if (name === "propose_visual_memory") {
+            const id = String(args.id ?? "").trim();
+            const description = String(args.description ?? "").trim();
+            const evidence = String(args.evidence ?? "").trim();
+            if (!id || !description || !evidence) throw new Error("id, description, and evidence are required");
+            if (!companionTurnContext.text.includes(evidence)) {
+              output = { ok: false, status: "evidence-not-in-current-turn" };
+            } else {
+              action = { type: "propose_visual_memory", id, description, evidence };
+            }
+          } else if (name === "compare_shared_object") {
+            const id = String(args.id ?? "").trim();
+            const observedDescription = String(args.observedDescription ?? "").trim();
+            const change = String(args.change ?? "").trim();
+            const match = String(args.match ?? "").trim();
+            if (!id || !observedDescription || !change) throw new Error("id, observedDescription, and change are required");
+            if (!["same", "different", "uncertain"].includes(match)) {
+              throw new Error("match must be same, different, or uncertain");
+            }
+            action = { type: "compare_shared_object", id, observedDescription, change, match: match as "same" | "different" | "uncertain" };
+          } else if (name === "prepare_shared_ritual") {
+            const id = String(args.id ?? "").trim();
+            const signal = String(args.signal ?? "").trim();
+            const evidence = String(args.evidence ?? "").trim();
+            if (!id || !evidence) throw new Error("id and evidence are required");
+            if (signal !== "voice" && signal !== "open_palm") throw new Error("signal must be voice or open_palm");
+            if (!companionTurnContext.text.includes(evidence)) {
+              output = { ok: false, status: "evidence-not-in-current-turn" };
+            } else {
+              action = { type: "prepare_shared_ritual", id, signal, evidence };
+            }
+          } else if (name === "manage_shared_activity") {
+            const operation = String(args.operation ?? "").trim();
+            const id = String(args.id ?? "").trim();
+            const evidence = String(args.evidence ?? "").trim();
+            const step = args.step == null ? undefined : String(args.step).trim();
+            const detail = args.detail == null ? undefined : String(args.detail).trim();
+            if (!id || !evidence) throw new Error("id and evidence are required");
+            if (!["begin", "confirm_step", "report_result", "resume", "cancel"].includes(operation)) throw new Error("invalid activity operation");
+            if (step !== undefined && step !== "checked" && step !== "prepared") throw new Error("step must be checked or prepared");
+            if (!companionTurnContext.text.includes(evidence)) {
+              output = { ok: false, status: "evidence-not-in-current-turn" };
+            } else {
+              action = { type: "manage_shared_activity", operation, id, ...(step ? { step } : {}), ...(detail ? { detail } : {}), evidence } as CompanionAction;
+            }
+          } else if (name === "set_episode_ritual") {
+            const id = String(args.id ?? "").trim();
+            const mode = String(args.mode ?? "").trim();
+            const evidence = String(args.evidence ?? "").trim();
+            const motif = args.motif == null ? undefined : String(args.motif).trim();
+            const rawPhrase = args.phrase;
+            if (rawPhrase !== undefined && rawPhrase !== null && typeof rawPhrase !== "string") throw new Error("phrase must be a string or null");
+            const phrase = rawPhrase;
+            if (!id || !evidence) throw new Error("id and evidence are required");
+            if (mode !== "active" && mode !== "silent") throw new Error("mode must be active or silent");
+            if (mode === "active" && !["nod", "curious", "happy_bob"].includes(motif ?? "")) throw new Error("active mode requires motif nod, curious, or happy_bob");
+            if (mode === "silent" && (motif !== undefined || (typeof phrase === "string" && phrase.length > 0))) throw new Error("silent mode cannot include a motif or phrase");
+            if (!companionTurnContext.text.includes(evidence) || typeof phrase === "string" && phrase && !companionTurnContext.text.includes(phrase)) {
+              output = { ok: false, status: "evidence-not-in-current-turn" };
+            } else {
+              action = { type: "set_episode_ritual", id, mode, ...(motif ? { motif: motif as "nod" | "curious" | "happy_bob" } : {}), ...(phrase !== undefined ? { phrase } : {}), evidence };
+            }
+          }
+          if (action) {
+            this.lastCompanionActionUserTurnRevision = companionTurnContext.userTurnRevision;
+            output = typeof performBehaviorCompanionAction === "function"
+              ? performBehaviorCompanionAction(action, sessionId!) as unknown as Record<string, unknown>
+              : { ok: false, status: "session-inactive" };
+            const result = output as unknown as CompanionActionResult;
+            if (result.status === "memory_full") {
+              this.rememberBlockedUserTurnRevision = companionTurnContext.userTurnRevision;
+              this.rememberBlockedReason = "shared-experience-capacity";
+            }
+            if (action.type === "prepare_shared_ritual" && action.signal === "open_palm" && result.ok &&
+              result.status === "ritual_armed" && result.sceneId && result.episodeTitle) {
+              this.armedSharedRituals.set(result.sceneId, {
+                sessionId: sessionId!,
+                revision: companionTurnContext.revision,
+                userTurnRevision: companionTurnContext.userTurnRevision,
+                episodeTitle: result.episodeTitle,
+              });
+            }
+          }
+        }
       } else {
         throw new Error(`Unsupported Realtime tool: ${name}`);
       }
-      recordDiagnosticEvent("realtime", "tool-finished", { name, ok: true });
+      recordDiagnosticEvent("realtime", "tool-finished", { name, ok: output.ok !== false, status: typeof output.status === "string" ? output.status : null });
     } catch (error) {
       output = { ok: false, error: error instanceof Error ? error.message : String(error) };
       recordDiagnosticEvent("realtime", "tool-finished", { name, ok: false });
@@ -1584,6 +2190,14 @@ export class RealtimeConversationService {
     }
 
     if (!this.active || this.sessionId !== sessionId) return;
+    const currentRevision = getBehaviorInteractionRevision(sessionId);
+    const interactionExpired = !!interactionRevision && (!currentRevision ||
+      interactionRevision.revision !== currentRevision.revision ||
+      interactionRevision.userTurnRevision !== currentRevision.userTurnRevision);
+    if (interactionExpired || companionTurnContext && !this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+      output = { ok: false, status: "stale-turn" };
+      createFollowupResponse = false;
+    }
     this.send({
       type: "conversation.item.create",
       item: {
@@ -1592,7 +2206,10 @@ export class RealtimeConversationService {
         output: JSON.stringify(output),
       },
     });
-    this.send({ type: "response.create" });
+    if (createFollowupResponse) {
+      if (this.correctionResponseFence) this.requestCompanionTurnResponse(this.correctionResponseFence);
+      else this.send({ type: "response.create" });
+    }
   }
 
   private startStartupPrerollCapture(): void {
@@ -1777,7 +2394,7 @@ export class RealtimeConversationService {
       this.vadHealthProbeSentAt = now;
       this.vadHealthProbeAcknowledgedAt = 0;
       this.vadHealthSpeechBaseline = this.lastServerSpeechAt;
-      this.send(buildRealtimeSessionUpdate(useUserStore.getState().preferences, undefined, undefined, getBehaviorConversationContext(this.sessionId), isBehaviorGameActive(this.sessionId)));
+      this.send(buildRealtimeSessionUpdate({ ...useUserStore.getState().preferences, realtimeTurnTaking: this.sessionTurnTaking }, undefined, undefined, getBehaviorConversationContext(this.sessionId), requiresBehaviorTurnCommit(this.sessionId)));
       recordDiagnosticEvent("realtime", "vad-health-probe-sent", {
         sinceServerSpeechMs,
         packetsSent: stats.packetsSent,
@@ -1884,16 +2501,18 @@ export class RealtimeConversationService {
     }
   }
 
-  private send(event: Record<string, unknown>): void {
+  private send(event: Record<string, unknown>): boolean {
     const dataChannel = this.dataChannel;
-    if (!dataChannel || dataChannel.readyState !== "open" || typeof dataChannel.send !== "function") return;
+    if (!dataChannel || dataChannel.readyState !== "open" || typeof dataChannel.send !== "function") return false;
     try {
       dataChannel.send(JSON.stringify(event));
+      return true;
     } catch (error) {
       recordDiagnosticEvent("realtime", "send-failed", {
         eventType: String(event.type ?? "unknown"),
         error: error instanceof Error ? error.message : String(error),
       });
+      return false;
     }
   }
 
@@ -1902,12 +2521,29 @@ export class RealtimeConversationService {
 const webRtcRealtimeConversationService = new RealtimeConversationService();
 
 class RealtimeConversationRouterService {
+  private budget: typeof import("./budget-conversation").budgetConversationService | null = null;
+  private generation = 0;
+
+  get activeMode(): "budget" | "realtime_pcm" | "realtime" | null {
+    if (this.budget?.isActive) return "budget";
+    if (realtimePcmConversationService.isActive) return "realtime_pcm";
+    return webRtcRealtimeConversationService.isActive ? "realtime" : null;
+  }
+
   get isActive(): boolean {
-    return webRtcRealtimeConversationService.isActive || realtimePcmConversationService.isActive;
+    return Boolean(this.budget?.isActive) || webRtcRealtimeConversationService.isActive || realtimePcmConversationService.isActive;
   }
 
   async start(detection?: WakewordDetection): Promise<void> {
     const mode = useUserStore.getState().preferences.conversationMode;
+    if (this.activeMode && this.activeMode !== mode) await this.stop("mode-switch");
+    const generation = ++this.generation;
+    if (mode === "budget") {
+      const { budgetConversationService } = await import("./budget-conversation");
+      if (generation !== this.generation || useUserStore.getState().preferences.conversationMode !== "budget") return;
+      this.budget = budgetConversationService;
+      return this.budget.start(detection);
+    }
     if (isPcmRealtimeMode(mode)) {
       return realtimePcmConversationService.start(detection);
     }
@@ -1915,6 +2551,7 @@ class RealtimeConversationRouterService {
   }
 
   async interruptAndListen(source = "tap"): Promise<void> {
+    if (this.budget?.isActive) return this.budget.interruptAndListen(source);
     if (realtimePcmConversationService.isActive) {
       return realtimePcmConversationService.interruptAndListen(source);
     }
@@ -1922,6 +2559,7 @@ class RealtimeConversationRouterService {
   }
 
   applySessionPreferences(source: string): void {
+    if (this.budget?.isActive) { this.budget.applySessionPreferences(); return; }
     if (realtimePcmConversationService.isActive) {
       realtimePcmConversationService.applySessionPreferences(source);
       return;
@@ -1932,6 +2570,7 @@ class RealtimeConversationRouterService {
   }
 
   get isReadyForVisualContext(): boolean {
+    if (this.budget?.isActive) return false;
     if (realtimePcmConversationService.isActive) return realtimePcmConversationService.isReadyForVisualContext;
     if (webRtcRealtimeConversationService.isActive) return webRtcRealtimeConversationService.isReadyForVisualContext;
     return false;
@@ -1974,6 +2613,8 @@ class RealtimeConversationRouterService {
   }
 
   async stop(reason = "explicit"): Promise<void> {
+    this.generation += 1;
+    if (this.budget?.isActive) await this.budget.stop(reason);
     if (realtimePcmConversationService.isActive) {
       await realtimePcmConversationService.stop(reason);
     }
@@ -1981,6 +2622,8 @@ class RealtimeConversationRouterService {
       await webRtcRealtimeConversationService.stop(reason);
     }
   }
+
+  finishListening(): void { this.budget?.finishListening(); }
 }
 
 export const realtimeConversationService = new RealtimeConversationRouterService();

@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { createBehaviorTranslator } from "../i18n/behavior-strings";
 import { useUiText } from "../i18n/use-ui-text";
 import { publishBehaviorEvent } from "../behavior/behavior-events";
+import type { CompanionMotif, CompanionScene } from "../behavior/behavior-companion";
+import type { BehaviorStringKey } from "../i18n/behavior-strings";
 import {
+  disableBehaviorPersonalRitual,
+  forgetBehaviorExperience,
   resetBehaviorLearning,
   updateBehaviorSettings,
   useBehaviorStore,
@@ -13,20 +17,99 @@ import { looiTheme } from "./looi-theme";
 
 const BEHAVIOR_MODES: BehaviorMode[] = ["off", "shadow", "active"];
 const DAILY_BUDGETS = [0.25, 1, 3] as const;
+type BehaviorMutationError = { kind: "forget" | "reset"; message: string } | { kind: "ritual"; id: string; message: string };
+const MOTIF_STRINGS: Record<CompanionMotif, BehaviorStringKey> = {
+  hold: "motifHold",
+  curious: "motifCurious",
+  happy_bob: "motifHappyBob",
+  nod: "motifNod",
+};
+const SCENE_STATUS_STRINGS: Partial<Record<CompanionScene["status"], BehaviorStringKey>> = {
+  awaiting_confirmation: "sceneAwaitingConfirmation",
+  ready: "sceneReady",
+  armed: "sceneArmed",
+  started: "sceneStarted",
+};
+const SCENE_MATCH_STRINGS: Record<Exclude<CompanionScene["match"], null>, BehaviorStringKey> = {
+  same: "sceneMatchSame",
+  different: "sceneMatchDifferent",
+  uncertain: "sceneMatchUncertain",
+};
 
 export function BehaviorSettings() {
   const { language, locale } = useUiText();
   const t = useMemo(() => createBehaviorTranslator(language), [language]);
+  const [pendingMutation, setPendingMutation] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<BehaviorMutationError | null>(null);
+  const mutationRef = useRef<string | null>(null);
   const settings = useBehaviorStore((state) => state.settings);
   const state = useBehaviorStore((store) => store.state);
-  const gameActive = state.game?.status === "active";
-  const gameAction = gameActive ? "stop" : "start";
+  const experiences = state.companion.episodes;
+  const scene = state.companion.scene;
+  const sceneStatusKey = scene ? SCENE_STATUS_STRINGS[scene.status] : undefined;
+  const showScene = !!sceneStatusKey && scene.status !== "closed" && scene.status !== "idle";
+  const curiosityIsEnabled = settings.curiosityEnabled === true;
+  const gameInProgress = state.game?.status === "active" || state.game?.status === "paused";
+  const gameAction = gameInProgress ? "stop" : "start";
   const gameDisabled = !state.sessionId || settings.mode !== "active";
 
+  const beginMutation = (action: string): boolean => {
+    if (mutationRef.current !== null) return false;
+    mutationRef.current = action;
+    setPendingMutation(action);
+    setMutationError(null);
+    return true;
+  };
+
+  const finishMutation = () => {
+    mutationRef.current = null;
+    setPendingMutation(null);
+  };
+
+  const forgetExperience = async (id: string) => {
+    if (!beginMutation(id)) return;
+    try {
+      await forgetBehaviorExperience(id);
+    } catch {
+      const message = t("forgetFailureMessage");
+      setMutationError({ kind: "forget", message });
+      Alert.alert(t("forgetFailureTitle"), message);
+    } finally {
+      finishMutation();
+    }
+  };
+
+  const disablePersonalRitual = async (id: string) => {
+    if (!beginMutation(`ritual:${id}`)) return;
+    try {
+      await disableBehaviorPersonalRitual(id);
+    } catch {
+      const message = t("disablePersonalRitualFailureMessage");
+      setMutationError({ kind: "ritual", id, message });
+      Alert.alert(t("disablePersonalRitualFailureTitle"), message);
+    } finally {
+      finishMutation();
+    }
+  };
+
+  const clearLearning = async () => {
+    if (!beginMutation("reset")) return;
+    try {
+      await resetBehaviorLearning();
+    } catch {
+      const message = t("resetFailureMessage");
+      setMutationError({ kind: "reset", message });
+      Alert.alert(t("resetFailureTitle"), message);
+    } finally {
+      finishMutation();
+    }
+  };
+
   const confirmLearningReset = () => {
+    if (mutationRef.current !== null) return;
     Alert.alert(t("resetTitle"), t("resetMessage"), [
       { text: t("cancel"), style: "cancel" },
-      { text: t("resetLearning"), style: "destructive", onPress: resetBehaviorLearning },
+      { text: t("resetLearning"), style: "destructive", onPress: () => { void clearLearning(); } },
     ]);
   };
 
@@ -100,6 +183,151 @@ export function BehaviorSettings() {
 
       <View style={styles.switchRow}>
         <View style={styles.switchCopy}>
+          <Text style={styles.value}>{t("curiosityLabel")}</Text>
+          <Text style={styles.help}>{t("curiosityHelp")}</Text>
+        </View>
+        <Switch
+          accessibilityLabel={t("curiosityLabel")}
+          accessibilityHint={t("curiosityHelp")}
+          accessibilityState={{ checked: curiosityIsEnabled, disabled: false }}
+          onValueChange={(curiosityEnabled) => updateBehaviorSettings({ curiosityEnabled })}
+          thumbColor={curiosityIsEnabled ? looiTheme.cyan : looiTheme.muted}
+          trackColor={{ false: looiTheme.line, true: "rgba(40, 213, 255, 0.38)" }}
+          value={curiosityIsEnabled}
+        />
+      </View>
+
+      <View style={styles.innerDivider} />
+      <Text accessibilityRole="header" style={styles.label}>{t("experiencesLabel")}</Text>
+      <Text style={styles.help}>{t("experiencesHelp")}</Text>
+      <Text style={styles.help}>{t("visualMemoryHelp")}</Text>
+      <Text style={styles.help}>{t("ritualSignalHelp")}</Text>
+      {experiences.length === 0 ? (
+        <Text style={styles.emptyExperiences}>{t("experiencesEmpty")}</Text>
+      ) : (
+        <View style={styles.experiencesList}>
+          {experiences.map((experience) => {
+            const preference = experience.ritualPreference;
+            const activePreference = preference?.mode === "active" ? preference : null;
+            const ritualMutationKey = `ritual:${experience.id}`;
+            return (
+            <View key={experience.id} style={styles.experienceCard}>
+              <Text style={styles.experienceTitle}>{experience.title}</Text>
+              {experience.detail ? (
+                <Text style={styles.help}>
+                  {t("experienceDetail", { detail: experience.detail })}
+                </Text>
+              ) : null}
+              {experience.outcome ? (
+                <Text style={styles.help}>
+                  {t("experienceOutcome", { outcome: experience.outcome })}
+                </Text>
+              ) : null}
+              {activePreference ? (
+                <>
+                  <Text style={styles.help}>
+                    {t("ritualPreferenceActive", { motif: t(MOTIF_STRINGS[activePreference.motif]) })}
+                  </Text>
+                  {activePreference.phrase ? (
+                    <Text style={styles.help}>
+                      {t("ritualPreferencePhrase", { phrase: activePreference.phrase })}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.help}>{t("ritualPreferenceLimitHelp")}</Text>
+                  <Text style={styles.help}>{t("disablePersonalRitualHelp")}</Text>
+                  <Pressable
+                    accessibilityLabel={t(pendingMutation === ritualMutationKey ? "disablePersonalRitualBusyA11y" : "disablePersonalRitualA11y", { title: experience.title })}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: pendingMutation !== null }}
+                    disabled={pendingMutation !== null}
+                    onPress={() => { void disablePersonalRitual(experience.id); }}
+                    style={[styles.forgetExperienceButton, pendingMutation !== null && styles.disabledButton]}
+                  >
+                    <Text style={styles.forgetExperienceText}>
+                      {t(pendingMutation === ritualMutationKey ? "disablePersonalRitualBusy" : "disablePersonalRitual")}
+                    </Text>
+                  </Pressable>
+                  {mutationError?.kind === "ritual" && mutationError.id === experience.id ? (
+                    <Text accessibilityRole="alert" style={styles.mutationError}>{mutationError.message}</Text>
+                  ) : null}
+                </>
+              ) : preference?.mode === "silent" ? (
+                <Text style={styles.help}>{t("ritualPreferenceSilent")}</Text>
+              ) : experience.motif ? (
+                <Text style={styles.help}>
+                  {t("experienceMotif", { motif: t(MOTIF_STRINGS[experience.motif]) })}
+                </Text>
+              ) : null}
+              {experience.visualMemory?.description ? (
+                <View style={styles.visualMemory}>
+                  <Text style={styles.visualMemoryLabel}>{t("visualMemoryLabel")}</Text>
+                  <Text style={styles.help}>
+                    {t("visualMemoryDescription", { description: experience.visualMemory.description })}
+                  </Text>
+                </View>
+              ) : null}
+              <Pressable
+                accessibilityLabel={t(pendingMutation === experience.id ? "forgetExperienceBusyA11y" : "forgetExperienceA11y", { title: experience.title })}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: pendingMutation !== null }}
+                disabled={pendingMutation !== null}
+                onPress={() => { void forgetExperience(experience.id); }}
+                style={[styles.forgetExperienceButton, pendingMutation !== null && styles.disabledButton]}
+              >
+                <Text style={styles.forgetExperienceText}>
+                  {t(pendingMutation === experience.id ? "forgetExperienceBusy" : "forgetExperience")}
+                </Text>
+              </Pressable>
+            </View>
+            );
+          })}
+        </View>
+      )}
+      {showScene && scene && sceneStatusKey ? (
+        <View style={styles.sceneCard}>
+          <Text accessibilityRole="header" style={styles.experienceTitle}>
+            {t("sceneHeading", { title: scene.episodeTitle || t("sharedRitual") })}
+          </Text>
+          <Text style={styles.help}>{t(sceneStatusKey)}</Text>
+          {scene.match ? (
+            <Text style={styles.help}>
+              {t("sceneMatchLabel", { match: t(SCENE_MATCH_STRINGS[scene.match]) })}
+            </Text>
+          ) : null}
+          {scene.baselineDescription ? (
+            <Text style={styles.help}>
+              {t("sceneBaseline", { description: scene.baselineDescription })}
+            </Text>
+          ) : null}
+          {scene.currentDescription ? (
+            <Text style={styles.help}>
+              {t("sceneCurrent", { description: scene.currentDescription })}
+            </Text>
+          ) : null}
+          {scene.change ? (
+            <Text style={styles.help}>{t("sceneChange", { change: scene.change })}</Text>
+          ) : null}
+          {scene.signal ? (
+            <Text style={styles.help}>
+              {t("sceneSignalLabel", {
+                signal: t(scene.signal === "open_palm" ? "sceneSignalOpenPalm" : "sceneSignalVoice"),
+              })}
+            </Text>
+          ) : null}
+          {scene.status === "armed" && scene.signal === "open_palm" ? (
+            <Text style={styles.sceneInstruction}>{t("sceneOpenPalmWindowHelp")}</Text>
+          ) : null}
+          {scene.status === "armed" && scene.signal === "voice" ? (
+            <Text style={styles.sceneInstruction}>{t("sceneVoiceWindowHelp")}</Text>
+          ) : null}
+        </View>
+      ) : null}
+      {mutationError?.kind === "forget" ? (
+        <Text accessibilityRole="alert" style={styles.mutationError}>{mutationError.message}</Text>
+      ) : null}
+
+      <View style={styles.switchRow}>
+        <View style={styles.switchCopy}>
           <Text style={styles.value}>{t("compareLabel")}</Text>
           <Text style={styles.help}>{t("compareHelp")}</Text>
         </View>
@@ -157,26 +385,30 @@ export function BehaviorSettings() {
           <Text style={styles.help}>{t("gameHelp")}</Text>
         </View>
         <Pressable
-          accessibilityLabel={t(gameActive ? "gameA11yStop" : "gameA11yStart")}
+          accessibilityLabel={t(gameInProgress ? "gameA11yStop" : "gameA11yStart")}
           accessibilityRole="button"
           accessibilityState={{ disabled: gameDisabled }}
           disabled={gameDisabled}
           onPress={sendGameCommand}
           style={[styles.gameButton, gameDisabled && styles.disabledButton]}
         >
-          <Text style={styles.gameButtonText}>{t(gameActive ? "gameStop" : "gameStart")}</Text>
+          <Text style={styles.gameButtonText}>{t(gameInProgress ? "gameStop" : "gameStart")}</Text>
         </Pressable>
       </View>
 
       <Pressable
-        accessibilityLabel={t("resetLearning")}
+        accessibilityLabel={t(pendingMutation === "reset" ? "resetLearningBusy" : "resetLearning")}
         accessibilityRole="button"
-        accessibilityState={{ disabled: false }}
+        accessibilityState={{ disabled: pendingMutation !== null }}
+        disabled={pendingMutation !== null}
         onPress={confirmLearningReset}
-        style={styles.resetButton}
+        style={[styles.resetButton, pendingMutation !== null && styles.disabledButton]}
       >
-        <Text style={styles.resetText}>{t("resetLearning")}</Text>
+        <Text style={styles.resetText}>{t(pendingMutation === "reset" ? "resetLearningBusy" : "resetLearning")}</Text>
       </Pressable>
+      {mutationError?.kind === "reset" ? (
+        <Text accessibilityRole="alert" style={styles.mutationError}>{mutationError.message}</Text>
+      ) : null}
     </View>
   );
 }
@@ -235,6 +467,41 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52 },
   switchCopy: { flex: 1, gap: 2 },
   innerDivider: { height: StyleSheet.hairlineWidth, backgroundColor: looiTheme.line, marginTop: 2 },
+  experiencesList: { gap: 8 },
+  experienceCard: {
+    borderWidth: 1,
+    borderColor: looiTheme.line,
+    borderRadius: 12,
+    backgroundColor: looiTheme.surface,
+    padding: 11,
+    gap: 6,
+  },
+  experienceTitle: { color: looiTheme.text, fontSize: 13, fontWeight: "800" },
+  visualMemory: { borderLeftWidth: 2, borderLeftColor: looiTheme.lineActive, paddingLeft: 8, gap: 2, marginTop: 2 },
+  visualMemoryLabel: { color: looiTheme.muted, fontSize: 11, fontWeight: "700" },
+  sceneCard: {
+    borderWidth: 1,
+    borderColor: looiTheme.line,
+    borderRadius: 12,
+    backgroundColor: looiTheme.surface,
+    padding: 11,
+    gap: 5,
+  },
+  sceneInstruction: { color: looiTheme.text, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  emptyExperiences: { color: looiTheme.muted, fontSize: 12, lineHeight: 17, paddingVertical: 4 },
+  forgetExperienceButton: {
+    minHeight: 44,
+    alignSelf: "flex-start",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: looiTheme.line,
+    borderRadius: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    marginTop: 2,
+  },
+  forgetExperienceText: { color: looiTheme.muted, fontSize: 12, fontWeight: "700" },
+  mutationError: { color: looiTheme.danger, fontSize: 12, lineHeight: 17 },
   budgetRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   budgetOption: {
     flexGrow: 1,

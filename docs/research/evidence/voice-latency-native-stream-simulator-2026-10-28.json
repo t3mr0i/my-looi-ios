@@ -1,0 +1,257 @@
+{
+  "platform": "iOS18.5 ARM64 Simulator on Mac, dedicated device, real Expo Fetch and native AVAudioEngine output",
+  "mocked": [
+    "Speech API replaced by loopback HTTP server emitting a quiet generated tone",
+    "API-key getter returns a dummy local-only value",
+    "Root UI replaced by an isolated output probe; no normal app bootstrap or perceivers"
+  ],
+  "real": [
+    "Expo Fetch native response streaming",
+    "unchanged production speech client and iOS PCM output adapter",
+    "native asynchronous output-only engine start, render, drain and stop"
+  ],
+  "network": "127.0.0.1 only, HTTP permitted only in disposable probe app; no OpenAI requests",
+  "microphonePermission": "denied",
+  "capturedEvents": 0,
+  "controlledServerBodyTailDelayMs": 1000,
+  "requests": 2,
+  "probeSourceHashes": {
+    "stream-probe-layout.tsx": "1c2af98ae22c7b33befd55c9ac546880bab534d141959d3428fa164eee3c0a9a",
+    "stream-probe-server.py": "0b6ac562ff23b72edde83ae3c5e08b2c572ff5a52601f4c9d5fa07c1361fa570",
+    "source-snapshot-stream-probe.json": "33e832d7ef6500ed4ac7174dfa64ed35e8fb14538eb751b1045d050e3b32b64a"
+  },
+  "sourceCode": "B6 output path; this probe does not exercise VAD/STT or a conversation",
+  "serverEvents": [
+    {
+      "at": "2026-10-28T18:54:05.644744+00:00",
+      "request": 1,
+      "event": "request",
+      "format": "pcm",
+      "streamFormat": "audio",
+      "inputLength": 25
+    },
+    {
+      "at": "2026-10-28T18:54:05.645207+00:00",
+      "request": 1,
+      "event": "first-chunk-sent",
+      "bytes": 19200
+    },
+    {
+      "at": "2026-10-28T18:54:06.648064+00:00",
+      "request": 1,
+      "event": "body-completed",
+      "bytes": 38400
+    },
+    {
+      "at": "2026-10-28T18:54:07.096782+00:00",
+      "request": 2,
+      "event": "request",
+      "format": "pcm",
+      "streamFormat": "audio",
+      "inputLength": 25
+    },
+    {
+      "at": "2026-10-28T18:54:07.097057+00:00",
+      "request": 2,
+      "event": "first-chunk-sent",
+      "bytes": 19200
+    },
+    {
+      "at": "2026-10-28T18:54:08.100202+00:00",
+      "request": 2,
+      "event": "body-completed",
+      "bytes": 38400
+    }
+  ],
+  "events": [
+    {
+      "id": 1793213645577,
+      "timestamp": "2026-10-28T18:54:05.604Z",
+      "category": "latency",
+      "event": "stream-probe-begin",
+      "details": {
+        "microphoneGranted": false,
+        "microphoneStatus": "denied"
+      }
+    },
+    {
+      "id": 1793213645578,
+      "timestamp": "2026-10-28T18:54:05.716Z",
+      "category": "latency",
+      "event": "budget-speech-stream-latency",
+      "details": {
+        "generation": 1,
+        "clock": "js-performance",
+        "requestToHeadersMs": 40.65966600179672,
+        "requestToFirstByteMs": 41.75695797801018,
+        "firstByteToEnqueueMs": 4.830750018358231,
+        "enqueueToRenderNoticeMs": 62.248250007629395,
+        "requestToRenderNoticeMs": 108.8359580039978,
+        "downloadCompleteAtRender": false,
+        "evidence": "native render callback receipt; not external acoustic onset"
+      }
+    },
+    {
+      "id": 1793213645579,
+      "timestamp": "2026-10-28T18:54:05.716Z",
+      "category": "latency",
+      "event": "stream-probe-render",
+      "details": {
+        "trial": "complete",
+        "capturedEvents": 0
+      }
+    },
+    {
+      "id": 1793213645580,
+      "timestamp": "2026-10-28T18:54:07.093Z",
+      "category": "latency",
+      "event": "stream-probe-result",
+      "details": {
+        "trial": "complete",
+        "outcome": "completed",
+        "captureRunning": false,
+        "playbackRunning": false,
+        "capturedEvents": 0,
+        "captureFrames": 0
+      }
+    },
+    {
+      "id": 1793213645581,
+      "timestamp": "2026-10-28T18:54:07.145Z",
+      "category": "latency",
+      "event": "budget-speech-stream-latency",
+      "details": {
+        "generation": 3,
+        "clock": "js-performance",
+        "requestToHeadersMs": 3.40174999833107,
+        "requestToFirstByteMs": 3.603874981403351,
+        "firstByteToEnqueueMs": 1.6319590210914612,
+        "enqueueToRenderNoticeMs": 46.176582992076874,
+        "requestToRenderNoticeMs": 51.412416994571686,
+        "downloadCompleteAtRender": false,
+        "evidence": "native render callback receipt; not external acoustic onset"
+      }
+    },
+    {
+      "id": 1793213645582,
+      "timestamp": "2026-10-28T18:54:07.145Z",
+      "category": "latency",
+      "event": "stream-probe-render",
+      "details": {
+        "trial": "cancel",
+        "capturedEvents": 0
+      }
+    },
+    {
+      "id": 1793213645583,
+      "timestamp": "2026-10-28T18:54:07.155Z",
+      "category": "latency",
+      "event": "stream-probe-result",
+      "details": {
+        "trial": "cancel",
+        "outcome": "AbortError",
+        "captureRunning": false,
+        "playbackRunning": false,
+        "capturedEvents": 0,
+        "captureFrames": 0
+      }
+    },
+    {
+      "id": 1793213645584,
+      "timestamp": "2026-10-28T18:54:07.155Z",
+      "category": "latency",
+      "event": "stream-probe-done",
+      "details": {
+        "capturedEvents": 0
+      }
+    }
+  ],
+  "latency": {
+    "variant": "native iOS18.5 Simulator output-only local HTTP probe",
+    "since": "2026-10-28T18:54:05.604Z",
+    "warmupTurnsExcluded": 0,
+    "evidence": "internal device clocks and player callbacks; no external acoustic, visible-display or motor-onset measurement",
+    "limitations": [
+      "VAD segment end is mapped to JS audio receipt in Budget mode; native capture/bridge age is excluded",
+      "PCM uses a local energy reference and render/route estimate, not annotated speech or microphone-measured playback",
+      "Input receipt to state request excludes microphone capture and visible display latency",
+      "Small pilot p95 is descriptive; incomplete measurements are counted separately"
+    ],
+    "summary": {
+      "budgetSegmentEndToPlayingEstimate": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "budgetEndpointToCommit": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "budgetCommitToPlaying": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "pcmActivityEndToEstimatedAudible": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "budgetInputReceiptToStateRequest": {
+        "n": 0,
+        "medianMs": null,
+        "p95Ms": null
+      },
+      "budgetSpeechRequestToRenderNotice": {
+        "n": 2,
+        "medianMs": 80.12418749928474,
+        "p95Ms": 108.8359580039978
+      },
+      "budgetSpeechRenderedBeforeDownloadEnd": 2,
+      "incompleteBudgetEndReferences": 0
+    },
+    "records": [
+      {
+        "timestamp": "2026-10-28T18:54:05.716Z",
+        "event": "budget-speech-stream-latency",
+        "sessionId": null,
+        "renderedBeforeDownloadEnd": true,
+        "metrics": {
+          "requestToHeadersMs": 40.65966600179672,
+          "requestToFirstByteMs": 41.75695797801018,
+          "firstByteToEnqueueMs": 4.830750018358231,
+          "enqueueToRenderNoticeMs": 62.248250007629395,
+          "requestToRenderNoticeMs": 108.8359580039978
+        }
+      },
+      {
+        "timestamp": "2026-10-28T18:54:07.145Z",
+        "event": "budget-speech-stream-latency",
+        "sessionId": null,
+        "renderedBeforeDownloadEnd": true,
+        "metrics": {
+          "requestToHeadersMs": 3.40174999833107,
+          "requestToFirstByteMs": 3.603874981403351,
+          "firstByteToEnqueueMs": 1.6319590210914612,
+          "enqueueToRenderNoticeMs": 46.176582992076874,
+          "requestToRenderNoticeMs": 51.412416994571686
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "Internal render callback receipt, no acoustic recording",
+    "Two starts, cold and warm; descriptive median/p95 only",
+    "Loopback HTTP and synthetic tone do not establish cloud speech or real iPhone latency",
+    "No LOOI face, microphone input, ASR, BLE movement or Wi-Fi jitter tested"
+  ],
+  "probeBundleSha256": "da28ddd8b4b64430ad9d385ef1cdbfb323e416fb01b0fb763087753ec66b579c",
+  "probeNativeBinarySha256": "fb12429c9b72dcab07fc578a440dbef1e38ac7f1f7f910d55db58ab6d65eea87",
+  "cleanup": {
+    "dedicatedSimulator": "shut down and deleted",
+    "localServer": "stopped",
+    "nativeBuildCache": "removed after retaining hashes, diagnostics and bundle",
+    "physicalIPhone": "not accessed"
+  }
+}

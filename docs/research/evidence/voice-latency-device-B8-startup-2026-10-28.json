@@ -1,0 +1,367 @@
+{
+  "observedAt": "2026-10-28T20:33:51.167Z",
+  "kind": "physical iPhone B8 startup and ordinary tap/capture interaction; NOT a controlled conversation trial",
+  "package": "B8",
+  "installation": "success",
+  "launch": "success",
+  "modeObserved": "budget",
+  "startupEvents": [
+    {
+      "at": "2026-10-28T20:23:24.205Z",
+      "event": "bootstrap-start"
+    },
+    {
+      "at": "2026-10-28T20:23:24.978Z",
+      "event": "app-state-changed",
+      "state": "background"
+    },
+    {
+      "at": "2026-10-28T20:23:27.308Z",
+      "event": "app-state-changed",
+      "state": "active"
+    },
+    {
+      "at": "2026-10-28T20:23:27.349Z",
+      "event": "app-state-changed",
+      "state": "inactive"
+    },
+    {
+      "at": "2026-10-28T20:23:27.623Z",
+      "event": "app-state-changed",
+      "state": "background"
+    },
+    {
+      "at": "2026-10-28T20:23:28.157Z",
+      "event": "app-state-changed",
+      "state": "active"
+    },
+    {
+      "at": "2026-10-28T20:23:28.825Z",
+      "event": "feeder-started",
+      "startLatencyMs": 547,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:28.857Z",
+      "event": "conversation-mode-sync",
+      "mode": "budget"
+    },
+    {
+      "at": "2026-10-28T20:23:29.030Z",
+      "event": "fresh-launch-auto-listen",
+      "conversationMode": "budget"
+    },
+    {
+      "at": "2026-10-28T20:23:31.608Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:31.910Z",
+      "event": "feeder-started",
+      "startLatencyMs": 285,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:33.965Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:34.253Z",
+      "event": "feeder-started",
+      "startLatencyMs": 271,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:35.097Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:35.423Z",
+      "event": "feeder-started",
+      "startLatencyMs": 308,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:37.692Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:38.018Z",
+      "event": "feeder-started",
+      "startLatencyMs": 310,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:38.845Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:39.257Z",
+      "event": "feeder-started",
+      "startLatencyMs": 403,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:39.362Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:40.114Z",
+      "event": "feeder-started",
+      "startLatencyMs": 611,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:40.151Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:40.518Z",
+      "event": "feeder-started",
+      "startLatencyMs": 349,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:42.035Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:42.364Z",
+      "event": "feeder-started",
+      "startLatencyMs": 306,
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "at": "2026-10-28T20:23:44.588Z",
+      "event": "app-state-changed",
+      "state": "inactive"
+    },
+    {
+      "at": "2026-10-28T20:23:44.828Z",
+      "event": "feeder-stopped"
+    },
+    {
+      "at": "2026-10-28T20:23:45.387Z",
+      "event": "app-state-changed",
+      "state": "background"
+    }
+  ],
+  "microphoneHealth": [
+    {
+      "at": "2026-10-28T20:23:32.814Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "windowMs": 1187.895332813263,
+      "frames": 3,
+      "maxRms": 0.0009302344015878661,
+      "peak": 0.004364013671875,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.2759580612182617,
+      "vadQueueMs": 0.9209580421447754,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:36.193Z",
+      "frameSamples": 1600,
+      "frameDurationMs": 100,
+      "windowMs": 1080.9739170074463,
+      "frames": 2,
+      "maxRms": 0.00009392215399699895,
+      "peak": 0.000274658203125,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 2.3760828971862793,
+      "vadQueueMs": 0.7662920951843262,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:37.275Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "windowMs": 1086.7604999542236,
+      "frames": 6,
+      "maxRms": 0.00021066525339235253,
+      "peak": 0.0009765625,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.8490419387817383,
+      "vadQueueMs": 0.5621662139892578,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:38.781Z",
+      "frameSamples": 1600,
+      "frameDurationMs": 100,
+      "windowMs": 1080.124750137329,
+      "frames": 2,
+      "maxRms": 0.00020077777657306062,
+      "peak": 0.000579833984375,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.0224170684814453,
+      "vadQueueMs": 0.2374577522277832,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:41.176Z",
+      "frameSamples": 1600,
+      "frameDurationMs": 100,
+      "windowMs": 1009.8121671676636,
+      "frames": 1,
+      "maxRms": 0.00009338765354512781,
+      "peak": 0.000274658203125,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.367332935333252,
+      "vadQueueMs": 0.392667293548584,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:43.149Z",
+      "frameSamples": 1600,
+      "frameDurationMs": 100,
+      "windowMs": 1102.6254591941833,
+      "frames": 2,
+      "maxRms": 0.00009784382448799711,
+      "peak": 0.000274658203125,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.1170001029968262,
+      "vadQueueMs": 0.3457498550415039,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "at": "2026-10-28T20:23:44.217Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "windowMs": 1065.7802081108093,
+      "frames": 6,
+      "maxRms": 0.0004514126486108544,
+      "peak": 0.003265380859375,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.1898751258850098,
+      "vadQueueMs": 1.0031671524047852,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    }
+  ],
+  "sampledVadProcessing": {
+    "n": 7,
+    "medianMs": 1.8490419387817383,
+    "p95Ms": 3.2759580612182617
+  },
+  "sampledVadQueue": {
+    "n": 7,
+    "medianMs": 0.5621662139892578,
+    "p95Ms": 1.0031671524047852
+  },
+  "tapCaptureCycles": [
+    {
+      "stopAt": "2026-10-28T20:23:31.608Z",
+      "startAt": "2026-10-28T20:23:31.910Z",
+      "firstPcmAt": "2026-10-28T20:23:32.481Z",
+      "tapAt": "2026-10-28T20:23:31.487Z",
+      "stopToFirstPcmMs": 873,
+      "tapToFirstPcmMs": 994,
+      "startToFirstPcmMs": 571
+    },
+    {
+      "stopAt": "2026-10-28T20:23:33.965Z",
+      "startAt": "2026-10-28T20:23:34.253Z",
+      "firstPcmAt": "2026-10-28T20:23:34.888Z",
+      "tapAt": "2026-10-28T20:23:33.853Z",
+      "stopToFirstPcmMs": 923,
+      "tapToFirstPcmMs": 1035,
+      "startToFirstPcmMs": 635
+    },
+    {
+      "stopAt": "2026-10-28T20:23:35.097Z",
+      "startAt": "2026-10-28T20:23:35.423Z",
+      "firstPcmAt": "2026-10-28T20:23:36.062Z",
+      "tapAt": "2026-10-28T20:23:34.996Z",
+      "stopToFirstPcmMs": 965,
+      "tapToFirstPcmMs": 1066,
+      "startToFirstPcmMs": 639
+    },
+    {
+      "stopAt": "2026-10-28T20:23:37.692Z",
+      "startAt": "2026-10-28T20:23:38.018Z",
+      "firstPcmAt": "2026-10-28T20:23:38.659Z",
+      "tapAt": "2026-10-28T20:23:37.591Z",
+      "stopToFirstPcmMs": 967,
+      "tapToFirstPcmMs": 1068,
+      "startToFirstPcmMs": 641
+    },
+    {
+      "stopAt": "2026-10-28T20:23:38.845Z",
+      "startAt": "2026-10-28T20:23:39.257Z",
+      "firstPcmAt": null,
+      "tapAt": null,
+      "stopToFirstPcmMs": null,
+      "tapToFirstPcmMs": null,
+      "startToFirstPcmMs": null
+    },
+    {
+      "stopAt": "2026-10-28T20:23:39.362Z",
+      "startAt": "2026-10-28T20:23:40.114Z",
+      "firstPcmAt": null,
+      "tapAt": "2026-10-28T20:23:39.268Z",
+      "stopToFirstPcmMs": null,
+      "tapToFirstPcmMs": null,
+      "startToFirstPcmMs": null
+    },
+    {
+      "stopAt": "2026-10-28T20:23:42.035Z",
+      "startAt": "2026-10-28T20:23:42.364Z",
+      "firstPcmAt": "2026-10-28T20:23:42.990Z",
+      "tapAt": "2026-10-28T20:23:41.933Z",
+      "stopToFirstPcmMs": 955,
+      "tapToFirstPcmMs": 1057,
+      "startToFirstPcmMs": 626
+    }
+  ],
+  "summary": {
+    "restartCycles": 7,
+    "stopToFirstPcmMs": {
+      "n": 5,
+      "medianMs": 955,
+      "p95Ms": 967
+    },
+    "tapToFirstPcmMs": {
+      "n": 5,
+      "medianMs": 1057,
+      "p95Ms": 1068
+    }
+  },
+  "watchdogHardRestarts": 0,
+  "watchdogConversationDeferrals": 1,
+  "inputAttentionPresentationEvents": 0,
+  "controlledConversationTrials": 0,
+  "speechEndToAudibleMedianMs": null,
+  "speechEndToAudibleP95Ms": null,
+  "diagnosticSha256": "57b58d1c64b6f3684fef61ac5b687a9a8669a1b82c87f8456e2ff83524e91740",
+  "limits": [
+    "Ordinary touch activity was observed; no human intent is inferred.",
+    "Tap-to-first-PCM ends at a JS audio event; it is not speech-end-to-answer or visible display latency.",
+    "VAD timings are sparse health-log samples, not all-frame distributions.",
+    "Background/inactive transitions are recorded without inferring their cause.",
+    "No external acoustic, screen-pixel or motor-onset measurement."
+  ]
+}

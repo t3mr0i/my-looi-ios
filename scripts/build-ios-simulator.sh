@@ -20,5 +20,9 @@ xcodebuild -workspace ios/MyLOOI.xcworkspace -scheme MyLOOI \
   -configuration Debug -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
   -jobs "${MY_LOOI_IOS_BUILD_JOBS:-2}" \
-  -derivedDataPath output/ios-derived CODE_SIGNING_ALLOWED=NO build \
+  -derivedDataPath output/ios-derived \
+  CODE_SIGNING_ALLOWED=YES 'CODE_SIGN_LOCAL_EXECUTION_IDENTITY=Ad Hoc' build \
   2>&1 | tee output/ios-simulator-build.log
+
+simulator_app='output/ios-derived/Build/Products/Debug-iphonesimulator/MyLOOI.app'
+codesign --verify --deep --strict "$simulator_app"

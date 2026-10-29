@@ -1,0 +1,15 @@
+diff --git a/ios/RecordingSettings.swift b/ios/RecordingSettings.swift
+index e4544b97839f1c9c08626759e2b3984fca3b0a24..b3ebdc85eade9102a846692911202a798eed5735 100644
+--- a/ios/RecordingSettings.swift
++++ b/ios/RecordingSettings.swift
+@@ -178,7 +178,9 @@ struct RecordingSettings {
+         // Parse core settings
+         settings.numberOfChannels = dict["channels"] as? Int ?? 1
+         settings.bitDepth = dict["bitDepth"] as? Int ?? 16
+-        settings.interval = dict["interval"] as? Int
++        // Expo's JSI dictionary exposes JavaScript numbers as Swift Double.
++        // Preserve the requested interval instead of falling back to 1000 ms.
++        settings.interval = (dict["interval"] as? NSNumber)?.intValue
+         settings.intervalAnalysis = dict["intervalAnalysis"] as? Int
+         if let maxDurationNumber = dict["maxDurationMs"] as? NSNumber {
+             settings.maxDurationMs = maxDurationNumber.int64Value

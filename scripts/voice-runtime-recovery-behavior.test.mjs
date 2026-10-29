@@ -41,7 +41,7 @@ function harness() {
         }
       },
     } },
-    "../store/user": { useUserStore: { getState: () => user }, isRealtimeConversationMode: (mode) => mode === "realtime" },
+    "../store/user": { useUserStore: { getState: () => user }, isManagedConversationMode: (mode) => mode === "realtime" || mode === "realtime_pcm" || mode === "budget" },
     "../store/conversation": { useConversationStore: { getState: () => conversation } },
     "./runtime-profile": { getRuntimeProfile: () => ({ allowsWakewordAutostart: true }) },
     "../diagnostics/diagnostic-log": { recordDiagnosticEvent(_, event, details) { diagnostics.push({ event, details }); } },

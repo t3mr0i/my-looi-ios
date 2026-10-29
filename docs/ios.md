@@ -6,20 +6,26 @@ not authoritative source and must not be committed.
 
 ## Current status
 
-The source adaptation covers the application runtime and its native iOS
-implementations. On 25 October 2026, the unsigned Debug ARM64 simulator build
-completed successfully on macOS with Xcode 27.1 and CocoaPods 1.16.2, after the
-deployment-target and ExpoModulesJSI fixes documented below. The current
-TypeScript/logic checks and iOS JavaScript/Hermes export also pass.
+On 25–26 October 2026, both the unsigned Debug ARM64 simulator build and a signed
+Release iPhone build completed with Xcode 27.1 and CocoaPods 1.16.2. The Release
+app (2.1.151, build 41) was installed on the user's iPhone 16 running iOS 27.0.
+The TypeScript/logic checks and iOS JavaScript/Hermes export also pass.
 
-This confirms native compilation and linking, not physical operation or release
-readiness. Visual simulator acceptance remains unverified because the local
-CoreSimulator framework is older than the installed Xcode requires. The user's
-target is iPhone 16; its iOS version and LOOI firmware are not yet recorded.
-Physical iPhone/robot acceptance remains required for BLE, audio/AEC, camera,
-interruption and lifecycle claims. See the dated
-[research and implementation report](research/my-looi-entscheidungsbericht.md#prüfprotokoll)
-for the executed checks and remaining gaps.
+Installation exposed two native startup issues that compilation alone did not
+detect: shared OpenFST C++ symbols in Vosk/Sherpa, and the SDK 56 template's
+missing scene lifecycle under iOS 27. The build adaptations are documented
+below. The corrected Release app now starts and displays onboarding on the
+physical iPhone. Returning from the home screen and opening the setup deep link
+also works. Portrait setup has completed on the device, including local speech
+models and microphone permission. The OpenAI key remained configured after an
+app update and restart; the authenticated model-list request succeeded. The mock
+robot menu exercises the production controller without physical hardware. The
+dated [iPhone mock acceptance report](research/iphone-mock-acceptance-2026-10-26.md)
+records the executed UI checks. Adaptive behavior is set to Active, requested
+visual decisions and camera attention are enabled, and the user-authorized camera
+permission is granted. Actual Realtime/Decisions responses, microphone/camera
+processing, audio/AEC and physical BLE/robot behavior still require acceptance;
+no physical LOOI is available yet and no firmware is recorded.
 
 The remaining-source pass added shared camera permissions, native iOS simulator
 constants, RSS/thermal diagnostics, capture-only compatibility through the shared
@@ -29,7 +35,8 @@ event forwarding, suspended timers and a background transition during startup.
 The latest independent regression inventory has 63 successful invocations out
 of 67; the only four failures are the Android baseline gaps listed below. Some
 checks appear in more than one test chain, so these are not 67 distinct test
-cases. The expanded `ios:check` chain passes TypeScript plus all 13 scripts.
+cases. The expanded `ios:check` chain passes TypeScript and the chained logic
+checks, including mock transport, connection-mode isolation and controller integration.
 
 The primary conversation implementation is `RealtimePcmAudio`: one AVAudioEngine
 with VoiceProcessingIO, a 16 kHz mono PCM16 capture contract and app-owned 24 kHz
@@ -65,9 +72,10 @@ corepack pnpm run ios:prepare
 corepack pnpm exec expo run:ios --device
 ```
 
-The preparation script downloads the three official Vosk command models from
+The preparation script downloads the four official Vosk command models from
 `alphacephei.com`, stages them as generated `.bundle` resources, and performs
-prebuild. All three language models are required; preparation fails clearly if
+prebuild. The config plugin also stages the isolated Vosk framework described
+below. All four language models are required; preparation fails clearly if
 one is missing. Cached models live under `${XDG_CACHE_HOME:-$HOME/.cache}` and
 generated resources under the ignored local module `ios/Models` directory.
 Do not substitute a different language model merely to make preparation pass.
@@ -85,22 +93,49 @@ instead of a ternary conversion. The null-setter branch still reaches C++ as
 null. Keep the patch and lockfile together; remove it only after a verified
 upstream upgrade passes native compilation and read-only setter behavior.
 
+Vosk and Sherpa bundle different OpenFST versions. Linking both static archives
+into the app exposes colliding C++ flag registries and caused a reproducible
+pre-main `EXC_BAD_ACCESS` on the physical iPhone. The iOS plugin now builds
+`LooiVoskNative.xcframework` from the pinned `react-native-vosk@2.1.7` archives.
+It exports the 35 public Vosk C functions and keeps its C++ globals inside the
+dynamic framework. Both recognizers remain available. The unused React Native
+Vosk microphone module is excluded from iOS autolinking. Generated binaries
+live under the ignored local module `ios/Native` directory; do not commit them.
+Run `pnpm run ios:vosk-check` on a Mac to verify the device/simulator slices,
+public ABI and dynamic-library identity.
+
+Apps built with the current SDK must adopt UIKit scenes on iOS 27. The iOS
+plugin adapts the pinned SDK 56 AppDelegate and installs a single-scene manifest.
+React Native starts in a scene-owned window. Scene events forward to Expo's
+existing delegate subscribers and linking handlers; UIKit continues to supply
+the application-state notifications used by React Native. The plugin preserves
+the app's foreground-only audio/BLE policy. See Apple's
+[scene migration documentation](https://developer.apple.com/documentation/uikit/transitioning-to-the-uikit-scene-based-life-cycle)
+and the [Expo scene lifecycle notes](https://github.com/expo/fyi/blob/main/ios-scene-lifecycle.md).
+
 After building the development client, start Metro with:
 
 ```bash
 corepack pnpm exec expo start --dev-client
 ```
 
-For an unsigned simulator compilation:
+For a simulator build with local ad-hoc signing:
 
 ```bash
 corepack pnpm run ios:build-simulator
 ```
 
-This command prepares the models/project, installs CocoaPods and builds without
-Apple signing credentials. It keeps the actual build exit status and saves the
-Xcode log to `output/ios-simulator-build.log`. It defaults to two parallel build
-jobs; override `MY_LOOI_IOS_BUILD_JOBS` if appropriate for your Mac.
+This command prepares the models/project, installs CocoaPods and signs the app
+locally for the Simulator. The ad-hoc signature supplies the app identifier
+used by iOS Keychain and SecureStore; it needs no Apple development certificate
+or provisioning profile. The build verifies the resulting app signature and
+saves the Xcode log to `output/ios-simulator-build.log`. It defaults to two
+parallel build jobs; override `MY_LOOI_IOS_BUILD_JOBS` if appropriate for your
+Mac.
+
+The [native mock-persistence check](research/simulator-mock-persistence-2026-10-26.md)
+records the reproduced unsigned-build failure and the successful app-restart
+check with local signing.
 
 These native commands are also specified in `.github/workflows/ios.yml`. The
 workflow must actually complete before claiming a successful native build.
@@ -163,9 +198,10 @@ the Linux cloud task.
 - A failed audio output cancels/truncates the response and stops the conversation.
   Old socket, camera, memory and capture completions cannot mutate a replacement
   conversation, including while a previous startup is still pending.
-- Vosk uses the pinned react-native-vosk XCFramework via a local Expo bridge.
-  Its React Native microphone interface is not used. Android autolinking for
-  that dependency is disabled to retain the existing Android Vosk module.
+- Vosk uses the isolated dynamic C-ABI framework generated from the pinned
+  react-native-vosk archives, via a local Expo bridge. Its React Native microphone
+  interface is not linked. Autolinking for that dependency is disabled on both
+  platforms; Android retains its existing Vosk module.
 - The bundled iOS Vosk C ABI does not expose Android's configurable endpoint
   delay APIs. STOP is detected from partial results; endpoint/timing equivalence
   must be measured on the actual device.
@@ -218,11 +254,10 @@ do not repair those Android features. The separate Vosk test's missing performan
 monitor mock was repaired and its assertions now execute, including an iOS
 decoder-failure stop test.
 
-During this task the cloud proxy denied `alphacephei.com`, so the Ukrainian model
-could not be downloaded and full iOS prebuild could not finish. The domain is
-saved as a required network addition in the environment configuration draft.
-Review/save that setting and publish through the environment UI, then retry the
-model download. No alternate network route or disabled TLS verification is used.
-The Linux task has no Xcode/iOS SDK; native compilation and device acceptance
-therefore remain separate future checks after model access is restored. They are
-not prerequisites for completing the current source rewrite.
+An earlier Linux/cloud pass could not download the Ukrainian model because its
+proxy denied `alphacephei.com`; that environment also lacked Xcode and the iOS SDK.
+Those were historical environment limits. The subsequent local Mac pass completed
+prebuild, native compilation, signing and installation on the physical iPhone.
+The app bundle contains the Ukrainian Vosk model; that does not establish readiness
+of the separate Sherpa models downloaded during onboarding. The dated iPhone report
+tracks the current device setup state.
