@@ -349,6 +349,7 @@ export class BudgetConversationService {
     markRobotInteraction("budget-turn");
     store.setCurrentTranscript(transcript);
     if (this.sessionId) acceptCompanionPersonalityTurn(transcript, this.sessionId);
+    const personalityContext = getCompanionPersonalityContext(transcript);
     store.addMessage({ role: "user", content: transcript });
     if (this.sessionId) mirrorSessionMessage(this.sessionId, { role: "user", content: transcript });
     const preferences = useUserStore.getState().preferences;
@@ -380,7 +381,7 @@ export class BudgetConversationService {
         history: useConversationStore.getState().messages.map(({ role, content }) => ({ role, content })),
         language: preferences.language,
         robotName: preferences.robotName,
-        personalityContext: getCompanionPersonalityContext(transcript),
+        personalityContext,
         memoryContext: memory.facts.map((fact) => fact.memory).join("\n"),
         signal,
         runTool: (name, args) => this.runTool(epoch, signal, name, args, transcript),
@@ -394,7 +395,7 @@ export class BudgetConversationService {
     store.addMessage({ role: "assistant", content: answer });
     store.setStreamingText(answer);
     if (this.sessionId) mirrorSessionMessage(this.sessionId, { role: "assistant", content: answer });
-    await this.speak(epoch, answer, signal);
+    await this.speak(epoch, answer, signal, personalityContext);
     if (valid() && this.sessionId) completeCharacterActionReply(this.sessionId);
     if (valid()) await this.enqueue(() => this.listen(epoch));
   }
@@ -429,7 +430,7 @@ export class BudgetConversationService {
     throw new Error("Unsupported tool");
   }
 
-  private async speak(epoch: number, text: string, signal: AbortSignal): Promise<void> {
+  private async speak(epoch: number, text: string, signal: AbortSignal, personalityContext?: string): Promise<void> {
     if (!this.current(epoch) || signal.aborted) return;
     const preferences = useUserStore.getState().preferences;
     const store = useConversationStore.getState();
@@ -437,6 +438,7 @@ export class BudgetConversationService {
     store.setProcessing(false);
     if (!preferences.ttsEnabled) return;
     this.phase = "speaking";
+    const deliveryContext = personalityContext ?? getCompanionPersonalityContext("");
     const sections = splitBudgetSpeechSections(text);
     for (let index = 0; index < sections.length; index += 1) {
       if (!this.current(epoch) || signal.aborted) return;
@@ -445,7 +447,7 @@ export class BudgetConversationService {
       await speakOpenAiText(section, {
         streaming: true,
         voiceId: preferences.ttsVoiceId, styleId: preferences.ttsStyleId, speed: preferences.ttsSpeed, signal,
-        personalityContext: getCompanionPersonalityContext(""),
+        personalityContext: deliveryContext,
         onStart: () => {
           if (!this.current(epoch) || signal.aborted) return;
           if (index === 0) {

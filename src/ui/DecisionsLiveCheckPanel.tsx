@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import {
   DECISIONS_LIVE_CHECK_SAMPLE_TEXT,
   createDecisionsLiveCheck,

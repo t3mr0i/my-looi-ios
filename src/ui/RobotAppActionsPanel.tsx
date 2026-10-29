@@ -1,8 +1,9 @@
+import { useReducedInterfaceMotion } from "./use-reduced-interface-motion";
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -323,7 +324,8 @@ function TargetPicker({
   onClose: () => void;
   onSelect: (id: RobotAppActionId) => void;
 }) {
-  return <Modal visible={visible} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={onClose}>
+  const reducedMotion = useReducedInterfaceMotion();
+  return <Modal visible={visible} transparent animationType={reducedMotion ? "none" : "fade"} presentationStyle="overFullScreen" onRequestClose={onClose}>
     <View style={styles.modalBackdrop}>
       <Pressable accessibilityRole="button" accessibilityLabel={t("actionClosePicker")} onPress={onClose} style={StyleSheet.absoluteFill} />
       <View accessibilityViewIsModal style={styles.pickerCard}>

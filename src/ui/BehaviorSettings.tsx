@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useMemo, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, StyleSheet, Switch, Text, View } from "react-native";
 import { createBehaviorTranslator } from "../i18n/behavior-strings";
 import { useUiText } from "../i18n/use-ui-text";
 import { publishBehaviorEvent } from "../behavior/behavior-events";
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
   title: { color: looiTheme.text, fontSize: 15, fontWeight: "800" },
   label: { color: looiTheme.muted, fontSize: 12, fontWeight: "700", marginTop: 2 },
   value: { color: looiTheme.text, fontSize: 13, fontWeight: "700" },
-  help: { color: looiTheme.muted, fontSize: 12, lineHeight: 17 },
+  help: { color: looiTheme.muted, fontSize: 14, lineHeight: 20 },
   notice: {
     color: looiTheme.warn,
     fontSize: 12,
@@ -526,8 +527,8 @@ const styles = StyleSheet.create({
     borderBottomColor: looiTheme.line,
     paddingVertical: 6,
   },
-  metricLabel: { color: looiTheme.muted, fontSize: 11, fontWeight: "600" },
-  metricValue: { color: looiTheme.text, fontSize: 13, fontWeight: "800" },
+  metricLabel: { flex: 1, color: looiTheme.muted, fontSize: 11, fontWeight: "600" },
+  metricValue: { fontVariant: ["tabular-nums"], color: looiTheme.text, fontSize: 13, fontWeight: "800" },
   postureRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   posturePill: {
     color: looiTheme.cyan,

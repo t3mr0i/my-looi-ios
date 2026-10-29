@@ -1,0 +1,225 @@
+{
+  "observedAt": "2026-10-29T12:27:27.043Z",
+  "kind": "current physical iPhone startup observation; no human speech-response acceptance",
+  "packageManifest": "voice-latency-current-install-2026-10-29.json",
+  "events": [
+    {
+      "timestamp": "2026-10-29T12:25:47.284Z",
+      "event": "bootstrap-start"
+    },
+    {
+      "timestamp": "2026-10-29T12:25:47.453Z",
+      "event": "conversation-mode-sync",
+      "mode": "budget"
+    },
+    {
+      "timestamp": "2026-10-29T12:25:47.638Z",
+      "event": "fresh-launch-auto-listen",
+      "conversationMode": "budget"
+    },
+    {
+      "timestamp": "2026-10-29T12:25:47.854Z",
+      "event": "feeder-started",
+      "requestedIntervalMs": 100,
+      "reportedIntervalMs": 100
+    },
+    {
+      "timestamp": "2026-10-29T12:26:00.800Z",
+      "event": "app-state-changed",
+      "state": "inactive"
+    },
+    {
+      "timestamp": "2026-10-29T12:26:00.981Z",
+      "event": "budget-session-stopped",
+      "reason": "voice-runtime-stop"
+    },
+    {
+      "timestamp": "2026-10-29T12:26:01.383Z",
+      "event": "app-state-changed",
+      "state": "background"
+    }
+  ],
+  "microphoneHealth": [
+    {
+      "timestamp": "2026-10-29T12:25:48.939Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 7,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 5.357542037963867,
+      "vadQueueMs": 1.2264161109924316,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:50.036Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.1729159355163574,
+      "vadQueueMs": 0.7953753471374512,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:51.115Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.2755417823791504,
+      "vadQueueMs": 0.9735407829284668,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:52.129Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.045583724975586,
+      "vadQueueMs": 0.3258333206176758,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:53.217Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 1.6273751258850098,
+      "vadQueueMs": 0.29029178619384766,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:54.315Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.852290630340576,
+      "vadQueueMs": 0.797584056854248,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:55.338Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 2.7268753051757812,
+      "vadQueueMs": 0.6749167442321777,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:56.425Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.604458808898926,
+      "vadQueueMs": 1.130457878112793,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:57.505Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 2.2536673545837402,
+      "vadQueueMs": 0.6814169883728027,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:58.544Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 11.028749942779541,
+      "vadQueueMs": 0.7124166488647461,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:25:59.623Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 3.348083019256592,
+      "vadQueueMs": 0.8289999961853027,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    },
+    {
+      "timestamp": "2026-10-29T12:26:00.709Z",
+      "frameSamples": 3200,
+      "frameDurationMs": 200,
+      "frames": 6,
+      "maxRms": 0,
+      "peak": 0,
+      "vadSpeech": false,
+      "completedSegments": 0,
+      "vadProcessingMs": 2.9354591369628906,
+      "vadQueueMs": 0.4026656150817871,
+      "queuedAudioMs": 0,
+      "hadSpeech": false
+    }
+  ],
+  "allLoggedHealthWindowsZeroEnergy": true,
+  "attentionPresentationEvents": 0,
+  "turnLatencyEvents": 0,
+  "humanConfirmedResponse": false,
+  "micToPixelLatencyMs": null,
+  "speechEndToAudibleLatencyMs": null,
+  "diagnosticSourceSha256": "f28575cbc08f1b469132ba0890ab196a625a9a21cde97d435eef35bcc41ab49d",
+  "limits": [
+    "PCM blocks reached JavaScript but all sampled health windows had exactly zero energy.",
+    "No contemporaneous human speech confirmation; cause of zero input is unknown.",
+    "App became inactive/background; the cause is not inferred.",
+    "Installation and successful launch do not prove working recognition, speech playback or response latency."
+  ]
+}

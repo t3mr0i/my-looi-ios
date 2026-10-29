@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RobotAppsGlyph } from "./RobotAppsGlyph";
 import { looiTheme } from "./looi-theme";

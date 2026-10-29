@@ -72,7 +72,7 @@ export function createCompanionPersonalityLiveCases() {
     expected: {
       forbiddenTools: [...MUTATIONS],
       ...(options.requiredTool ? { requiredTool: options.requiredTool, requiredStatus: options.requiredStatus } : {}),
-      state: retainedProfile(stage, options),
+      state: retainedProfile(stage, { ...options, quiet: stage === "quiet" }),
     },
     review: { passCriteria: [...sharedReview, ...criteria], expectedFacts: [stage === "new"
       ? "The new local profile has no established interest or relationship history."

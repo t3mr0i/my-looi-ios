@@ -157,6 +157,7 @@ function mount(name, extra = {}, language = "de") {
     },
   };
   const dependencies = {
+    "./InterfacePressable": { InterfacePressable: "Pressable" },
     react,
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "Fragment" },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },

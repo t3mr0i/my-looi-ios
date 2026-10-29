@@ -1,6 +1,7 @@
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
 import { useCallback, useRef, useState } from "react";
 import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUiText } from "@/src/i18n/use-ui-text";
 import { createRobotDebugTranslator } from "@/src/i18n/robot-debug-strings";

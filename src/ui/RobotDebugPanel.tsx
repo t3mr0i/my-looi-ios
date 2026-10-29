@@ -1,7 +1,7 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,

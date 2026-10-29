@@ -42,6 +42,17 @@ study's contour and smile are represented by the same cubic geometry in the
 native renderer and generated scene pictures. Existing face-style ids, hats and
 all five palettes remain compatible; color families tint the moon material.
 
+Eye color is a persistent choice made by the user. Appearance settings show
+all five color choices directly, together with a static preview of the production
+moon-eye material in the selected style, including its hat, brows or lashes.
+Selecting a color updates the preview and the main face
+through the existing preferences. Situations and emotions do not overwrite the
+selected color. The preview owns no speech, sensor, reaction or robot state.
+Style choices are in a disclosure above the preview; choosing one closes the
+list and updates the preview. The live face and preview share appearance
+configuration and accessory geometry. Brows and lashes follow the eye centers
+and gaze in both full-screen and avatar sizes.
+
 Curiosity, surprise, joy, concern and displeasure morph that glass contour.
 Blinking closes an aperture over stable material. Sleep and affection hide the
 glass and retain clean closed curves. The small idle smile applies only to
@@ -177,3 +188,18 @@ unclear matches retain a neutral fallback. Negative emotional situations retain
 appropriate expressions throughout their final phases. System, agreement and
 understanding pictures have no automatic text triggers. A displayed status
 symbol never establishes a measured state or a confirmed understanding.
+
+## Shared interface polish
+
+On narrow displays the existing screen navigation sits below the reading area;
+wide displays keep a scrollable side rail. Navigation labels have bounded
+wrapping. Scrolling and list screens share a 1040pt maximum reading width.
+Ordinary controls have a minimum 44pt target and immediate press feedback;
+selected, disabled and expanded states remain explicit to accessibility.
+
+Settings use two columns for longer choice labels on phones and for larger
+text. Help text stays readable without shrinking labels to fit. Repair rows in
+the home menu show both the complete problem and its recovery instruction.
+Menu, image, action-picker and object-selection overlays follow Reduced Motion,
+including changes while the interface is open. Hidden conversation overlays
+are also hidden from accessibility.

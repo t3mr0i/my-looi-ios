@@ -1,9 +1,9 @@
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect, useNavigation } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   RefreshControl,
   ScrollView,
   SectionList,
@@ -587,6 +587,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   countText: {
+    fontVariant: ["tabular-nums"],
     color: looiTheme.cyan,
     fontSize: 22,
     fontWeight: "700",

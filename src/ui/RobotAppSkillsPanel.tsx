@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Switch, Text, View } from "react-native";
 import { useUiText } from "../i18n/use-ui-text";
 import { createRobotAppSkillsTranslator, type RobotAppSkillStringKey } from "../i18n/robot-app-skill-strings";
 import type { RobotAppSkillStatus } from "../robot-bridge/app-skills";

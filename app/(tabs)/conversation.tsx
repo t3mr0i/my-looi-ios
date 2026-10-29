@@ -1,8 +1,8 @@
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -461,13 +461,14 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   sessionMeta: {
+    fontVariant: ["tabular-nums"],
     color: looiTheme.muted,
     fontSize: 12,
   },
 
   costBreakdown: {
     color: looiTheme.muted,
-    fontSize: 10,
+    fontSize: 12,
     marginTop: 3,
   },  expandMark: {
     color: looiTheme.cyan,

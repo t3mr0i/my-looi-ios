@@ -1,6 +1,7 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { StyleSheet, Text, View } from "react-native";
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useConversationStore } from "../store/conversation";
 import { useUserStore } from "../store/user";
 import { looiTheme } from "./looi-theme";
@@ -36,7 +37,7 @@ export function VoiceButton() {
 
     console.log("[VoiceButton] Press in: trigger voice");
     pressTriggeredVoiceRef.current = true;
-    scale.value = withSpring(0.94);
+    scale.value = withTiming(0.96, { duration: 100, reduceMotion: ReduceMotion.System });
 
     // Trigger voice perceiver
     getVoicePerceiver()
@@ -48,7 +49,7 @@ export function VoiceButton() {
     const shouldFinish = pressTriggeredVoiceRef.current;
     pressTriggeredVoiceRef.current = false;
 
-    scale.value = withSpring(1);
+    scale.value = withTiming(1, { duration: 100, reduceMotion: ReduceMotion.System });
 
     if (shouldFinish) {
       console.log("[VoiceButton] Press out: finish voice");
@@ -72,6 +73,8 @@ export function VoiceButton() {
     <View style={styles.container}>
       <Animated.View style={animatedStyle}>
         <Pressable
+          accessibilityLabel={label}
+          accessibilityState={{ disabled, busy: isProcessing }}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={disabled}

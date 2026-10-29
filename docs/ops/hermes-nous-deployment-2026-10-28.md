@@ -1,9 +1,11 @@
 # Hermes-/Nous-Bereitstellung am 28. Oktober 2026
 
 Der aktualisierte Hermes-Dienst ist auf dem konfigurierten Netcup-Server aktiv.
-Die neue Nous-Verwaltung ist über HTTPS erreichbar. Eine angemeldete persönliche
-Nous-Identität wurde bislang nicht bestätigt; der Dienst meldet deshalb korrekt
-`server_login_required`. Mail-/Kalenderinhalte werden mit diesem Ausbau nicht gelesen.
+Die neue Nous-Verwaltung ist über HTTPS erreichbar. Am 29. Oktober wurde die
+persönliche Nous-Geräteanmeldung bestätigt; `/v1/nous` meldet über die öffentliche
+HTTPS-Adresse `ready` mit einer bestätigten Identität. Der angemeldete Katalog
+enthält 54 Einträge ohne Gmail oder Google Calendar. Mail-/Kalenderinhalte werden
+mit diesem Ausbau nicht gelesen.
 
 Die [bereinigten Prüfergebnisse](../research/evidence/hermes-nous-deployment-2026-10-28.json)
 enthalten keine Zugangsdaten oder persönlichen Kontoinhalte.
@@ -55,7 +57,7 @@ veröffentlichten Host-Ports des Agenten.
 | Öffentliches `/health` | HTTP 200, `status: ok` |
 | Geschützte Routen ohne App-Schlüssel | HTTP 401 |
 | Authentifiziertes `/v1/capabilities` | HTTP 200, `connectionProviders: ["nous-v1"]` |
-| Authentifiziertes `/v1/nous` | HTTP 200, `server_login_required` |
+| Authentifiziertes `/v1/nous` | Beim Deployment `server_login_required`; nach Gerätefreigabe am 29. Oktober HTTP 200, `ready` |
 | Echter Rechercheauftrag | HTTP 202, danach `completed`, Antwort und fünf Quellen |
 | Aufräumen des eigenen Testauftrags | HTTP 204; Löschquittung bleibt gemäß API bestehen |
 | Vorherige Aufgaben | Eine Aufgabe unverändert, gegen Sicherung verglichen |
@@ -70,11 +72,11 @@ soeben authentifiziert hat. Vorhandene Nutzerkennungen und die Organisation müs
 übereinstimmen. Das Dekodieren von JWT-Claims allein gilt nicht als Anmeldung.
 Globale Gateway-Tokens werden weiterhin nicht übernommen.
 
-## Noch erforderliche Anmeldung
+## Geräteanmeldung und Live-Abschluss am 29. Oktober
 
 Der offizielle SDK-Geräteablauf wurde im Container unter UID 10000 gestartet.
-Der Eigentümer muss sich auf der offiziellen Nous-Seite anmelden und die
-Geräteanmeldung bestätigen. Die Zugangsdaten bleiben im dedizierten Serverprofil.
+Der Eigentümer hat sich auf der offiziellen Nous-Seite angemeldet und die
+Geräteanmeldung bestätigt. Die Zugangsdaten bleiben im dedizierten Serverprofil.
 Es wurden keine Zugangsdaten anderer Installationen übernommen, keine
 Google-Konten verknüpft und keine persönlichen Inhalte angefragt. Ein abgelaufener
 Gerätecode muss durch einen neuen offiziellen Anmeldelauf ersetzt werden.
@@ -84,12 +86,26 @@ Bei der erneuten Live-Prüfung war der erste Gerätecode abgelaufen
 Ein neuer offizieller Geräteablauf wurde gestartet. Die Rückmeldung eines Codes
 im Chat gilt nicht als Bestätigung auf der Nous-Seite.
 
-Nach der Bestätigung muss `/v1/nous` live die tatsächliche Identität und den
-angemeldeten Katalog prüfen. Erst dieser Katalog entscheidet, welche Anbieter für
-dieses Konto verfügbar sind. Der erfolgreiche Recherchetest prüft die bisherige
-OpenAI-/DDGS-Funktion, keine Nous-Anmeldung. Die App-Anbindung an einen privaten
-Einzelbesitzer ist damit technisch vorbereitet; ein öffentlicher Mehrnutzerbetrieb
-und ein echter Mail-/Kalenderabruf sind weiterhin nicht nachgewiesen.
+Der neue Ablauf wurde am 29. Oktober erfolgreich abgeschlossen (`signed_in`).
+Die folgende direkte Serverabfrage und eine unabhängige Anfrage über die öffentliche
+HTTPS-Adresse lieferten HTTP 200, `status: ready`, eine vorhandene Identität und
+keine verbundenen Konten. Der tatsächliche angemeldete SDK-Katalog enthält 54
+Einträge; weder Kennungen noch Anzeigenamen enthalten einen Google-, Gmail-,
+Kalender- oder Mailanbieter. Die API liefert folglich `providers: []`. Es wurde
+kein Verbindungslink für einen nicht angebotenen Anbieter erzwungen.
+
+Zwei Authentifizierungsdateien liegen im dedizierten persistenten Profil, gehören
+UID 10000 und sind nicht für Gruppe oder andere Benutzer lesbar. Das Profil hat
+Modus `0700`; auch der gemeinsame SDK-Auth-Speicher liegt darin. Ein Neustart zur
+gesonderten Prüfung der Wiederanmeldung wurde nicht durchgeführt. Der Container
+bleibt `healthy` bei null Neustarts und unverändertem Release-Image.
+
+Der [bereinigte Nachweis der angemeldeten Prüfung](../research/evidence/hermes-nous-authenticated-2026-10-29.json)
+enthält keine Identitätswerte, E-Mail-Adressen oder Tokens. Damit ist die
+Nous-Anmeldung live nachgewiesen. Der Recherchetest vom Vortag belegt gesondert
+die OpenAI-/DDGS-Funktion. Ein öffentlicher Mehrnutzerbetrieb und ein echter
+Mail-/Kalenderabruf sind weiterhin nicht nachgewiesen; der aktuelle persönliche
+Nous-Katalog bietet dafür keinen Anbieter an.
 
 ## Rückwechsel
 

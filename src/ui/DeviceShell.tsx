@@ -6,7 +6,8 @@ import { Href, usePathname, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import regularSymbolWeight from "expo-symbols/androidWeights/regular";
 import { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type DeviceShellProps = {
@@ -28,25 +29,29 @@ const navItems = [
     href: "/conversation",
     matchPath: "/conversation",
     labelKey: "nav.conversations" as UiStringKey,
-    symbol: { ios: "message.fill", android: "chat" },
+    symbol: { ios: "message", android: "chat_bubble_outline" },
+    activeSymbol: { ios: "message.fill", android: "chat" },
   },
   {
     href: "/memories",
     matchPath: "/memories",
     labelKey: "nav.memory" as UiStringKey,
     symbol: { ios: "brain.head.profile", android: "psychology" },
+    activeSymbol: { ios: "brain.head.profile", android: "psychology" },
   },
   {
     href: "/apps",
     matchPath: "/apps",
     labelKey: "nav.apps" as UiStringKey,
-    symbol: { ios: "square.grid.2x2.fill", android: "apps" },
+    symbol: { ios: "square.grid.2x2", android: "apps" },
+    activeSymbol: { ios: "square.grid.2x2.fill", android: "apps" },
   },
   {
     href: "/settings",
     matchPath: "/settings",
     labelKey: "nav.settings" as UiStringKey,
-    symbol: { ios: "gearshape.fill", android: "settings" },
+    symbol: { ios: "gearshape", android: "settings" },
+    activeSymbol: { ios: "gearshape.fill", android: "settings" },
   },
 ] as const;
 
@@ -59,6 +64,8 @@ export function DeviceShell({
 }: DeviceShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 600 || (width < 900 && fontScale > 1.3);
   const { t } = useUiText();
   const returnHome = () => {
     if (onReturnHome) {
@@ -70,7 +77,7 @@ export function DeviceShell({
   const content = scroll ? (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, compact && styles.contentCompact]}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -79,23 +86,23 @@ export function DeviceShell({
       {children}
     </ScrollView>
   ) : (
-    <View style={styles.fixedContent}>{children}</View>
+    <View style={[styles.fixedContent, compact && styles.contentCompact]}>{children}</View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.backgroundGrid} pointerEvents="none" />
-      <View style={styles.frame}>
-        <View style={styles.rail}>
-          <Pressable
+      <View style={[styles.frame, compact && styles.frameCompact]}>
+        <View style={[styles.rail, compact && styles.railCompact, compact && { height: Math.max(80, 52 + fontScale * 28) }]}>
+          {!compact ? <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("nav.returnHome")}
             onPress={returnHome}
             style={styles.homeButton}
           >
             <Text style={styles.homeMark}>LOOI</Text>
-          </Pressable>
-          <View style={styles.navStack}>
+          </Pressable> : null}
+          <ScrollView horizontal={compact} style={styles.navScroll} contentContainerStyle={[styles.navStack, compact && styles.navStackCompact]} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false}>
             {navItems.map((item) => {
               const active = pathname === item.matchPath;
               return (
@@ -107,14 +114,15 @@ export function DeviceShell({
                     if (active) return;
                     router.replace(item.href as Href);
                   }}
-                  style={StyleSheet.flatten([
+                  style={[
                     styles.navItem,
+                    compact && styles.navItemCompact,
                     active && styles.navItemActive,
-                  ])}
+                  ]}
                 >
                   <SymbolView
-                    name={item.symbol}
-                    size={25}
+                    name={active ? item.activeSymbol : item.symbol}
+                    size={24}
                     tintColor={active ? looiTheme.cyan : looiTheme.muted}
                     weight={{ ios: "semibold", android: regularSymbolWeight }}
                     fallback={
@@ -127,6 +135,7 @@ export function DeviceShell({
                     }
                   />
                   <Text
+                    numberOfLines={compact ? 2 : undefined}
                     style={[styles.navLabel, active && styles.navLabelActive]}
                   >
                     {t(item.labelKey)}
@@ -134,7 +143,7 @@ export function DeviceShell({
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
         <View style={styles.main}>
           {content}
@@ -162,7 +171,7 @@ export function DeviceShellHeader({
     <View style={styles.header}>
       <View style={styles.titleBlock}>
         {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-        <Text style={styles.title}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{title}</Text>
       </View>
       <RobotFace mode="avatar" onPress={returnHome} />
     </View>
@@ -191,8 +200,9 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 10,
   },
+  frameCompact: { flexDirection: "column-reverse", padding: 8, gap: 8 },
   rail: {
-    width: 92,
+    width: 112,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: looiTheme.line,
@@ -200,9 +210,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
   },
+  railCompact: { width: "100%", borderRadius: 22, paddingVertical: 4 },
   homeButton: {
     width: 66,
-    height: 36,
+    minHeight: 44,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -216,15 +227,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   navStack: {
-    flex: 1,
+    flexGrow: 1,
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingVertical: 8,
   },
+  navScroll: { flex: 1, width: "100%" },
+  navStackCompact: { flexDirection: "row", paddingHorizontal: 4, paddingVertical: 0, gap: 4 },
+  navItemCompact: { flex: 1, width: "auto", minWidth: 66, minHeight: 60, paddingHorizontal: 4, paddingVertical: 6 },
   navItem: {
-    width: 70,
+    width: 94,
     minHeight: 56,
     borderRadius: 16,
     borderWidth: 1,
@@ -248,8 +262,11 @@ const styles = StyleSheet.create({
     borderColor: looiTheme.cyan,
   },
   navLabel: {
+    width: "100%",
     color: looiTheme.muted,
     fontSize: 12,
+    textAlign: "center",
+    flexShrink: 1,
   },
   navLabelActive: {
     color: looiTheme.text,
@@ -289,14 +306,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    width: "100%",
+    maxWidth: 1040,
+    alignSelf: "center",
     paddingHorizontal: 22,
     paddingBottom: 22,
     paddingTop: 12,
   },
   fixedContent: {
     flex: 1,
+    width: "100%",
+    maxWidth: 1040,
+    alignSelf: "center",
     paddingHorizontal: 22,
     paddingBottom: 22,
     paddingTop: 12,
   },
+  contentCompact: { paddingHorizontal: 16 },
 });

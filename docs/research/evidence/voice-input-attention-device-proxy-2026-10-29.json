@@ -1,0 +1,41 @@
+{
+  "observedAt": "2026-10-29T12:14:42.573Z",
+  "kind": "retrospective physical iPhone B8 diagnostic proxy; not a controlled voice-response trial",
+  "packageAtEvent": "B8",
+  "attribution": "event times fall between the verified B8 launch and the verified later B9 installation; no current-build claim",
+  "rows": [
+    {
+      "timestamp": "2026-10-28T20:24:11.742Z",
+      "clock": "js-performance",
+      "receiptToRequestMs": 0.7801661491394043,
+      "receiptToPresentationEffectMs": 15.927332878112793,
+      "requestToPresentationEffectMs": 15.147166728973389
+    },
+    {
+      "timestamp": "2026-10-28T20:24:27.639Z",
+      "clock": "js-performance",
+      "receiptToRequestMs": 0.21787500381469727,
+      "receiptToPresentationEffectMs": 4.464791774749756,
+      "requestToPresentationEffectMs": 4.246916770935059
+    }
+  ],
+  "summary": {
+    "receiptToRequest": {
+      "n": 2,
+      "medianMs": 0.4990205764770508,
+      "p95Ms": 0.7801661491394043
+    },
+    "receiptToPresentationEffect": {
+      "n": 2,
+      "medianMs": 10.196062326431274,
+      "p95Ms": 15.927332878112793
+    }
+  },
+  "sourceSha256": "d2f738416fd0c3286e362d22ec1afbfc679fa3bbee11c4cf44d08e7ae87929e4",
+  "limitations": [
+    "Two observations only; p95 is descriptive and equals the larger value.",
+    "Starts at JS PCM receipt and ends at a React effect; excludes microphone capture, bridge, compositor and visible pixels.",
+    "Incoming sound was not annotated as human speech; no acoustic onset or understanding claim.",
+    "No full response latency or before/after comparison."
+  ]
+}

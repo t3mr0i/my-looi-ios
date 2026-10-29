@@ -108,6 +108,14 @@ const faceSource = ts.transpileModule(await (await import("node:fs/promises")).r
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
 
+const componentSources = {};
+for (const name of ["FaceDecorations", "EyeColorPicker"]) {
+  componentSources[name] = ts.transpileModule(await (await import("node:fs/promises")).readFile(`src/ui/${name}.tsx`, "utf8"), {
+    fileName: `src/ui/${name}.tsx`,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+}
+
 function loadFace(accessibility, appState, overrides = {}) {
   const user = { voiceState: "attention", robotSleeping: false, preferences: { faceStyle: "classic", facePalette: "cyan", conversationMode: "realtime" }, ...overrides.user };
   const conversation = { streamingText: "", heardSpeechText: null, realtimeReadiness: "ready", isUserSpeaking: false, isSpeaking: false,
@@ -139,6 +147,7 @@ function loadFace(accessibility, appState, overrides = {}) {
     }, { __esModule: true, default: { View: "AnimatedView", createAnimatedComponent: component => component } }),
     "react-native-svg": Object.assign({ __esModule: true, default: "Svg" }, Object.fromEntries(["ClipPath", "Defs", "Ellipse", "FeGaussianBlur", "Filter", "G", "LinearGradient", "Path", "RadialGradient", "Stop"].map(name => [name, `Svg${name}`]))),
     "@/src/character/glass-face": loadTypeScript("src/character/glass-face.ts"),
+    "@/src/character/face-appearance": loadCharacterModule("src/character/face-appearance.ts"),
     "@/src/store/user": { isManagedConversationMode: () => false, useUserStore: noStore(user) },
     "@/src/store/conversation": { useConversationStore: noStore(conversation) },
     "@/src/voice/input-attention": loadTypeScript("src/voice/input-attention.ts"),
@@ -173,12 +182,25 @@ function loadFace(accessibility, appState, overrides = {}) {
     return deps[name];
   }, glassModule, glassModule.exports);
   deps["@/src/ui/GlassFace"] = glassModule.exports;
+  for (const [name, source] of Object.entries(componentSources)) {
+    const component = {exports:{}};
+    new Function("require", "module", "exports", source)((dependency) => {
+      assert.ok(dependency in deps, `Unexpected ${name} dependency ${dependency}`);
+      return deps[dependency];
+    }, component, component.exports);
+    deps[`@/src/ui/${name}`] = component.exports;
+  }
   const module = { exports: {} };
   new Function("require", "module", "exports", faceSource)((name) => {
     assert.ok(name in deps, `Unexpected RobotFace dependency ${name}`);
     return deps[name];
   }, module, module.exports);
-  renderer.mount((props) => module.exports.RobotFace({ ...props, ...overrides.props }));
+  renderer.mount((props) => overrides.picker
+    ? deps["@/src/ui/EyeColorPicker"].EyeColorPicker({
+        value:user.preferences.facePalette,faceStyleId:user.preferences.faceStyle,
+        options:[],label:"test",onChange() {},
+      })
+    : module.exports.RobotFace({ ...props, ...overrides.props }));
   renderer.states = { user, conversation, behavior, reaction, action, objectAttention };
   renderer.gazeSelections = gazeSelections;
   renderer.animationSequences = animationSequences;
@@ -538,6 +560,71 @@ for (const palette of ["cyan", "rose", "lime", "amber", "violet"]) {
   renderer.unmount();
 }
 console.log("Native glass avatar and five persisted palettes: PASS");
+
+// The actual settings preview and live renderer agree for every saved appearance.
+{
+  const { FACE_STYLES, FACE_PALETTES } = loadCharacterModule("src/character/face-appearance.ts");
+  const nodes = node => !node || typeof node !== "object" ? [] : Array.isArray(node)
+    ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
+  const component = (renderer, name) => renderer.components.filter(item => item.name === name).map(item => item.props);
+  const animated = (renderer, id) => nodes(renderer.tree).find(node => node.props?.testID === id)?.props.animatedProps;
+  const colorStops = renderer => nodes(renderer.tree).filter(node => node.type === "SvgStop").map(node => node.props.stopColor?.toLowerCase());
+  for (const faceStyle of Object.keys(FACE_STYLES)) for (const facePalette of Object.keys(FACE_PALETTES)) {
+    const user = {preferences:{faceStyle,facePalette,conversationMode:"realtime"}};
+    const live = loadFace(makeAccessibility().accessibility, makeAppState(), {user});
+    const preview = loadFace(makeAccessibility().accessibility, makeAppState(), {user,picker:true});
+    const liveEyes = component(live,"GlassEye");
+    const previewEyes = component(preview,"GlassEye");
+    for (let side=0;side<2;side++) {
+      for (const key of ["width","height","rotationOffset","paletteId","isAvatar"]) {
+        assert.equal(previewEyes[side][key],liveEyes[side][key],`${faceStyle}/${facePalette}: preview eye ${key}`);
+      }
+      const suffix = side===0 ? "left" : "right";
+      assert.equal(animated(preview,`glass-eye-envelope-${suffix}`).d,animated(live,`glass-eye-envelope-${suffix}`).d);
+    }
+    for (const key of ["shape","width","paletteId"]) {
+      assert.equal(component(preview,"GlassMouth")[0][key],component(live,"GlassMouth")[0][key],`${faceStyle}/${facePalette}: preview mouth ${key}`);
+    }
+    assert.deepEqual(colorStops(preview),colorStops(live),"preview uses the live material colors");
+    const decorations = renderer => nodes(renderer.tree).filter(node=>node.props?.testID?.startsWith("face-decor-")).map(node=>node.props.testID);
+    assert.deepEqual(decorations(preview),decorations(live),"preview includes the selected style's accessories");
+    const initialTimingCount=live.animationTimings.length;
+    const initialBlink=liveEyes[0].blink;
+    initialBlink.value=.4;
+    const nextPalette=Object.keys(FACE_PALETTES)[(Object.keys(FACE_PALETTES).indexOf(facePalette)+1)%5];
+    live.states.user.preferences={...user.preferences,facePalette:nextPalette}; live.flush();
+    assert.equal(component(live,"GlassEye")[0].blink,initialBlink,"palette changes preserve blink clock identity");
+    assert.equal(initialBlink.value,.4,"palette changes preserve the blink position");
+    assert.equal(live.animationTimings.length,initialTimingCount,"palette changes do not restart expression, gaze or mouth clocks");
+    assert.equal(component(live,"GlassMouth")[0].paletteId,nextPalette);
+    initialBlink.value=0;live.flush();
+    assert.equal(animated(live,"glass-eye-body-left").opacity,0);
+    assert.equal(animated(live,"glass-eye-closed-left").opacity,1);
+    const avatar=loadFace(makeAccessibility().accessibility,makeAppState(),{user,props:{mode:"avatar"}});
+    const avatarEye=component(avatar,"GlassEye")[0];
+    assert.ok(Math.abs(avatarEye.width-liveEyes[0].width*.2)<1e-9);
+    assert.ok(Math.abs(avatarEye.height-liveEyes[0].height*.2)<1e-9);
+    assert.equal(component(avatar,"GlassMouth")[0].isAvatar,true);
+    assert.deepEqual(decorations(avatar),decorations(preview));
+    for(const renderer of [live,preview,avatar])renderer.unmount();
+  }
+  // Recoloring a running action must keep its clock, phase and prop contact.
+  const live=loadFace(makeAccessibility().accessibility,makeAppState(),{
+    action:{active:{id:904,kind:"drink",phase:"use"}},
+  });
+  const before=component(live,"GlassMouth")[0];
+  const phase=live.states.action.active;
+  const sceneTimings=()=>live.animationTimings.filter(item=>item.value===1&&item.options?.easing==="linear").length;
+  const timings=sceneTimings();
+  live.states.user.preferences={...live.states.user.preferences,faceStyle:"cowboy",facePalette:"violet"};live.flush();
+  const after=component(live,"GlassMouth")[0];
+  assert.equal(after.actionMotion,before.actionMotion,"changing appearance keeps the active scene clock");
+  assert.equal(live.states.action.active,phase,"changing appearance does not cancel or replace an action");
+  assert.equal(sceneTimings(),timings,"changing appearance does not restart a scene");
+  assert.equal(component(live,"CharacterProp")[0].color,FACE_PALETTES.violet.accentColor,"props follow the selected color");
+  live.unmount();
+}
+console.log("Face compatibility: 35 live/preview combinations, avatars, accessories, blink continuity and active scene recoloring PASS");
 
 // Incoming sound gets only the existing neutral listening pose. Exercise the
 // actual component effects, including suppression and lifecycle retirement.

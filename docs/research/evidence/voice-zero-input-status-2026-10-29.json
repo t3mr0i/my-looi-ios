@@ -1,0 +1,38 @@
+{
+  "observedAt": "2026-10-29T13:02:51.015229+00:00",
+  "kind": "zero-input diagnosis and cleanup; root cause still open",
+  "humanSymptom": "no reaction to spoken question in installed regular app",
+  "boundaryEstablished": "native AVAudioEngine input tap already zero before resampling, format conversion and JS",
+  "probes": {
+    "D1": "20 raw-zero/converted-zero records; inputBuiltIn, permissiongranted, engine running",
+    "D2": "36 raw-zero records; appInputMuted=false and voiceProcessingInputMuted=false",
+    "D3": "9 raw-zero records after changing only Record to PlayAndRecord; no supported category fix"
+  },
+  "offlineConverterCases": 12,
+  "offlineConverterZeroCases": 0,
+  "currentState": {
+    "regularAppRestored": true,
+    "appListMatchesRestoreReceipt": true,
+    "diagnosticAppRelaunchedAfterRestore": false,
+    "temporaryNativeSourceRestored": true,
+    "regularBundleContainsNativeProbe": false,
+    "regularNativeContainsProbeMuteField": false
+  },
+  "nextRequiredEvidence": "local Voice Memos recording/playback on same iPhone, user result pending",
+  "D4Prepared": {
+    "scope": "local existing native PCM capture for20s without network/robot/audio files",
+    "installed": false,
+    "dependentOnVoiceMemosResult": true
+  },
+  "hashes": {
+    "restorationReceipt": "3f516842fac22f5efcfa5984ecdeda4313b74e293bf5c3a72995bfa07788cdf0",
+    "restoredAppReceipt": "70d1004e44c27983ab99bb269b42c74014e3b5cabbdd634adf6a594666a087cf",
+    "regularBundle": "1dccdc775de8891c61fd23340048a124e0b565a1f19a26f3947acda4b984fab2",
+    "restoredAudioStudioSource": "705b0f1951c732d1b8c08d98c21be9655314a5d7fcd5b1a4c0fe8538a6b63e9f"
+  },
+  "limits": [
+    "No supported root cause or successful microphone repair yet.",
+    "No current full spoken response or true onset latency evidence.",
+    "An active recorder and microphone permission do not prove live audio."
+  ]
+}

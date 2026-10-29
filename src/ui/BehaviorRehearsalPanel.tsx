@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, AppState, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, AppState, StyleSheet, Text, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import {
   BEHAVIOR_REHEARSAL_SCENARIOS,

@@ -24,16 +24,17 @@ assert.match(user, /normalizeFaceStyleId[\s\S]*legacySkin/);
 assert.match(user, /normalizeFacePaletteId[\s\S]*legacySkin/);
 
 const face = read("src/ui/RobotFace.tsx");
-assert.match(face, /const FACE_STYLES: Record<FaceStyleId, FaceStyleVisual>/);
-assert.match(face, /const FACE_PALETTES: Record<FacePaletteId, FacePaletteVisual>/);
-for (const id of ["classic", "soft", "playful", "fringe", "sharp"]) assert.match(face, new RegExp(`\\n  ${id}: \\{`));
-for (const id of ["cyan", "rose", "lime", "amber", "violet"]) assert.match(face, new RegExp(`\\n  ${id}: \\{`));
+const appearance = read("src/character/face-appearance.ts");
+assert.match(appearance, /const FACE_STYLES: Record<FaceStyleId, FaceStyleVisual>/);
+assert.match(appearance, /const FACE_PALETTES: Record<FacePaletteId, FacePaletteVisual>/);
+for (const id of ["classic", "soft", "playful", "fringe", "sharp"]) assert.match(appearance, new RegExp(`\\n  ${id}: \\{`));
+for (const id of ["cyan", "rose", "lime", "amber", "violet"]) assert.match(appearance, new RegExp(`\\n  ${id}: \\{`));
 assert.doesNotMatch(face, /styles\.skinGlow|styles\.avatarSkinGlow/, "full-face oval/glow must stay removed");
 assert.doesNotMatch(face, /width:\s*380[\s\S]{0,80}height:\s*230[\s\S]{0,80}borderRadius:\s*999/, "old oval face silhouette must not return");
-assert.match(face, /decor: "fringe"/);
-assert.match(face, /decor: "lashes"/);
-assert.match(face, /decor: "brows"/);
-assert.match(face, /idleMouth: "dot"/);
+assert.match(appearance, /decor: "fringe"/);
+assert.match(appearance, /decor: "lashes"/);
+assert.match(appearance, /decor: "brows"/);
+assert.match(appearance, /idleMouth: "dot"/);
 assert.match(face, /palette\.eyeColor/);
 assert.match(face, /palette\.mouthColor/);
 
@@ -42,7 +43,14 @@ assert.match(settings, /FACE_STYLE_OPTIONS: FaceStyleId\[\]/);
 assert.match(settings, /FACE_PALETTE_OPTIONS: FacePaletteId\[\]/);
 assert.match(settings, /updatePreferences\(\{ faceStyle: style \}\)/);
 assert.match(settings, /updatePreferences\(\{ facePalette: palette \}\)/);
-assert.match(settings, /PaletteChoice/);
+assert.match(settings, /EyeColorPicker/);
+assert.match(settings, /faceStyleId=\{preferences.faceStyle\}/, "preview follows the selected design");
+const picker = read("src/ui/EyeColorPicker.tsx");
+assert.match(picker, /accessibilityRole="radio"/);
+assert.match(picker, /accessibilityState=\{\{ checked: selected \}\}/);
+assert.match(picker, /<GlassEye/);
+assert.doesNotMatch(picker, /setInterval|requestCharacterAction|useConversationStore/,
+  "color preview has no independent behavior or speech owner");
 
 const strings = read("src/i18n/ui-strings.ts");
 for (const key of ["settings.faceAppearanceSelected", "settings.faceStyle.fringe", "settings.faceStyle.playful", "settings.facePalette.cyan", "settings.facePalette.violet"]) {

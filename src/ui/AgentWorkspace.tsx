@@ -1,8 +1,8 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   AppState,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,

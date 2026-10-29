@@ -26,9 +26,9 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             })}
           </Text>
         </View>
-        <Text style={[styles.text, isUser && styles.userText]}>{message.content}</Text>
+        <Text selectable style={[styles.text, isUser && styles.userText]}>{message.content}</Text>
         {message.evidenceUri && (
-          <Image source={{ uri: message.evidenceUri }} style={styles.evidenceImage} />
+          <Image accessibilityLabel={t("memory.relatedImageA11y")} contentFit="contain" source={{ uri: message.evidenceUri }} style={styles.evidenceImage} />
         )}
       </View>
     </View>
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   userContainer: {
-    opacity: 0.72,
+    opacity: 1,
   },
   assistantContainer: {
     opacity: 1,
@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 6,
@@ -86,8 +87,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   timestamp: {
-    color: "rgba(140, 155, 173, 0.72)",
-    fontSize: 11,
+    color: looiTheme.muted,
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
   },
   text: {
     color: looiTheme.text,
@@ -95,8 +97,8 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   userText: {
-    color: "rgba(237, 247, 255, 0.78)",
-    fontSize: 14,
+    color: looiTheme.text,
+    fontSize: 16,
   },
   evidenceImage: {
     width: "100%",
@@ -104,5 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 12,
     backgroundColor: looiTheme.bgRaised,
+    borderWidth: 1,
+    borderColor: looiTheme.line,
   },
 });

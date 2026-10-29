@@ -1,3 +1,4 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import {
@@ -6,7 +7,6 @@ import {
   Alert,
   BackHandler,
   Linking,
-  Pressable,
   StyleSheet,
   Switch,
   Text,

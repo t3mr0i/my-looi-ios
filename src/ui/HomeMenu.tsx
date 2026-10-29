@@ -20,6 +20,7 @@ import { looiTheme } from "@/src/ui/looi-theme";
 import { CHARACTER_ACTIONS, type CharacterActionKind } from "@/src/character/character-action";
 import { CharacterPropIcon } from "@/src/ui/CharacterProp";
 import { CharacterSceneLibrary } from "@/src/ui/CharacterSceneLibrary";
+import { useReducedInterfaceMotion } from "./use-reduced-interface-motion";
 
 const HIDE_AFTER_MS = 4_000;
 const FADE_IN_MS = 150;
@@ -102,8 +103,13 @@ function MenuRow({
       ]}
     >
       {propIcon ? <CharacterPropIcon kind={propIcon} color={looiTheme.cyan} size={22} /> : icon ? <MenuIcon name={icon} color={warning ? looiTheme.warn : looiTheme.cyan} /> : null}
-      <Text numberOfLines={2} style={[styles.rowLabel, warning && styles.rowLabelWarning]}>{label}</Text>
-      {value ? <Text numberOfLines={1} style={styles.rowValue}>{value}</Text> : null}
+      {warning && value ? <View style={styles.warningCopy}>
+        <Text style={[styles.rowLabel, styles.rowLabelWarning]}>{label}</Text>
+        <Text style={styles.warningDetail}>{value}</Text>
+      </View> : <>
+        <Text numberOfLines={2} style={styles.rowLabel}>{label}</Text>
+        {value ? <Text numberOfLines={1} style={styles.rowValue}>{value}</Text> : null}
+      </>}
     </Pressable>
   );
 }
@@ -130,9 +136,10 @@ function LanguageGroup<T extends string>({
               key={option.id}
               accessibilityRole="radio"
               accessibilityLabel={`${title}: ${option.label}`}
-              accessibilityState={{ selected: isSelected }}
+              accessibilityState={{ checked: isSelected }}
+              aria-checked={isSelected}
               onPress={() => onSelect(option.id)}
-              style={[styles.segment, isSelected && styles.segmentSelected]}
+              style={({ pressed }) => [styles.segment, isSelected && styles.segmentSelected, pressed && { opacity: 0.76 }]}
             >
               <Text style={[styles.segmentText, isSelected && styles.segmentTextSelected]}>{option.shortLabel}</Text>
             </Pressable>
@@ -151,10 +158,12 @@ export const HomeMenu = forwardRef<HomeMenuHandle, HomeMenuProps>(function HomeM
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [screenReader, setScreenReader] = useState(false);
+  const reduceMotion = useReducedInterfaceMotion();
   const opacity = useRef(new Animated.Value(0)).current;
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reduceMotionRef = useRef(false);
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
   const problem = props.repairNeeded || props.robotError;
   const pinned = problem || screenReader;
   const pinnedRef = useRef(pinned);
@@ -164,20 +173,12 @@ export const HomeMenu = forwardRef<HomeMenuHandle, HomeMenuProps>(function HomeM
 
   useEffect(() => {
     let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => {
-      if (cancelled) return;
-      reduceMotionRef.current = value;
-    }).catch(() => undefined);
     void AccessibilityInfo.isScreenReaderEnabled().then((value) => {
       if (!cancelled) setScreenReader(value);
     }).catch(() => undefined);
-    const reduceSub = AccessibilityInfo.addEventListener("reduceMotionChanged", (value) => {
-      reduceMotionRef.current = value;
-    });
     const readerSub = AccessibilityInfo.addEventListener("screenReaderChanged", setScreenReader);
     return () => {
       cancelled = true;
-      reduceSub.remove();
       readerSub.remove();
     };
   }, []);
@@ -278,7 +279,7 @@ export const HomeMenu = forwardRef<HomeMenuHandle, HomeMenuProps>(function HomeM
           disabled={!buttonVisible}
           hitSlop={4}
           onPress={openSheet}
-          style={styles.menuButton}
+          style={({ pressed }) => [styles.menuButton, pressed && styles.rowPressed]}
         >
           <MenuIcon name={{ ios: "line.3.horizontal", android: "menu" }} />
           {problem ? <View style={styles.warningDot} /> : null}
@@ -286,7 +287,7 @@ export const HomeMenu = forwardRef<HomeMenuHandle, HomeMenuProps>(function HomeM
       </Animated.View>
 
       <Modal
-        animationType="slide"
+        animationType={reduceMotion ? "none" : "slide"}
         onRequestClose={closeSheet}
         statusBarTranslucent
         supportedOrientations={["portrait", "landscape", "landscape-left", "landscape-right"]}
@@ -321,7 +322,7 @@ export const HomeMenu = forwardRef<HomeMenuHandle, HomeMenuProps>(function HomeM
               </View>
             </View>
             {libraryOpen ? <CharacterSceneLibrary onSelect={kind => runAfterClose(() => props.onCharacterAction?.(kind), SHEET_ACTION_DELAY_MS)} />
-              : <ScrollView bounces={false} contentContainerStyle={styles.sheetContent}>
+              : <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
               {props.repairNeeded ? (
                 <MenuRow
                   icon={{ ios: "exclamationmark.triangle.fill", android: "warning" }}
@@ -460,8 +461,8 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     maxHeight: "92%",
     alignSelf: "center",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: looiTheme.lineActive,
@@ -511,6 +512,7 @@ const styles = StyleSheet.create({
     gap: 14,
     borderRadius: 16,
     paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: looiTheme.whiteSoft,
   },
   rowWarning: {
@@ -533,6 +535,8 @@ const styles = StyleSheet.create({
   rowLabelWarning: {
     color: looiTheme.warn,
   },
+  warningCopy: { flex: 1, gap: 4 },
+  warningDetail: { color: looiTheme.muted, fontSize: 14, lineHeight: 20 },
   rowValue: {
     flexShrink: 1,
     maxWidth: "55%",

@@ -1,6 +1,7 @@
-import { GLASS_PALETTES } from "@/src/character/glass-face";
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
+import { EyeColorPicker } from "@/src/ui/EyeColorPicker";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Alert, AppState, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, AppState, Linking, Platform, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { requestCameraAccess } from "@/src/permissions/camera";
 import Constants from "expo-constants";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -622,7 +623,7 @@ export default function SettingsScreen() {
         </View> : null}
         <View style={styles.subCard}>
           <Text style={styles.help}>{t("settings.openAiHelp")}</Text>
-          <TextInput value={openAiKeyInput} onChangeText={setOpenAiKeyInput} secureTextEntry autoCapitalize="none" autoCorrect={false} placeholder={openAiKeyConfigured ? t("settings.newKey") : "OpenAI API key"} placeholderTextColor={looiTheme.muted} style={styles.input} />
+          <TextInput accessibilityLabel={t("onboarding.key")} value={openAiKeyInput} onChangeText={setOpenAiKeyInput} secureTextEntry autoCapitalize="none" autoCorrect={false} placeholder={openAiKeyConfigured ? t("settings.newKey") : "OpenAI API key"} placeholderTextColor={looiTheme.muted} style={styles.input} />
           <ButtonRow>
             <Action label={openAiKeyBusy ? t("settings.saving") : openAiKeyConfigured ? t("common.replace") : t("common.save")} onPress={saveKey} disabled={openAiKeyBusy || !openAiKeyInput.trim()} />
             {openAiKeyConfigured ? <Action label={t("common.delete")} onPress={deleteKey} secondary /> : null}
@@ -688,7 +689,7 @@ export default function SettingsScreen() {
       </Section>
 
       <View style={styles.sectionWide}>
-        <Pressable onPress={() => setAdvanced(!advanced)} style={styles.advancedHeader}><Text style={styles.sectionTitle}>{t("settings.advanced")}</Text><Text style={styles.value}>{advanced ? t("common.hide") : t("common.open")}</Text></Pressable>
+        <Pressable onPress={() => setAdvanced(!advanced)} accessibilityState={{ expanded: advanced }} style={styles.advancedHeader}><Text style={styles.sectionTitle}>{t("settings.advanced")}</Text><Text style={styles.value}>{advanced ? t("common.hide") : t("common.open")}</Text></Pressable>
         {advanced ? <View style={styles.card}>
           <Action label={debugText("openDebug")} onPress={() => router.push("/robot-debug" as never)} secondary />
 
@@ -768,76 +769,36 @@ export default function SettingsScreen() {
 
 const FACE_STYLE_OPTIONS: FaceStyleId[] = ["classic", "soft", "playful", "fringe", "cowboy", "bandana", "sharp"];
 const FACE_PALETTE_OPTIONS: FacePaletteId[] = ["cyan", "rose", "lime", "amber", "violet"];
-const FACE_PALETTE_SWATCHES: Record<FacePaletteId, [string, string]> = {
-  cyan: [GLASS_PALETTES.cyan.moon[1], GLASS_PALETTES.cyan.moon[4]],
-  rose: [GLASS_PALETTES.rose.moon[1], GLASS_PALETTES.rose.moon[4]],
-  lime: [GLASS_PALETTES.lime.moon[1], GLASS_PALETTES.lime.moon[4]],
-  amber: [GLASS_PALETTES.amber.moon[1], GLASS_PALETTES.amber.moon[4]],
-  violet: [GLASS_PALETTES.violet.moon[1], GLASS_PALETTES.violet.moon[4]],
-};
-
 function FaceAppearanceSettings() {
   const { preferences, updatePreferences } = useUserStore();
   const { t } = useUiText();
-  const [expanded, setExpanded] = useState(false);
-  const [openPart, setOpenPart] = useState<"style" | "palette" | null>(null);
+  const [styleExpanded, setStyleExpanded] = useState(false);
   const selectedStyle = t(`settings.faceStyle.${preferences.faceStyle}` as any);
   const selectedPalette = t(`settings.facePalette.${preferences.facePalette}` as any);
 
   return <Section title={t("settings.appearance")}>
-    <Text style={styles.help}>{t("settings.appearanceHelp")}</Text>
     <DisclosureRow
-      label={t("settings.faceAppearanceSelected", { style: selectedStyle, palette: selectedPalette })}
-      expanded={expanded}
-      onPress={() => { setExpanded((value) => !value); setOpenPart(null); }}
+      label={t("settings.faceStyleSelected", { style: selectedStyle })}
+      expanded={styleExpanded}
+      onPress={() => setStyleExpanded((value) => !value)}
     />
-    {expanded ? <View style={styles.disclosureBody}>
-      <DisclosureRow
-        label={t("settings.faceStyleSelected", { style: selectedStyle })}
-        expanded={openPart === "style"}
-        onPress={() => setOpenPart(openPart === "style" ? null : "style")}
-        compact
-      />
-      {openPart === "style" ? <View style={styles.disclosureBody}>
-        {FACE_STYLE_OPTIONS.map((style) => <Choice
-          key={style}
-          selected={preferences.faceStyle === style}
-          label={t(`settings.faceStyle.${style}` as any)}
-          detail={t(`settings.faceStyle.${style}.help` as any)}
-          onPress={() => updatePreferences({ faceStyle: style })}
-        />)}
-      </View> : null}
-
-      <DisclosureRow
-        label={t("settings.facePaletteSelected", { palette: selectedPalette })}
-        expanded={openPart === "palette"}
-        onPress={() => setOpenPart(openPart === "palette" ? null : "palette")}
-        compact
-      />
-      {openPart === "palette" ? <View style={styles.disclosureBody}>
-        {FACE_PALETTE_OPTIONS.map((palette) => <PaletteChoice
-          key={palette}
-          selected={preferences.facePalette === palette}
-          label={t(`settings.facePalette.${palette}` as any)}
-          colors={FACE_PALETTE_SWATCHES[palette]}
-          onPress={() => updatePreferences({ facePalette: palette })}
-        />)}
-      </View> : null}
-      <Text style={styles.help}>{t("settings.faceAppearancePreviewHelp")}</Text>
+    {styleExpanded ? <View style={styles.disclosureBody}>
+      {FACE_STYLE_OPTIONS.map((style) => <Choice
+        key={style}
+        selected={preferences.faceStyle === style}
+        label={t(`settings.faceStyle.${style}` as any)}
+        detail={t(`settings.faceStyle.${style}.help` as any)}
+        onPress={() => { updatePreferences({ faceStyle: style }); setStyleExpanded(false); }}
+      />)}
     </View> : null}
+    <EyeColorPicker
+      value={preferences.facePalette}
+      faceStyleId={preferences.faceStyle}
+      options={FACE_PALETTE_OPTIONS.map((palette) => ({ id: palette, label: t(`settings.facePalette.${palette}` as any) }))}
+      label={t("settings.facePaletteSelected", { palette: selectedPalette })}
+      onChange={(palette) => updatePreferences({ facePalette: palette })}
+    />
   </Section>;
-}
-
-function PaletteChoice({ selected, label, colors, onPress }: { selected: boolean; label: string; colors: [string, string]; onPress: () => void }) {
-  return <Pressable onPress={onPress} style={[styles.choice, selected && styles.choiceSelected]}>
-    <View style={styles.paletteChoiceRow}>
-      <View style={styles.paletteSwatches}>
-        <View style={[styles.paletteSwatch, { backgroundColor: colors[0] }]} />
-        <View style={[styles.paletteSwatch, styles.paletteSwatchOverlap, { backgroundColor: colors[1] }]} />
-      </View>
-      <Text style={styles.value}>{label}</Text>
-    </View>
-  </Pressable>;
 }
 
 const VOICE_COMMAND_ACTIONS: CustomVoiceCommandAction[] = [
@@ -936,13 +897,13 @@ function VoiceCommandsSettings() {
     <DisclosureRow label={t("settings.robotNameRow", { name: preferences.robotName })} expanded={open === "name"} onPress={() => setOpen(open === "name" ? null : "name")} />
     {open === "name" ? <View style={styles.disclosureBody}>
       <Text style={styles.label}>{t("settings.robotPrimaryName")}</Text>
-      <View style={styles.inlineInput}><TextInput value={robotNameDraft} onChangeText={setRobotNameDraft} placeholder="LOOI" placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label={t("common.save")} onPress={() => { const value = robotNameDraft.trim(); if (value.length >= 2) updatePreferences({ robotName: value }); }} disabled={robotNameDraft.trim().length < 2} /></View>
+      <View style={styles.inlineInput}><TextInput accessibilityLabel={t("settings.robotPrimaryName")} value={robotNameDraft} onChangeText={setRobotNameDraft} placeholder="LOOI" placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label={t("common.save")} onPress={() => { const value = robotNameDraft.trim(); if (value.length >= 2) updatePreferences({ robotName: value }); }} disabled={robotNameDraft.trim().length < 2} /></View>
       <Text style={styles.help}>{t("settings.robotNameSafetyHelp")}</Text>
       <Text style={styles.label}>{t("settings.robotOtherAddresses")}</Text>
       <View style={styles.tagWrap}>{preferences.robotAddressAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressAliases", preferences.robotAddressAliases.filter((value) => value !== item))} style={styles.tag} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item })}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View>
-      <View style={styles.inlineInput}><TextInput value={aliasDraft} onChangeText={setAliasDraft} placeholder={t("settings.addAddress")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(false)} disabled={aliasDraft.trim().length < 2} /></View>
+      <View style={styles.inlineInput}><TextInput accessibilityLabel={t("settings.addAddress")} value={aliasDraft} onChangeText={setAliasDraft} placeholder={t("settings.addAddress")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(false)} disabled={aliasDraft.trim().length < 2} /></View>
       <DisclosureRow label={t("settings.recognitionAliases")} expanded={recognitionExpanded} onPress={() => setRecognitionExpanded((value) => !value)} compact />
-      {recognitionExpanded ? <View style={styles.disclosureBody}><Text style={styles.help}>{t("settings.recognitionAliasesHelp")}</Text><View style={styles.tagWrap}>{preferences.robotAddressRecognitionAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressRecognitionAliases", preferences.robotAddressRecognitionAliases.filter((value) => value !== item))} style={styles.tag} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item })}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View><View style={styles.inlineInput}><TextInput value={recognitionDraft} onChangeText={setRecognitionDraft} placeholder={t("settings.addRecognitionAlias")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(true)} disabled={recognitionDraft.trim().length < 2} /></View></View> : null}
+      {recognitionExpanded ? <View style={styles.disclosureBody}><Text style={styles.help}>{t("settings.recognitionAliasesHelp")}</Text><View style={styles.tagWrap}>{preferences.robotAddressRecognitionAliases.map((item) => <Pressable key={item} onPress={() => updateStringList("robotAddressRecognitionAliases", preferences.robotAddressRecognitionAliases.filter((value) => value !== item))} style={styles.tag} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item })}><Text style={styles.value}>{item} ×</Text></Pressable>)}</View><View style={styles.inlineInput}><TextInput accessibilityLabel={t("settings.addRecognitionAlias")} value={recognitionDraft} onChangeText={setRecognitionDraft} placeholder={t("settings.addRecognitionAlias")} placeholderTextColor={looiTheme.muted} style={[styles.input, styles.flexInput]} /><Action label="+" onPress={() => addAddress(true)} disabled={recognitionDraft.trim().length < 2} /></View></View> : null}
     </View> : null}
     <DisclosureRow
       label={t("settings.customPhrasesSummary", { count: customPhraseCount })}
@@ -963,8 +924,8 @@ function VoiceCommandsSettings() {
           <DisclosureRow label={`${t(`settings.voiceAction.${action}` as any)} · ${phrases.length}`} expanded={expanded} onPress={() => { setOpen(expanded ? null : action); setDraft(""); setDraftLanguage(preferences.listeningLanguage); }} compact />
           {expanded ? <View style={styles.disclosureBody}>
             <Text style={styles.help}>{action === "emergency_stop" ? t("settings.voiceCommandsEmergencyHelp") : t("settings.voiceCommandsAddressRequired", { name: preferences.robotName })}</Text>
-            {phrases.map((phrase) => <View key={phrase.id} style={styles.phraseRow}><Text style={styles.value}>{phrase.text}</Text><Text style={styles.help}>{phrase.language.toUpperCase()}</Text><Pressable onPress={() => removePhrase(action, phrase.id)} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item: phrase.text })}><Text style={styles.deleteText}>×</Text></Pressable></View>)}
-            <TextInput value={draft} onChangeText={setDraft} placeholder={t("settings.addPhrase")} placeholderTextColor={looiTheme.muted} style={styles.input} />
+            {phrases.map((phrase) => <View key={phrase.id} style={styles.phraseRow}><Text style={styles.value}>{phrase.text}</Text><Text style={styles.help}>{phrase.language.toUpperCase()}</Text><Pressable style={styles.deleteButton} onPress={() => removePhrase(action, phrase.id)} hitSlop={HIT_SLOP_44} accessibilityRole="button" accessibilityLabel={t("common.remove", { item: phrase.text })}><Text style={styles.deleteText}>×</Text></Pressable></View>)}
+            <TextInput accessibilityLabel={t("settings.addPhrase")} value={draft} onChangeText={setDraft} placeholder={t("settings.addPhrase")} placeholderTextColor={looiTheme.muted} style={styles.input} />
             <Segmented options={(["uk", "en", "ru"] as const).map((id) => ({ id, label: id.toUpperCase() }))} value={draftLanguage} onChange={setDraftLanguage} />
             <Action label={t("settings.addPhraseButton")} onPress={() => addPhrase(action)} disabled={draft.trim().length < 3} />
           </View> : null}
@@ -973,7 +934,7 @@ function VoiceCommandsSettings() {
       <DisclosureRow label={t("settings.voiceCommandsTest")} expanded={open === "test"} onPress={() => { setOpen(open === "test" ? null : "test"); setTestResult(null); }} compact />
       {open === "test" ? <View style={styles.disclosureBody}>
         <Text style={styles.help}>{t("settings.voiceCommandsTestHelp")}</Text>
-        <TextInput value={testText} onChangeText={setTestText} placeholder={t("settings.voiceCommandsTestPlaceholder", { name: preferences.robotName })} placeholderTextColor={looiTheme.muted} style={styles.input} />
+        <TextInput accessibilityLabel={t("settings.voiceCommandsTest")} value={testText} onChangeText={setTestText} placeholder={t("settings.voiceCommandsTestPlaceholder", { name: preferences.robotName })} placeholderTextColor={looiTheme.muted} style={styles.input} />
         <Action label={t("settings.voiceCommandsTestButton")} onPress={runSafeTest} disabled={!testText.trim()} secondary />
         {testResult ? <Text style={styles.result}>{testResult}</Text> : null}
       </View> : null}
@@ -982,22 +943,24 @@ function VoiceCommandsSettings() {
 }
 
 function DisclosureRow({ label, expanded, onPress, compact }: { label: string; expanded: boolean; onPress: () => void; compact?: boolean }) {
-  return <Pressable onPress={onPress} style={[styles.disclosureRow, compact && styles.disclosureCompact]}><Text style={styles.value}>{label}</Text><Text style={styles.disclosureChevron}>{expanded ? "▾" : "›"}</Text></Pressable>;
+  return <Pressable onPress={onPress} accessibilityState={{ expanded }} style={[styles.disclosureRow, compact && styles.disclosureCompact]}><Text style={styles.value}>{label}</Text><Text style={styles.disclosureChevron}>{expanded ? "▾" : "›"}</Text></Pressable>;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) { return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><View style={styles.card}>{children}</View></View>; }
+function Section({ title, children }: { title: string; children: ReactNode }) { return <View style={styles.section}><Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text><View style={styles.card}>{children}</View></View>; }
 function Summary({ label, value, ok, neutral }: { label: string; value: string; ok: boolean; neutral?: boolean }) { return <View style={styles.summaryCard}><Text style={styles.summaryLabel}>{label}</Text><Text style={[styles.summaryValue, ok ? styles.ok : neutral ? styles.muted : styles.error]}>{value}</Text></View>; }
-function Choice({ selected, label, detail, tone, onPress }: { selected: boolean; label: string; detail?: string; tone?: "recommended" | "quality" | "previous"; onPress: () => void }) { return <Pressable onPress={onPress} style={[styles.choice, tone === "recommended" && styles.choiceRecommended, tone === "quality" && styles.choiceQuality, tone === "previous" && styles.choicePrevious, selected && styles.choiceSelected]}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable>; }
-function VoiceChoice({ selected, label, detail, onSelect, onPreview, previewing, previewDisabled }: { selected: boolean; label: string; detail?: string; onSelect: () => void; onPreview: () => void; previewing: boolean; previewDisabled: boolean }) { const { t } = useUiText(); return <View style={[styles.voiceChoice, selected && styles.choiceSelected]}><Pressable onPress={onSelect} style={styles.voiceSelect}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable><Pressable onPress={onPreview} disabled={previewDisabled} style={[styles.previewButton, previewDisabled && styles.disabled]}><Text style={styles.previewText}>{previewing ? "…" : `▶ ${t("common.preview")}`}</Text></Pressable></View>; }
+function Choice({ selected, label, detail, tone, onPress }: { selected: boolean; label: string; detail?: string; tone?: "recommended" | "quality" | "previous"; onPress: () => void }) { return <Pressable onPress={onPress} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={[styles.choice, tone === "recommended" && styles.choiceRecommended, tone === "quality" && styles.choiceQuality, tone === "previous" && styles.choicePrevious, selected && styles.choiceSelected]}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable>; }
+function VoiceChoice({ selected, label, detail, onSelect, onPreview, previewing, previewDisabled }: { selected: boolean; label: string; detail?: string; onSelect: () => void; onPreview: () => void; previewing: boolean; previewDisabled: boolean }) { const { t } = useUiText(); return <View style={[styles.voiceChoice, selected && styles.choiceSelected]}><Pressable onPress={onSelect} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={styles.voiceSelect}><View style={styles.choiceDot}>{selected ? <View style={styles.choiceDotInner} /> : null}</View><View style={styles.choiceText}><Text style={styles.value}>{label}</Text>{detail ? <Text style={styles.help}>{detail}</Text> : null}</View></Pressable><Pressable onPress={onPreview} disabled={previewDisabled} style={[styles.previewButton, previewDisabled && styles.disabled]}><Text style={styles.previewText}>{previewing ? "…" : `▶ ${t("common.preview")}`}</Text></Pressable></View>; }
 function Segmented<T extends string | number>({ options, value, onChange }: { options: { id: T; label: string }[]; value: T; onChange: (id: T) => void }) {
-  const perRow = options.length <= 4 ? options.length : Math.ceil(options.length / 2);
+  const { width, fontScale } = useWindowDimensions();
+  const needsRoom = fontScale > 1.3 || (width < 600 && options.some((option) => option.label.length > 5));
+  const perRow = needsRoom ? Math.min(2, options.length) : options.length <= 4 ? options.length : Math.ceil(options.length / 2);
   const rows: { id: T; label: string }[][] = [];
   for (let index = 0; index < options.length; index += perRow) rows.push(options.slice(index, index + perRow));
   return <View style={styles.segmented} accessibilityRole="radiogroup">
     {rows.map((row, rowIndex) => <View key={rowIndex} style={styles.segmentedRow}>
       {row.map((option) => {
         const selected = option.id === value;
-        return <Pressable key={String(option.id)} onPress={() => onChange(option.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.segment, selected && styles.segmentSelected]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.value, styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text></Pressable>;
+        return <Pressable key={String(option.id)} onPress={() => onChange(option.id)} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={[styles.segment, selected && styles.segmentSelected]}><Text style={[styles.value, styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text></Pressable>;
       })}
       {Array.from({ length: perRow - row.length }, (_, padIndex) => <View key={`pad-${padIndex}`} style={styles.segmentSpacer} />)}
     </View>)}
@@ -1018,29 +981,26 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 20, backgroundColor: looiTheme.rail, padding: 14, gap: 10 },
   subCard: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: looiTheme.line, paddingTop: 12, gap: 10 },
   budgetNotice: { color: looiTheme.warn, borderWidth: 1, borderColor: "rgba(255,209,102,0.35)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,209,102,0.04)" },
-  help: { color: looiTheme.muted, fontSize: 12, lineHeight: 17 },
+  help: { color: looiTheme.muted, fontSize: 14, lineHeight: 20 },
   label: { color: looiTheme.muted, fontSize: 12, fontWeight: "700", marginTop: 4 },
-  value: { color: looiTheme.text, fontSize: 13, fontWeight: "700" },
+  value: { color: looiTheme.text, fontSize: 14, lineHeight: 20, flexShrink: 1, fontWeight: "700" },
   choice: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, padding: 11 },
   choiceRecommended: { borderColor: "rgba(77,231,180,0.62)", backgroundColor: "rgba(77,231,180,0.05)" },
   choiceQuality: { borderColor: "rgba(40,213,255,0.55)", backgroundColor: "rgba(40,213,255,0.045)" },
   choicePrevious: { borderColor: "rgba(255,209,102,0.24)" },
   previousModelsBox: { borderWidth: 1, borderColor: "rgba(255,209,102,0.35)", borderRadius: 16, padding: 10, gap: 8, backgroundColor: "rgba(255,209,102,0.025)" },
   previousModelsTitle: { color: looiTheme.warn, fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
-  disclosureRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11 },
+  disclosureRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11 },
   disclosureCompact: { marginTop: 2, paddingVertical: 8 },
   disclosureChevron: { color: looiTheme.cyan, fontSize: 18, fontWeight: "800" },
   disclosureBody: { gap: 9, paddingLeft: 4, paddingRight: 2, paddingBottom: 4 },
-  paletteChoiceRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  paletteSwatches: { flexDirection: "row", alignItems: "center", width: 38 },
-  paletteSwatch: { width: 24, height: 24, borderRadius: 999, borderWidth: 2, borderColor: "rgba(255,255,255,0.55)" },
-  paletteSwatchOverlap: { marginLeft: -10 },
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  tag: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  tag: { justifyContent: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   inlineInput: { flexDirection: "row", alignItems: "center", gap: 8 },
   flexInput: { flex: 1 },
   phraseRow: { flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: looiTheme.line, paddingVertical: 7 },
-  deleteText: { color: looiTheme.danger, fontSize: 22, lineHeight: 22, paddingHorizontal: 6 },
+  deleteButton: { justifyContent: "center", alignItems: "center" },
+  deleteText: { textAlign: "center", color: looiTheme.danger, fontSize: 22, lineHeight: 22, paddingHorizontal: 6 },
   voiceChoice: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, overflow: "hidden" },
   voiceSelect: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, padding: 11 },
   previewButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 12, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: looiTheme.line },
@@ -1055,16 +1015,16 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 12, paddingHorizontal: 6, paddingVertical: 6 },
   segmentSelected: { borderColor: looiTheme.cyan, backgroundColor: "rgba(40,213,255,0.07)" },
   segmentSpacer: { flex: 1 },
-  segmentText: { textAlign: "center" },
+  segmentText: { width: "100%", flexShrink: 1, textAlign: "center" },
   segmentTextSelected: { color: looiTheme.cyan },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6 },
   pill: { color: looiTheme.muted, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, overflow: "hidden" },
   pillOn: { color: looiTheme.cyan, borderColor: looiTheme.cyan },
-  input: { color: looiTheme.text, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, backgroundColor: looiTheme.bg, paddingHorizontal: 12, paddingVertical: 10 },
+  input: { minHeight: 48, fontSize: 16, color: looiTheme.text, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, backgroundColor: looiTheme.bg, paddingHorizontal: 12, paddingVertical: 10 },
   action: { minHeight: 44, justifyContent: "center", alignItems: "center", borderRadius: 12, backgroundColor: looiTheme.cyan, paddingHorizontal: 13, paddingVertical: 9 },
   actionSecondary: { backgroundColor: "transparent", borderWidth: 1, borderColor: looiTheme.line },
-  actionText: { color: "#041319", fontWeight: "800", fontSize: 12 },
-  actionSecondaryText: { color: looiTheme.text, fontWeight: "700", fontSize: 12 },
+  actionText: { color: "#041319", fontWeight: "700", fontSize: 14, textAlign: "center" },
+  actionSecondaryText: { color: looiTheme.text, fontWeight: "700", fontSize: 14, textAlign: "center" },
   disabled: { opacity: 0.35 },
   result: { color: looiTheme.text, fontSize: 12 },
   error: { color: looiTheme.danger },

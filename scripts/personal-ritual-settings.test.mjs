@@ -88,8 +88,8 @@ function loadModule(file) {
     },
   }).outputText;
   const localRequire = (specifier) => {
+    if (specifier === "react-native") return nativeShim;
     if (file === componentPath) {
-      if (specifier === "react-native") return nativeShim;
       if (specifier === "../behavior/behavior-runtime") {
         return { ...fixture, disableBehaviorPersonalRitual: async (id) => { disableCalls.push(id); } };
       }

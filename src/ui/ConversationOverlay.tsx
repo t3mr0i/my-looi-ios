@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -31,8 +32,8 @@ export function ConversationOverlay() {
   const shouldShow = overlayVisible || Boolean(realtimeIssue) || isListening || isProcessing || isSpeaking;
 
   useEffect(() => {
-    opacity.value = withTiming(shouldShow ? 1 : 0, { duration: shouldShow ? 160 : 220 });
-    translateY.value = withTiming(shouldShow ? 0 : -8, { duration: shouldShow ? 160 : 220 });
+    opacity.value = withTiming(shouldShow ? 1 : 0, { duration: shouldShow ? 160 : 120, reduceMotion: ReduceMotion.System });
+    translateY.value = withTiming(shouldShow ? 0 : -8, { duration: shouldShow ? 160 : 120, reduceMotion: ReduceMotion.System });
   }, [opacity, shouldShow, translateY]);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export function ConversationOverlay() {
   });
 
   return (
-    <Animated.View pointerEvents="none" style={[styles.overlay, animatedStyle]}>
+    <Animated.View pointerEvents="none" accessibilityElementsHidden={!shouldShow} importantForAccessibility={shouldShow ? "auto" : "no-hide-descendants"} style={[styles.overlay, animatedStyle]}>
       <View style={styles.panel}>
         <View style={styles.statusRow}>
           <View style={styles.liveDot} />
@@ -190,14 +191,15 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: looiTheme.muted,
-    fontSize: 9,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "800",
     letterSpacing: 0.3,
   },
   userText: {
-    color: "rgba(237, 247, 255, 0.58)",
-    fontSize: 10,
-    lineHeight: 13,
+    color: looiTheme.muted,
+    fontSize: 13,
+    lineHeight: 18,
     marginBottom: 4,
   },
   assistantText: {

@@ -1,10 +1,10 @@
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   AppState,
   Linking,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,

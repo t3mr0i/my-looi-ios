@@ -1,0 +1,22 @@
+{
+  "checked_at_utc": "2026-10-29T12:19:06.984940+00:00",
+  "public_https_http": 200,
+  "nous_status": "ready",
+  "identity_present": true,
+  "providers": [],
+  "account_count": 0,
+  "device_login_status": "signed_in",
+  "authenticated_catalog_count": 54,
+  "google_mail_calendar_provider_rows": [],
+  "connected_accounts": 0,
+  "credentials_in_persistent_profile": true,
+  "credential_files_private_and_owned_by_service_uid": true,
+  "profile_mode": "0700",
+  "shared_auth_inside_profile": true,
+  "restart_persistence_tested": false,
+  "container_health": "healthy",
+  "container_restart_count": 0,
+  "image": "sha256:6ccd47260d189aff9f4d51068503264c607c8a1901dc32afb9c5e0320d76cc59",
+  "personal_mail_calendar_content_read": false,
+  "google_connection_created": false
+}

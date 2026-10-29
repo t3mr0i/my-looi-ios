@@ -96,6 +96,13 @@ assert.equal(sockets[3].contexts[0].personality.conversationMoment.valence, "neg
 assert.equal(sockets[4].contexts[0].personality.tone, "calm");
 assert.equal(sockets[5].contexts[0].personality.life.energy, "quiet");
 assert.equal(sockets[5].contexts[0].personality.life.playfulness, "gentle");
+const quietSnapshot = structuredClone(report.cases[5].observed.engine);
+assert.equal(suite.cases[5].expected.state(quietSnapshot), true);
+quietSnapshot.personality.life.energy = "rested";
+assert.equal(suite.cases[5].expected.state(quietSnapshot), false, "a quiet fixture cannot pass if its actual state is energetic");
+quietSnapshot.personality.life.energy = "quiet";
+quietSnapshot.personality.life.playfulness = "ready";
+assert.equal(suite.cases[5].expected.state(quietSnapshot), false, "a quiet fixture cannot pass if its actual state still invites lively play");
 assert.ok(!JSON.stringify(report).includes(sentinel));
 assert.ok(!JSON.stringify(report.cases.map((item) => item.observed?.engine?.personality)).includes("lastPetAt"), "derived report data never leaks touch timestamps");
 

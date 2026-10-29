@@ -1,5 +1,114 @@
 # LOOIs Gesprächscharakter
 
+## Fortsetzung am 29. Oktober: Budget-Stimmung bis zur Stimme
+
+Eine erneute Prüfung des vollständigen Budget-Pfads fand einen Unterschied
+zwischen Antworttext und Stimme: Der Textmodell-Aufruf las den Charakter mit
+dem aktuellen Nutzertext. Vor jedem gesprochenen Teilstück las die
+Sprachausgabe ihn erneut mit leerem Text. Dadurch verschwand ein vorübergehender
+Rückschlag wie „Gerda hat heute keinen Spaß gemacht“ aus dem TTS-Kontext.
+Gespeicherter ruhiger Stil funktionierte weiterhin; das betraf den aktuellen
+Erlebnisbezug, nicht den dauerhaften Stil.
+
+Der Produktionspfad erfasst jetzt nach der akzeptierten Transkription genau
+einen Charakterkontext und verwendet ihn für Antworttext und alle Teilstücke
+dieser Antwort. Ein Folgethema erhält seinen eigenen Kontext. Lokale Hinweise
+ohne akzeptierten Nutzertext verwenden weiterhin nur den allgemeinen
+Charakter. Die bestehende Epoch-/Abbruchprüfung bleibt vor jedem Teilstück
+aktiv; ein unterbrochener Durchlauf kann keinen alten Zustand zurückbringen.
+
+Die neue Prüfung benutzt die wirkliche Behavior-Engine samt entwickeltem
+Gerda-Profil im Budget-Laufzeittest. Vor der Korrektur fehlte im ersten
+TTS-Aufruf nachweislich `conversationMoment`; danach übernehmen alle Clips
+denselben negativen Moment und die tatsächliche Delivery-Regel wählt ruhig.
+Ein absichtlich zwischen Clips geänderter Kontext verändert die laufende
+Antwort nicht. Der anschließende Themenwechsel übernimmt den Rückschlag
+nicht. Das prüft die erzeugten Anfragen, noch keine akustisch gehörte Ausgabe.
+
+Zusätzlich verlangt die mechanische Abnahme des ruhigen Live-Falls nun
+ausdrücklich ruhige Energie und gedämpfte Spiellust. Manipulierte Ergebnisse
+mit ausgeruhter Energie oder spielbereiter Stimmung fallen durch.
+
+Der erneute reine CLI-Zugangstest am 29.10.2026 erhielt HTTP 401 und startete
+keine Inferenz. Bereinigter Nachweis:
+`output/personality-live-evaluation/access-readiness-2026-10-29.json`.
+Der Nutzer hat iPhone und physischen LOOI für die Geräteabnahme bereitgestellt.
+Der parallele Chat „Response-Zeit auf Millisekunden sen“ hat den aktuellen
+signierten iPhone-Stand gebaut und erfolgreich installiert; hier wurde kein
+zweiter nativer Build gestartet. Die nachträgliche Budget-Korrektur wurde vor
+der Installation in einen gesonderten finalen Hermes-Export aufgenommen und
+das Paket danach erneut signiert und geprüft.
+
+Der erfolgreiche `devicectl`-Installationsbeleg gehört zu Version 2.1.151,
+Build 41 mit Bundle-SHA-256
+`1dccdc775de8891c61fd23340048a124e0b565a1f19a26f3947acda4b984fab2`.
+Die eingefrorenen Quellen für Charakter, Companion, Engine, Runtime,
+Budget-Gespräch und TTS stimmen mit dem hier geprüften Stand überein. Der
+eingefrorene Budget-Code enthält sowohl die Aufnahme des aktuellen Kontexts
+als auch dessen Weitergabe an die vollständige Sprachantwort. Der lokale
+zusammengefasste Beleg liegt unter
+`output/personality-live-evaluation/iphone-installation-2026-10-29.json`;
+Build-, Quell- und Installationsbelege liegen unter
+`output/voice-latency-install-2026-10-29/`.
+
+In Device Hub wurde der Start dieser neu installierten Fassung mit den neuen
+Augen und der Anzeige „Bereit. Sprich, ich höre zu.“ beobachtet. Das belegt
+den sichtbaren Start, keine erkannte Nutzereingabe oder gehörte Modellantwort.
+Für die erste echte Gesprächsprobe wurden die drei Sätze „Guten Morgen, LOOI“,
+„Sei ruhiger“ und „Was magst du inzwischen?“ angefragt. Der Nutzer meldete
+anschließend: „reaiert gar nicht“. Der API-Schlüssel der App wurde nicht
+ausgelesen oder exportiert.
+
+### Geräteprobe: keine Reaktion vor dem Antwortlauf
+
+Die neue Diagnose nach dieser Rückmeldung zeigt beim Neustart um 12:46:49 UTC
+Budget und einen laufenden PCM-Transport. Von 12:46:51 bis 12:47:09 UTC kamen
+18 Health-Fenster an, jeweils mit `peak = 0`, `maxRms = 0` und ohne erkannte
+VAD-Sprache. Im beobachteten Abschnitt gab es keinen Antwortlauf. Das ist ein
+belegter stummer Eingang im JavaScript-Pfad, noch keine eindeutige Ursache in
+Mikrofon, Routing oder nativer Konversion. Der bereinigte Befund liegt unter
+`output/personality-live-evaluation/no-reaction-2026-10-29.json`.
+
+Der Nutzer erlaubte ausdrücklich die Abstimmung mit dem Chat
+„Response-Zeit auf Millisekunden sen“. Dort liegt die Verantwortung für
+Aufnahme-Reparatur und Gerätebedienung; dieser Chat verändert die betreffenden
+Audioquellen währenddessen nicht parallel. Die Persönlichkeitsprobe bleibt
+fehlgeschlagen vor ihrem eigentlichen Gesprächseingang und ist keine negative
+oder positive Bewertung des neuen Charakters.
+
+Eine unabhängige synthetische Probe hat den tatsächlich installierten
+Swift-Delegate-Zweig für `pcmFloat32` mit bekannten Int16-Daten ausgeführt.
+Die resultierenden positiven und negativen Werte blieben anschließend durch
+den wirklichen JavaScript-Feeder bis zum Samples-Abonnenten exakt erhalten,
+sowohl als Array als auch als Float32Array. Dieser Übergang setzt gültige
+Beispieldaten nicht auf null. Mikrofonaufnahme, AVAudioConverter und das
+Geräterouting wurden damit nicht geprüft. Der Beleg einschließlich
+Swift-Quellhash liegt unter
+`output/personality-live-evaluation/audio-boundary-2026-10-29.json`.
+
+Die anschließende native D1-Geräteprobe bestätigt bereits vor Konversion einen
+stummen Float32-Eingang bei 48 kHz: In den hier unabhängig gelesenen 20
+Probeeinträgen waren Roh- und konvertierter Pegel durchgehend null. Eingebautes
+Mikrofon, verfügbare Eingabe und laufende Engine wurden gleichzeitig gemeldet.
+D2 meldete zusätzlich ausgeschaltete App- und Voice-Processing-Stummschaltung.
+D3 änderte allein die Kategorie von Record auf PlayAndRecord; auch dort
+blieben neun native Proben stumm. Es ist deshalb keine Kategorie-Reparatur
+belegt, und diese Diagnosevariante wird nicht als Produktionskorrektur
+übernommen.
+
+Für den nächsten kausalen Vergleich wurde im abgestimmten Geräte-Testfluss
+eine kurze lokale Sprachmemo angefragt: Pegelausschlag und vor Ort hörbare
+eigene Stimme, ohne Export der Aufnahme. Bei funktionierendem Systemrekorder
+ist anschließend der zweite vorhandene lokale Capture-Pfad zu prüfen; bei
+ebenfalls stummer Sprachmemo zuerst das geräteweite Problem. Ein Erfolg dieses
+Vergleichs und eine Persönlichkeitsantwort sind weiterhin nicht bestätigt.
+Der Geräte-Chat hat die reguläre aktuelle App wiederhergestellt und die
+Installationsadresse gegen den Rückinstallationsbeleg geprüft. Das reguläre
+Bundle besitzt weiterhin den oben dokumentierten SHA-256; Diagnosepoll und
+temporäre native Probe-Felder sind entfernt. Die App wurde danach nicht
+automatisch geöffnet, damit der manuelle Vergleich ungestört bleibt.
+[Wiederherstellungs- und Diagnosebeleg](evidence/voice-zero-input-status-2026-10-29.json).
+
 ## Vollständige Entwicklung über drei Zeitskalen
 
 Die aktuelle lokale Umsetzung trennt jetzt folgende Zustände. Alle Schwellen

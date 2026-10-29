@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
+import { createSyntheticPersonalityProfile } from "./companion-personality-live-cases.mjs";
 
 const SAMPLE_RATE = 16_000;
 const CHUNK = new Array(6_400).fill(0.02);
@@ -44,6 +45,7 @@ export function createHarness(options = {}) {
     interestReads: [],
     personalitySpeech: [],
     personalityContext: JSON.stringify({ tone: "calm", familiarInterests: [] }),
+    personalityContextForText: null,
     sttCalls: [],
     vadCalls: [],
     vadSequence: [],
@@ -149,8 +151,8 @@ export function createHarness(options = {}) {
 
   const dependencies = {
     "../behavior/behavior-events": {
-      acceptCompanionPersonalityTurn: (text, sessionId) => h.personalityTurns.push({ text, sessionId }),
-      getCompanionPersonalityContext: () => h.personalityContext,
+      acceptCompanionPersonalityTurn: (text, sessionId) => { h.personalityTurns.push({ text, sessionId }); h.onPersonalityTurn?.(text, sessionId); },
+      getCompanionPersonalityContext: (text) => h.personalityContextForText?.(text) ?? h.personalityContext,
       noteCompanionPersonalitySpeech: (text, sessionId) => h.personalitySpeech.push({ text, sessionId }),
       readCompanionInterests: (text) => { h.interestReads.push(text); return { ok: true, status: "interest-overview", interests: [], total: 0, hasMore: false }; },
     },
@@ -393,6 +395,45 @@ try {
   assert.equal(segmented.conversation.heardSpeechText, null, "the final clip cannot leave a phrase that was never heard as an expression cue");
   segmented.appState.currentState = "background";
   await segmented.service.stop("background");
+
+  // Actual character rules require the current user text to retain a temporary
+  // setback. A blank-context re-read used to drop this before TTS, and re-reads
+  // between clips could change delivery partway through one reply.
+  const characterLoad = createTypeScriptTreeLoader();
+  const { createBehaviorEngine } = characterLoad("src/behavior/behavior-engine.ts");
+  const { buildCompanionDeliveryInstructions } = characterLoad("src/character/companion-personality.ts");
+  const characterAt = Date.now();
+  const characterEngine = createBehaviorEngine({ now: () => characterAt, wallNow: () => characterAt,
+    decide: async () => { throw new Error("No character network in Budget fixture"); }, executeCue: () => {} });
+  characterEngine.configure({ mode: "active", dailyBudgetUsd: 0.25, candidateScoring: false, visualEnabled: false });
+  characterEngine.setEnvironment({ foreground: true, focused: true });
+  characterEngine.restore(JSON.stringify({ version: 1, companion: createSyntheticPersonalityProfile("familiar", characterAt) }));
+  const setback = createHarness({ ttsEnabled: true });
+  const readCharacter = (text) => characterEngine.getPersonalityContext(text);
+  setback.personalityContextForText = readCharacter;
+  setback.onPersonalityTurn = (text, sessionId) => characterEngine.acceptPersonalityTurn(text, sessionId);
+  setback.modelHandler = async () => ({ text: "Das klingt enttäuschend. Wir können es dabei belassen. Du entscheidest, wie es weitergeht.", model: "gpt-6-luna", usage: {} });
+  setback.speechHandler = async () => { setback.personalityContextForText = () => JSON.stringify({ tone: "playful", familiarInterests: [] }); };
+  await setback.service.start();
+  await setback.emitTurn("Gerda hat heute keinen Spaß gemacht.");
+  await waitFor(() => setback.captureStartCalls === 2, "setback reply completion");
+  const setbackContext = setback.modelCalls[0].personalityContext;
+  assert.equal(JSON.parse(setbackContext).conversationMoment.valence, "negative");
+  assert.ok(setback.speechCalls.length > 1);
+  for (const clip of setback.speechCalls) {
+    assert.equal(clip.personalityContext, setbackContext, "every clip uses the character snapshot for this exact answer");
+    assert.match(buildCompanionDeliveryInstructions(clip.personalityContext), /calmer manner/u, "temporary disappointment reaches actual delivery rules");
+  }
+  const priorClips = setback.speechCalls.length;
+  setback.personalityContextForText = readCharacter;
+  setback.speechHandler = async () => {};
+  await setback.emitTurn("Erzähl mir etwas anderes.");
+  await waitFor(() => setback.captureStartCalls === 3, "next unrelated reply completion");
+  assert.equal(JSON.parse(setback.modelCalls[1].personalityContext).conversationMoment, undefined);
+  assert.ok(setback.speechCalls.slice(priorClips).every((clip) => JSON.parse(clip.personalityContext).conversationMoment === undefined), "a new topic cannot inherit the old temporary setback");
+  setback.appState.currentState = "background";
+  await setback.service.stop("background");
+  characterEngine.dispose();
 
   // Empty local recognition gets the short local not-heard response and never
   // consults memory or the text model.

@@ -3,10 +3,14 @@ import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { useConversationStore } from "@/src/store/conversation";
 import { looiTheme } from "@/src/ui/looi-theme";
+import { useUiText } from "@/src/i18n/use-ui-text";
+import { useReducedInterfaceMotion } from "./use-reduced-interface-motion";
 
 const AUTO_CLOSE_MS = 3000;
 
 export function ImageOverlay() {
+  const { t } = useUiText();
+  const reducedMotion = useReducedInterfaceMotion();
   const imageUri = useConversationStore((state) => state.imageOverlayUri);
   const hideImageOverlay = useConversationStore((state) => state.hideImageOverlay);
 
@@ -18,19 +22,19 @@ export function ImageOverlay() {
 
   return (
     <Modal
-      animationType="fade"
+      animationType={reducedMotion ? "none" : "fade"}
       onRequestClose={hideImageOverlay}
       transparent
       visible={Boolean(imageUri)}
     >
-      <Pressable accessibilityRole="button" onPress={hideImageOverlay} style={styles.backdrop}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.cancel")} onPress={hideImageOverlay} style={styles.backdrop}>
         <View pointerEvents="none" style={styles.frame}>
           {imageUri ? (
             <Image
               contentFit="contain"
               source={{ uri: imageUri }}
               style={styles.image}
-              transition={140}
+              transition={reducedMotion ? 0 : 140}
             />
           ) : null}
         </View>

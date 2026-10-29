@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { useMemo, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Image } from "expo-image";
 import { CHARACTER_SCENE_CATEGORIES, CHARACTER_SCENES, findCharacterScenes, type CharacterScene, type CharacterSceneCategory, type CharacterSceneId } from "@/src/character/character-scene-catalog";
 import { CHARACTER_SCENE_PICTURE_ART } from "@/src/character/character-scene-art";
@@ -35,7 +36,7 @@ export function CharacterSceneLibrary({ onSelect }: { onSelect: (id: CharacterSc
     {categoriesOpen ? <View style={styles.categoryOptions}>
       <FlatList data={[[undefined, { [language]: t("characterScene.all") }], ...categories] as [CharacterSceneCategory | undefined, Record<typeof language, string>][]}
         keyExtractor={([id]) => id ?? "all"} keyboardShouldPersistTaps="handled"
-        renderItem={({ item: [id, labels] }) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: category === id }}
+        renderItem={({ item: [id, labels] }) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: category === id }}
           onPress={() => { setCategory(id); setCategoriesOpen(false); }} style={styles.categoryOption}>
           <Text style={[styles.filterText, category === id && styles.selectedText]}>{labels[language]}</Text>
         </Pressable>} />
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   selectedText: { color: looiTheme.cyan, fontWeight: "700" },
   categoryOptions: { maxHeight: 200, backgroundColor: looiTheme.bg, borderRadius: 12, marginBottom: 8 },
   categoryOption: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 12, justifyContent: "center" },
-  count: { color: looiTheme.muted, fontSize: 13, marginBottom: 12 },
+  count: { fontVariant: ["tabular-nums"], color: looiTheme.muted, fontSize: 13, marginBottom: 12 },
   list: { paddingBottom: 16 },
   cell: { width: "50%", padding: 5 },
   picture: { backgroundColor: looiTheme.whiteSoft, borderRadius: 14, padding: 12, minHeight: 185, flex: 1 },

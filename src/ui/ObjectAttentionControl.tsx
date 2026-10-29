@@ -1,3 +1,4 @@
+import { useReducedInterfaceMotion } from "./use-reduced-interface-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -94,6 +95,7 @@ function getDragEnd(event: GestureResponderEvent, gesture: PanResponderGestureSt
 }
 
 export function ObjectAttentionControl({ hideTrigger = false, openRequest = 0 }: { hideTrigger?: boolean; openRequest?: number } = {}) {
+  const reducedMotion = useReducedInterfaceMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const landscape = screenWidth > screenHeight;
   const safeAreaInsets = useSafeAreaInsets();
@@ -420,7 +422,7 @@ export function ObjectAttentionControl({ hideTrigger = false, openRequest = 0 }:
         </Pressable>
       ) : null}
 
-      <Modal animationType="fade" onRequestClose={closeSelection} statusBarTranslucent transparent visible={selectionOpen}>
+      <Modal animationType={reducedMotion ? "none" : "fade"} onRequestClose={closeSelection} statusBarTranslucent transparent visible={selectionOpen}>
         <SafeAreaView edges={["top", "bottom"]} style={styles.modalSafeArea}>
         <View style={[styles.backdrop, landscape && styles.backdropLandscape]}>
           <ScrollView

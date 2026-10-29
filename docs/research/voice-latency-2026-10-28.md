@@ -1,5 +1,13 @@
 # Reaktionszeit: Audioeingang, Gesprächsstart und Messung
 
+**Fortsetzung am 29. Oktober:** Der neue reguläre Stand mit Mondaugen,
+Farbeinstellungen und den Audio-/Zuhörkorrekturen ist auf dem physischen
+iPhone installiert und gestartet. Die aktuelle Sprachabnahme ist noch offen.
+[Aktueller Build, Installation und Prüfgrenzen](voice-latency-device-install-2026-10-29.md).
+
+Die folgenden B7–B9-Angaben beschreiben die Messungen und Zwischenstände
+vom 28. Oktober.
+
 Stand: 28. Oktober 2026. Das Ziel ist noch offen. Zuletzt vom Nutzer bestätigt:
 physisches iPhone auf LOOI, **Budget-Modus**, Verbindung zum Mac ausschließlich
 über WLAN. Der Nutzer konnte es zuletzt nicht entsperren und hat weitere

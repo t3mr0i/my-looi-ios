@@ -1,27 +1,29 @@
-import { Link, Stack } from "expo-router";
-import { StyleSheet } from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Text, View } from "@/components/Themed";
+import { InterfacePressable } from "@/src/ui/InterfacePressable";
+import { looiTheme } from "@/src/ui/looi-theme";
 import { useUiText } from "@/src/i18n/use-ui-text";
 
 export default function NotFoundScreen() {
   const { t } = useUiText();
+  const router = useRouter();
   return (
     <>
-      <Stack.Screen options={{ title: t("notFound.title") }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <Text style={styles.title}>{t("notFound.body")}</Text>
-        <Link href="/" style={styles.link}>
+        <Text accessibilityRole="header" style={styles.title}>{t("notFound.body")}</Text>
+        <InterfacePressable onPress={() => router.replace("/")} style={styles.link}>
           <Text style={styles.linkText}>{t("notFound.home")}</Text>
-        </Link>
+        </InterfacePressable>
       </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
-  title: { fontSize: 20, fontWeight: "bold" },
-  link: { marginTop: 15, paddingVertical: 15 },
-  linkText: { fontSize: 14, color: "#2e78b7" },
+  container: { flex: 1, backgroundColor: looiTheme.bg, alignItems: "center", justifyContent: "center", padding: 24, gap: 20 },
+  title: { color: looiTheme.text, fontSize: 24, lineHeight: 32, fontWeight: "700", textAlign: "center" },
+  link: { backgroundColor: looiTheme.cyan, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, justifyContent: "center" },
+  linkText: { fontSize: 16, fontWeight: "600", color: looiTheme.bg },
 });

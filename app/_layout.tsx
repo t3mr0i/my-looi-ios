@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as NavigationBar from 'expo-navigation-bar';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -9,7 +9,7 @@ import { AppState, Platform, View } from 'react-native';
 import '../global.css';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { looiTheme } from '@/src/ui/looi-theme';
 import { useUserStore } from '@/src/store/user';
 import { installBehaviorRuntime } from '@/src/behavior/behavior-runtime';
 import { installCharacterActionRuntime } from '@/src/character/character-action-runtime';
@@ -31,6 +31,18 @@ export {
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',
+};
+
+const navigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: looiTheme.cyan,
+    background: looiTheme.bg,
+    card: looiTheme.bgRaised,
+    text: looiTheme.text,
+    border: looiTheme.line,
+  },
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -196,7 +208,6 @@ function ActiveRobotKeepAwake() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
   const currentRoot = String(segments[0] ?? '');
@@ -228,10 +239,10 @@ function RootLayoutNav() {
   }, [currentRoot, isAppsRoute, router]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }} onTouchStart={() => markRobotInteraction('touch')}>
+    <ThemeProvider value={navigationTheme}>
+      <View style={{ flex: 1, backgroundColor: looiTheme.bg }} onTouchStart={() => markRobotInteraction('touch')}>
         <StatusBar hidden />
-        <Stack>
+        <Stack screenOptions={{ contentStyle: { backgroundColor: looiTheme.bg } }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="robot-debug" options={{ headerShown: false }} />

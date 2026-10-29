@@ -1,0 +1,65 @@
+{
+  "preparedAt": "2026-10-29T12:25:14.632038+00:00",
+  "kind": "regular signed current iPhone Release build; no controlled conversation benchmark",
+  "version": "2.1.151",
+  "build": "41",
+  "bundleIdentifier": "io.github.razor79.mylooi",
+  "gitHead": "aa3c90a457cd160bbd1db229dba8e5701ab3a937",
+  "workingTree": "shared with appearance and voice-context work; frozen source snapshots retained",
+  "bundleFormat": "Hermes bytecode v98",
+  "bundleSha256": "1dccdc775de8891c61fd23340048a124e0b565a1f19a26f3947acda4b984fab2",
+  "bundleBytes": 8303276,
+  "nativeExecutableSha256": "d523a04e582041783cab450ea1eb178c872358c745f2b8cc6546eb3ab718e822",
+  "sourceSnapshotSha256": "3e4e837ff9b633850bfa1ce4466e11ff732890add2cd105f9dfcae788e72c5fe",
+  "nativeBuildSourceSnapshotSha256": "7c94a8873536a7fffb5547e526dc223b7165e4f2b9b9cff256aff03775ebf70e",
+  "nativeInputsSha256": "be8d7ba1add8db30807ea2eab511bb2606fa34fe30e7ee35d08e949a8fcb4d61",
+  "assetInputsSha256": "b4bec4c4152f779c06e7acd14d789f29fb3feec9b8baeac9945c52b6d09cd16e",
+  "frozenSourceFiles": 243,
+  "postNativeJsDelta": [
+    "src/voice/budget-conversation.ts"
+  ],
+  "nativeAndAssetsUnchangedAcrossFinalExport": true,
+  "inputsUnchangedAtVerification": true,
+  "signature": "codesign --verify --deep --strict passed after final JS export",
+  "regularPackageMarkersVerified": true,
+  "forcedBenchmarkMode": false,
+  "validation": {
+    "nativeReleaseBuild": "passed",
+    "iosCheckBeforeFinalContextDelta": "passed",
+    "TypeScriptAfterFinalContextDelta": "passed",
+    "BudgetRuntimeAfterFinalContextDelta": "passed",
+    "voicePreviewAfterFinalContextDelta": "passed",
+    "inputAttentionAfterFinalContextDelta": "passed",
+    "listeningTapAfterFinalContextDelta": "passed"
+  },
+  "logs": {
+    "native-build.log": "1a17ba28eb33549167471c0fe8cf0fe21e15f0cd25b43828c225b3690c546282",
+    "ios-check.log": "6d246f292eb84cbf2eccb9105b86d854f7c3535abd92ff7c47165841eb4542ba",
+    "final-bundle.log": "b87577f7c3f25e8e704ee93925f6cdea0f1e6030fa4e7474289100871b3ac4f9",
+    "final-sign.log": "07b212d6c0f1de0b2a686f983e499c45dca9b0f7e21a7bfcf7c059a2acef3fe5"
+  },
+  "appPath": "/Users/U751725/LOOI/my-looi-ios/output/voice-latency-install-2026-10-29/MyLOOI.app",
+  "physicalConversationValidated": false,
+  "latencyGoalAchieved": false,
+  "limits": [
+    "Installation and OS launch confirmed; these do not establish a conversational response.",
+    "No current-build human conversation, acoustic onset, pixel onset or movement-onset series yet.",
+    "The final context-only JS change does not change the native or asset graph."
+  ],
+  "installation": {
+    "result": "success",
+    "verifiedInDeviceAppList": true,
+    "installedAppUrl": "file:///private/var/containers/Bundle/Application/A40D8862-C561-450E-A5A6-739BEF36B118/MyLOOI.app/",
+    "installedAt": "2026-10-29T12:25:39.846142+00:00"
+  },
+  "launch": {
+    "result": "success",
+    "activatedWhenStarted": true,
+    "processIdentifier": 55476
+  },
+  "receiptsSha256": {
+    "install.json": "4d071b0fe853fad54f75c4b651d308a7fa83bc79ef8706fd0b820a7f9c7cd0fe",
+    "launch.json": "1b38b81d500c81ac90623cf7c34d0ee8bdd62c019b70bc98a4f6ad1a8937bbc5",
+    "installed-app.json": "da3fb713daa5a9e27e6bd27bac0bbd42688a266a6bbe133727bd121f2db29435"
+  }
+}

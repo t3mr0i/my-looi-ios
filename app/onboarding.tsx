@@ -1,5 +1,6 @@
+import { InterfacePressable as Pressable } from "@/src/ui/InterfacePressable";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from "expo-audio";
@@ -201,6 +202,8 @@ export default function OnboardingScreen() {
             {INTERFACE_LANGUAGE_OPTIONS.map((option) => (
               <Pressable
                 key={option.id}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: interfaceLanguage === option.id }}
                 onPress={() => updatePreferences({ interfaceLanguage: option.id })}
                 style={[styles.languageChoice, interfaceLanguage === option.id && styles.languageChoiceSelected]}
               >
@@ -217,7 +220,7 @@ export default function OnboardingScreen() {
             const active = step.id === activeStep;
             const complete = isStepComplete(step.id, readiness);
             return (
-              <Pressable key={step.id} onPress={() => goToStep(step.id)} style={[styles.step, active && styles.stepActive]}>
+              <Pressable key={step.id} accessibilityState={{ selected: active }} onPress={() => goToStep(step.id)} style={[styles.step, active && styles.stepActive]}>
                 <Text style={[styles.stepText, active && styles.stepTextActive]}>{complete ? "✓ " : ""}{step.labelKey ? t(step.labelKey) : "OpenAI"}</Text>
               </Pressable>
             );
@@ -232,6 +235,7 @@ export default function OnboardingScreen() {
               <Text style={styles.help}>{t("onboarding.apiHelp")}</Text>
               <StatusRow label={t("onboarding.key")} ready={Boolean(readiness?.openAiKeyConfigured)} readyText={t("onboarding.keySaved")} pendingText={t("onboarding.keyNeeded")} />
               <TextInput
+                accessibilityLabel={t("onboarding.key")}
                 value={openAiKeyInput}
                 onChangeText={setOpenAiKeyInput}
                 placeholder={readiness?.openAiKeyConfigured ? t("onboarding.newKey") : "OpenAI API key"}
@@ -337,28 +341,28 @@ function SecondaryButton({ label, onPress }: { label: string; onPress: () => voi
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: looiTheme.bg },
   keyboardArea: { flex: 1 },
-  page: { flexGrow: 1, padding: 18, gap: 16, paddingBottom: 32 },
+  page: { flexGrow: 1, width: "100%", maxWidth: 760, alignSelf: "center", padding: 18, gap: 16, paddingBottom: 32 },
   headerCopy: { flex: 1, minWidth: 0 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 },
   eyebrow: { color: looiTheme.cyan, fontSize: 11, fontWeight: "800", letterSpacing: 1.8 },
   title: { color: looiTheme.text, fontSize: 28, fontWeight: "800", marginTop: 4 },
-  subtitle: { color: looiTheme.muted, fontSize: 13, lineHeight: 19, maxWidth: 620, marginTop: 6 },
+  subtitle: { color: looiTheme.muted, fontSize: 15, lineHeight: 22, maxWidth: 620, marginTop: 6 },
   interfaceLanguageRow: { gap: 8 },
   interfaceLanguageLabel: { color: looiTheme.muted, fontSize: 12, fontWeight: "700" },
   interfaceLanguageChoices: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  languageChoice: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  languageChoice: { justifyContent: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   languageChoiceSelected: { borderColor: looiTheme.cyan, backgroundColor: "rgba(40,213,255,0.08)" },
   languageChoiceText: { color: looiTheme.muted, fontSize: 12, fontWeight: "700" },
   languageChoiceTextSelected: { color: looiTheme.text },
   steps: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  step: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
+  step: { justifyContent: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
   stepActive: { borderColor: looiTheme.cyan, backgroundColor: "rgba(40,213,255,0.08)" },
   stepText: { color: looiTheme.muted, fontSize: 12, fontWeight: "700" },
   stepTextActive: { color: looiTheme.text },
   content: { paddingBottom: 30 },
   section: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 22, backgroundColor: looiTheme.rail, padding: 18, gap: 14 },
   sectionTitle: { color: looiTheme.text, fontSize: 19, fontWeight: "800" },
-  help: { color: looiTheme.muted, lineHeight: 19, fontSize: 13 },
+  help: { color: looiTheme.muted, lineHeight: 22, fontSize: 15 },
   input: { color: looiTheme.text, fontSize: 16, minHeight: 48, borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: looiTheme.bg },
   statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: looiTheme.line, paddingVertical: 10 },
   statusLabel: { color: looiTheme.text, fontSize: 14, fontWeight: "600", flex: 1 },
@@ -367,9 +371,9 @@ const styles = StyleSheet.create({
   pending: { color: looiTheme.danger },
   neutral: { color: looiTheme.muted },
   actions: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: 4 },
-  primaryButton: { backgroundColor: looiTheme.cyan, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 },
+  primaryButton: { justifyContent: "center", alignItems: "center", backgroundColor: looiTheme.cyan, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 },
   primaryButtonText: { color: "#041319", fontWeight: "800" },
-  secondaryButton: { borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 },
+  secondaryButton: { justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: looiTheme.line, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 },
   secondaryButtonText: { color: looiTheme.text, fontWeight: "700" },
   disabled: { opacity: 0.4 },
   error: { color: looiTheme.danger, fontSize: 13 },

@@ -93,9 +93,12 @@ See the [current research and UI evidence](research/hermes-personal-agent-connec
 The Nous metadata adapter was deployed to the configured Netcup service on
 28 October 2026. Public HTTPS checks confirmed the advertised capability, the
 protected Nous route and a successful research canary. The dedicated profile
-initially had no Nous login; authenticated connector availability still requires
-the owner's official device-login confirmation. The [deployment record](ops/hermes-nous-deployment-2026-10-28.md)
-separates these checks from an authenticated account or Google integration.
+initially had no Nous login. On 29 October the owner completed the official
+device login; the public HTTPS endpoint now returns `ready` with a confirmed
+identity. The authenticated SDK catalog contains 54 entries and no Gmail or
+Google Calendar provider, so the app correctly offers no such connection.
+The [deployment record](ops/hermes-nous-deployment-2026-10-28.md) separates the
+confirmed Nous login from the still unavailable mail/calendar integration.
 
 Enter a task and choose **Start task**. The app records its UUID before sending
 the request. If the response is lost, **Retry the same task** reuses that UUID

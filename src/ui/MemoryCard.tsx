@@ -1,7 +1,7 @@
+import { InterfacePressable as Pressable } from "./InterfacePressable";
 import { Image } from "expo-image";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -102,7 +102,7 @@ export function MemoryCard({
           </View>
         </View>
       ) : (
-        <Text style={styles.content}>{memory.memory}</Text>
+        <Text selectable style={styles.content}>{memory.memory}</Text>
       )}
 
       <View style={styles.provenance}>
@@ -320,6 +320,8 @@ const styles = StyleSheet.create({
   evidenceImage: {
     width: "100%",
     height: 200,
+    borderWidth: 1,
+    borderColor: looiTheme.line,
     borderRadius: 16,
     backgroundColor: looiTheme.bgRaised,
   },
@@ -349,6 +351,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   characterCount: {
+    fontVariant: ["tabular-nums"],
     color: looiTheme.muted,
     fontSize: 12,
     textAlign: "right",
