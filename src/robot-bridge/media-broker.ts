@@ -368,7 +368,7 @@ export function createMediaBroker(backend: RobotMediaBackend): RobotMediaBroker 
           stream: resources.stream,
           audioTracks: Object.freeze(resources.audioTracks.slice()),
           videoTracks: Object.freeze(resources.videoTracks.slice()),
-          release: (reason = "lease-released") => releaseOwner(owner, reason),
+          release: (reason = "lease-released") => releaseState(state, reason),
         });
         state.lease = lease;
         notify();
