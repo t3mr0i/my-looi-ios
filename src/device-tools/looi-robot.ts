@@ -119,6 +119,7 @@ type NearEdgeLatch = {
   rear: boolean;
   frontSince: number | null;
   rearSince: number | null;
+  rearDirection: LooiMoveDirection | null;
 };
 
 type LooiRuntimeState = {
@@ -157,7 +158,7 @@ function emptySensors(): LooiSensorSnapshot {
 }
 
 function emptyNearEdgeLatch(): NearEdgeLatch {
-  return { front: false, rear: false, frontSince: null, rearSince: null };
+  return { front: false, rear: false, frontSince: null, rearSince: null, rearDirection: null };
 }
 
 
@@ -373,12 +374,20 @@ export function clearLooiNearEdgeAfterManualReposition() {
   return { ok: true, cleared: true, front: clearedFront, rear: clearedRear };
 }
 
-function latchNearEdge(side: "front" | "rear", now: number, details: Record<string, unknown> = {}): void {
+function latchNearEdge(
+  side: "front" | "rear",
+  now: number,
+  details: Record<string, unknown> = {},
+  motionDirection: LooiMoveDirection | null = null
+): void {
   const key = side === "front" ? "front" : "rear";
   const sinceKey = side === "front" ? "frontSince" : "rearSince";
   const wasLatched = state.nearEdge[key];
   state.nearEdge[key] = true;
-  if (!wasLatched) state.nearEdge[sinceKey] = now;
+  if (!wasLatched) {
+    state.nearEdge[sinceKey] = now;
+    if (side === "rear") state.nearEdge.rearDirection = motionDirection;
+  }
   if (side === "front" && frontNearEdgeClearTimer) {
     clearTimeout(frontNearEdgeClearTimer);
     frontNearEdgeClearTimer = null;
@@ -444,6 +453,7 @@ function maybeArmNearEdgeEscapeClear(source: string): void {
       ) return;
       state.nearEdge.rear = false;
       state.nearEdge.rearSince = null;
+      state.nearEdge.rearDirection = null;
       recordDiagnosticEvent("robot", "near-edge-cleared", {
         side: "rear",
         escapeDirection: "forward",
@@ -466,12 +476,13 @@ const ALL_CLIFF_SENSORS: Array<keyof Fed9CliffSensors> = ["frontLeft", "frontRig
 /**
  * Forward needs ground on all four sensors: fully lifted, a LOOI reported only its rear sensors as
  * "no ground" (novolei/ulooi m0-5-prototype-findings.md:154-155, measured), so a front-only check let
- * a lifted robot drive. Exception: escaping a rear edge this motion layer latched itself; then the rear
+ * a lifted robot drive. Exception: escaping a rear edge this motion layer latched itself while driving backward (a latch from forward, turns or
+ * no motion proves nothing, a lift looks the same); then the rear
  * sensors are expected to see no ground and forward is the only way out.
  */
 function requiredCliffSensorKeys(
   direction?: LooiMoveDirection,
-  rearEdgeLatched = state.nearEdge.rear
+  rearEdgeLatched = state.nearEdge.rear && state.nearEdge.rearDirection === "back"
 ): Array<keyof Fed9CliffSensors> {
   if (direction === "forward") return rearEdgeLatched ? ["frontLeft", "frontRight"] : ALL_CLIFF_SENSORS;
   if (direction === "back") return ["rearLeft", "rearRight"];
@@ -1804,7 +1815,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
       });
     }
 
-    const rearEdgeLatchedBeforeFrame = state.nearEdge.rear;
+    const rearEdgeLatchedBeforeFrame = state.nearEdge.rear && state.nearEdge.rearDirection === "back";
     const direction = state.activeDirection;
     if (state.motionActive && direction && direction !== "stop") {
       const frontUnsafe = !decoded.sensors.frontLeft || !decoded.sensors.frontRight;
@@ -1827,7 +1838,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
             !decoded.sensors.rearLeft ? "rearLeft" : null,
             !decoded.sensors.rearRight ? "rearRight" : null,
           ].filter(Boolean).join(","),
-        });
+        }, direction);
       }
 
       const required = requiredCliffSensorKeys(direction, rearEdgeLatchedBeforeFrame);

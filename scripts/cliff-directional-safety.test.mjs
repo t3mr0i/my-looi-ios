@@ -144,6 +144,24 @@ assert.equal(robot.getLooiRobotRuntimeState().motionActive, false, "a lift durin
 assert.equal(robot.getLooiRobotRuntimeState().nearEdge.rear, true);
 assert.ok(writes.slice(beforeLiftWrites).some((write) => write.payload === "0000"), "a lift during forward must emit STOP");
 assert.ok(events.some((event) => event.event === "sensor-safety-stop" && String(event.details.unsafeSensors).includes("rearRight")));
+// The rear latch from this lift was not set while driving backward, so it must not exempt the
+// next forward: the rear still reads no ground, hence forward stays blocked.
+await expectBlocked(() => robot.startLooiMotion("forward"), /cliff-forward-rear-no-ground/);
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 150));
+robot.clearLooiNearEdgeAfterManualReposition();
+
+// Lifted during a turn: same hole, same rule. The turn stops, rear latches, forward stays blocked.
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 280));
+const turnLift = robot.turnLooi("right", 90).catch(() => null);
+await new Promise((resolve) => setTimeout(resolve, 20));
+cliff([1, 1, 1, 0, 1]);
+await new Promise((resolve) => setTimeout(resolve, 40));
+await turnLift;
+assert.equal(robot.getLooiRobotRuntimeState().motionActive, false, "a lift during a turn must stop the turn");
+assert.equal(robot.getLooiRobotRuntimeState().nearEdge.rear, true);
+await expectBlocked(() => robot.startLooiMotion("forward"), /cliff-forward-rear-no-ground/);
 cliff([1, 1, 1, 1, 1]);
 await new Promise((resolve) => setTimeout(resolve, 150));
 robot.clearLooiNearEdgeAfterManualReposition();
