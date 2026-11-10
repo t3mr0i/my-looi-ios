@@ -131,9 +131,16 @@ function handleInteractionSignalFrame(frame: InteractionSignalFrame): void {
   if (!accepted) behaviorEngine.dispatch({ type: "interrupt", reason: "start-signal-response-unavailable", sessionId });
 }
 
+let reactionOwner: (() => boolean) | null = null;
+/** Lets the robot-mind expression layer say that a reply was already expressed (see BehaviorEngineDependencies.reactionOwnedLocally). */
+export function configureBehaviorReactionOwner(owner: (() => boolean) | null): void {
+  reactionOwner = owner;
+}
+
 export const behaviorEngine = createBehaviorEngine({
   decide: (input, options) => requestDecisions(input, options),
   executeCue,
+  reactionOwnedLocally: () => { try { return reactionOwner?.() ?? false; } catch { return false; } },
   now: monotonicNow,
   wallNow: Date.now,
   decisionTimeoutMs: 1_800,

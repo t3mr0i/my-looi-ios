@@ -105,6 +105,8 @@ async function performBootstrapApp(): Promise<void> {
   perceiverManager.register(voiceRuntime);
   installRobotBodySensors();
   void import("../robot-mind/expression-runtime").then(({ installRobotExpressionRuntime }) => { installRobotExpressionRuntime(); }).catch((error) => recordDiagnosticEvent("app", "expression-runtime-install-failed", { error: error instanceof Error ? error.message : String(error) }));
+  void import("../robot-mind/speech-wobble-runtime").then(({ installSpeechWobbleRuntime }) => { installSpeechWobbleRuntime(); }).catch((error) => recordDiagnosticEvent("app", "speech-wobble-install-failed", { error: error instanceof Error ? error.message : String(error) }));
+  void import("../robot-mind/reaction-clips-runtime").then(({ installReactionClipsRuntime }) => { installReactionClipsRuntime(); }).catch((error) => recordDiagnosticEvent("app", "reaction-clips-install-failed", { error: error instanceof Error ? error.message : String(error) }));
   installProactiveSpeechRuntime();
   installIdleAutonomyRuntime();
 

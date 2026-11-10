@@ -38,6 +38,7 @@ import { createFaceStrokeRecognizer, type FaceStrokePoint } from "@/src/characte
 import type { GestureResponderEvent } from "react-native";
 import type { BehaviorRehearsalFaceFixture } from "@/src/behavior/behavior-rehearsal-expression";
 import { robotBodyState } from "@/src/robot-mind/body-state";
+import { speechLevel } from "@/src/robot-mind/speech-level";
 
 const readBodyExpression = () => robotBodyState.getState().expression;
 
@@ -404,15 +405,30 @@ function ClassicRobotFace({
 
   useEffect(() => {
     cancelAnimation(mouthPulse);
-    if (motionActive && speaking) {
+    if (!(motionActive && speaking)) {
+      mouthPulse.value = 0;
+      return () => cancelAnimation(mouthPulse);
+    }
+    // Without audio information (for example the WebRTC transport) the mouth keeps its steady pulse.
+    const startSteadyPulse = () => {
       mouthPulse.value = withRepeat(
         withSequence(withTiming(1, { duration: 180 }), withTiming(0, { duration: 240 })),
         -1
       );
-    } else {
-      mouthPulse.value = 0;
-    }
-    return () => cancelAnimation(mouthPulse);
+    };
+    let followingAudio = speechLevel.isLive();
+    if (!followingAudio) startSteadyPulse();
+    // The mouth opens with the loudness of the speech that is actually playing.
+    const unsubscribe = speechLevel.subscribe((level, live) => {
+      if (live) {
+        if (!followingAudio) { followingAudio = true; cancelAnimation(mouthPulse); }
+        mouthPulse.value = withTiming(level, { duration: 60 });
+      } else if (followingAudio) {
+        followingAudio = false;
+        startSteadyPulse();
+      }
+    });
+    return () => { unsubscribe(); cancelAnimation(mouthPulse); };
   }, [mouthPulse, motionActive, speaking]);
 
   // The light core follows the existing attention target inside the glass.

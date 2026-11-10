@@ -210,6 +210,8 @@ export interface BehaviorEngineDependencies {
     eventType: string;
   }) => void;
   decisionTimeoutMs?: number;
+  /** True when the reply that just ended already carried its own expression, so no separate reaction is requested. */
+  reactionOwnedLocally?: () => boolean;
   traceLimit?: number;
 }
 

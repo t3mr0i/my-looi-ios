@@ -16,7 +16,7 @@ function fakeStore(initial) {
 }
 
 const world = {
-  diagnostics: [], signals: [], textCalls: [], speechCalls: [], triggers: 0, budgetLines: [],
+  diagnostics: [], signals: [], textCalls: [], speechCalls: [], speechOptions: [], budgetFixedLines: [], triggers: 0, budgetLines: [],
   activeMode: null, behaviorSession: null, motionActive: false, feeding: true,
 };
 const conversation = fakeStore({
@@ -38,6 +38,12 @@ const bodyStore = body.createRobotBodyStateStore(() => now);
 const policy = loadTypeScript("src/robot-mind/proactive-speech-policy.ts");
 const behaviorEventsListeners = new Set();
 
+const phrases = loadTypeScript("src/robot-mind/proactive-phrases.ts");
+const storedClips = new Map();
+const clipCache = {
+  async read(key) { return storedClips.get(key) ?? null; },
+  async write(key, audio) { storedClips.set(key, audio); },
+};
 const dependencies = {
   "react-native": { AppState: { currentState: "active" } },
   "../behavior/behavior-events": {
@@ -58,6 +64,8 @@ const dependencies = {
   "../voice/realtime-config": { describeProactiveOccasion: (occasion) => `situation:${occasion}` },
   "./body-state": { robotBodyState: bodyStore },
   "./proactive-idle-speech": loadTypeScript("src/robot-mind/proactive-idle-speech.ts"),
+  "./proactive-phrases": phrases,
+  "./speech-clip-cache-storage": { speechClipCache: clipCache },
   "./proactive-speech-runtime": loadTypeScript("src/robot-mind/proactive-speech-runtime.ts", {
     "../behavior/behavior-policy": loadTypeScript("src/behavior/behavior-policy.ts"),
     "./proactive-speech-policy": policy,
@@ -77,38 +85,47 @@ const dependencies = {
   } },
   "../openai/openai-speech": { async speakOpenAiText(text, options) {
     world.speechCalls.push({ text, streaming: options.streaming, feeding: world.feeding, speaking: conversation.getState().isSpeaking });
+    world.speechOptions.push(options);
+    // Like the real client: a line whose audio is already stored is replayed, otherwise synthesized and stored.
+    const stored = options.cache ? await options.cache.read(text) : null;
+    options.onAudioSource?.(stored !== null);
+    if (options.cache && !stored) await options.cache.write(text, new Uint8Array([1]));
   } },
-  "../voice/budget-conversation": { budgetConversationService: { async speakProactiveLine(text) { world.budgetLines.push(text); return true; } } },
+  "../voice/budget-conversation": { budgetConversationService: { async speakProactiveLine(text, fixedLine) { world.budgetLines.push(text); world.budgetFixedLines.push(fixedLine); return true; } } },
 };
 const install = loadTypeScript("src/robot-mind/proactive-speech-install.ts", dependencies);
+const germanGreetings = phrases.listProactivePhrases("greet_arrival", "de");
 const uninstall = install.installProactiveSpeechRuntime();
 assert.equal(install.installProactiveSpeechRuntime(), uninstall, "installing twice keeps one runtime");
 
 const publish = async (event) => { bodyStore.publishEvent({ at: now, ...event }); await settle(); };
 
-// Idle in Budget mode: text line, non-streamed TTS with wake feeding paused, then the free local microphone.
+// Idle in Budget mode on "reactions": a fixed line in the response language, no text model call,
+// non-streamed TTS with wake feeding paused, then the free local microphone.
 await publish({ type: "person_appeared", bearing: "center" });
-assert.equal(world.textCalls.length, 1);
-assert.equal(world.textCalls[0].occasion, "situation:greet_arrival");
-assert.deepEqual(world.textCalls[0].history, [], "an idle line does not drag in an old conversation");
-assert.deepEqual(world.speechCalls, [{ text: "Oh, hallo!", streaming: undefined, feeding: false, speaking: true }]);
+assert.equal(world.textCalls.length, 0, "a fixed line needs no model call");
+assert.equal(world.speechCalls.length, 1);
+assert.ok(germanGreetings.includes(world.speechCalls[0].text), `spoke an authored German greeting: ${world.speechCalls[0].text}`);
+assert.deepEqual({ ...world.speechCalls[0], text: "" }, { text: "", streaming: undefined, feeding: false, speaking: true });
+assert.equal(world.speechOptions[0].cache, clipCache, "a fixed line may reuse stored audio");
+assert.equal(world.speechOptions[0].personalityContext, undefined, "a reusable clip is spoken in the plain style so it is found again");
 assert.equal(world.feeding, true, "wake-word feeding is restored");
 assert.equal(conversation.getState().isSpeaking, false);
 assert.equal(world.triggers, 1, "the microphone opens like a wake word");
-assert.ok(world.diagnostics.some((d) => d.category === "cost" && d.event === "proactive-line-text-usage" && d.route === "idle"));
-assert.ok(world.diagnostics.some((d) => d.category === "cost" && d.event === "proactive-line-speech"));
+assert.equal(world.diagnostics.filter((d) => d.category === "cost" && d.event === "proactive-line-speech").length, 1, "the first synthesis of a line is a cost");
+assert.equal(world.diagnostics.some((d) => d.event === "proactive-line-text-usage"), false);
 
 // Idle while the wheels move: silent, no model call.
 now += 5 * 60_000;
 world.motionActive = true;
 await publish({ type: "petted" });
-assert.equal(world.textCalls.length, 1);
+assert.equal(world.speechCalls.length, 1);
 assert.ok(world.diagnostics.some((d) => d.event === "proactive-idle-silent" && d.reason === "wheels-moving"));
 world.motionActive = false;
 now += 5 * 60_000;
 bodyStore.update({ wheelsMoving: true }, "test");
 await publish({ type: "petted" });
-assert.equal(world.textCalls.length, 1, "the body-state wheel flag also blocks idle speech");
+assert.equal(world.speechCalls.length, 1, "the body-state wheel flag also blocks idle speech");
 bodyStore.update({ wheelsMoving: false }, "test");
 
 // Realtime mode, idle, "reactions": speaks but leaves the paid session closed.
@@ -148,12 +165,29 @@ world.activeMode = "budget";
 world.behaviorSession = null;
 await publish({ type: "petted" });
 assert.deepEqual(world.budgetLines, ["situation:react_petting"]);
+assert.ok(phrases.listProactivePhrases("react_petting", "de").includes(world.budgetFixedLines[0]), "a Budget session also says the fixed line without a text call");
+
+// "lively" asks the model for fresh wording, in a Budget session and when idle.
+now += 25 * 60_000;
+user.setState({ preferences: { ...user.getState().preferences, proactiveSpeech: "lively" } });
+await publish({ type: "petted" });
+assert.equal(world.budgetFixedLines.at(-1), undefined);
+now += 25 * 60_000;
+world.activeMode = null;
+user.setState({ preferences: { ...user.getState().preferences, conversationMode: "budget" } });
+await publish({ type: "petted" });
+assert.equal(world.textCalls.length, 1, "lively generates the idle line");
+assert.equal(world.speechCalls.at(-1).text, "Oh, hallo!");
+assert.equal(world.speechOptions.at(-1).cache, undefined, "generated wording is not stored");
+assert.ok(world.diagnostics.some((d) => d.category === "cost" && d.event === "proactive-line-text-usage" && d.route === "idle"));
+world.activeMode = "budget";
 
 // Setting off: nothing.
 now += 70 * 60_000;
 user.setState({ preferences: { ...user.getState().preferences, proactiveSpeech: "off" } });
+const budgetLinesBeforeOff = world.budgetLines.length;
 await publish({ type: "petted" });
-assert.equal(world.budgetLines.length, 1);
+assert.equal(world.budgetLines.length, budgetLinesBeforeOff);
 
 uninstall();
 console.log("robot-mind proactive speech install: ok");

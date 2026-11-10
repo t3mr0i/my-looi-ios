@@ -1,5 +1,6 @@
 import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, readCompanionInterests, getBehaviorInteractionRevision, getBehaviorInteractionSnapshot, requiresBehaviorTurnCommit, inspectBehaviorVisual, performBehaviorCompanionAction, publishBehaviorEvent, publishBehaviorListeningFrame, type BehaviorInteractionSnapshot, type BehaviorSignalResponseRequest } from "../behavior/behavior-events";
 import { startRealtimeBodyContextFeed, type RobotBodyContextFeed } from "../robot-mind/body-context-runtime";
+import { noteSpeechPcm16Base64 } from "../robot-mind/speech-level";
 import type { CompanionAction, CompanionActionResult } from "../behavior/behavior-companion";
 import { AppState, Platform } from "react-native";
 import { InputAttentionDetector } from "./input-attention";
@@ -1316,6 +1317,7 @@ export class RealtimePcmConversationService {
       this.playbackGainClippedSamples += gained.clippedSamples;
       this.playbackGainTotalSamples += gained.totalSamples;
       getRealtimePcmAudioModule().enqueuePlayback(gained.base64);
+      noteSpeechPcm16Base64(gained.base64, 24_000);
       this.latency.enqueued(responseId, () => this.nativeTimeMs());
       this.queueSpeechPcm(String(event.response_id ?? this.activeResponseId ?? ""), gained.base64);
       return;

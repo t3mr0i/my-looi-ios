@@ -193,9 +193,11 @@ function makeIdle(overrides = {}) {
       assert.equal(signal.aborted, false);
       return { text: h.line, model: "gpt-6-luna", usage: { inputTokens: 700, outputTokens: 12, cachedInputTokens: 0 } };
     },
-    async speak(text, signal) {
+    async speak(text, signal, options) {
       h.calls.push(["speak", text, h.feeding]);
       h.signal = signal;
+      h.reusable = options.reusable;
+      options.onAudioSource(h.clipStored === true);
       if (h.speakDeferred) await h.speakDeferred.promise;
     },
     isWakewordFeeding: () => h.feeding,
@@ -208,6 +210,32 @@ function makeIdle(overrides = {}) {
     ...overrides,
   });
   return h;
+}
+{
+  // "reactions" with an authored line: no text call; the first synthesis costs, a replayed clip does not.
+  const h = makeIdle({ pickPhrase: (request) => `fixed:${request.occasion}` });
+  const fixedRequest = { id: "f1", occasion: "react_petting", detail: {}, occasionText: "Someone petted you.", level: "reactions", invitesReply: false };
+  assert.equal(await h.speaker.speak(fixedRequest), true);
+  assert.deepEqual(h.calls, [["feeding", false], ["speak", "fixed:react_petting", false], ["feeding", true]]);
+  assert.equal(h.reusable, true);
+  assert.deepEqual(h.records.filter((r) => r.category === "cost").map((r) => r.event), ["proactive-line-speech"]);
+  h.clipStored = true;
+  h.records.length = 0;
+  assert.equal(await h.speaker.speak(fixedRequest), true);
+  assert.deepEqual(h.records.filter((r) => r.category === "cost"), [], "a stored clip is free");
+  assert.ok(h.records.some((r) => r.event === "proactive-line-speech-reused"));
+
+  // "lively" asks the model and does not store that wording; if the model fails, the fixed line is said instead.
+  const lively = makeIdle({ pickPhrase: () => "Fester Satz." });
+  assert.equal(await lively.speaker.speak({ ...fixedRequest, level: "lively" }), true);
+  assert.deepEqual(lively.calls.map((call) => call[0]), ["text", "feeding", "speak", "feeding"]);
+  assert.equal(lively.reusable, false);
+  const failing = makeIdle({ pickPhrase: () => "Fester Satz." });
+  failing.generateError = new Error("offline");
+  assert.equal(await failing.speaker.speak({ ...fixedRequest, level: "lively" }), true);
+  assert.deepEqual(failing.calls.at(-2), ["speak", "Fester Satz.", false]);
+  assert.equal(failing.reusable, true);
+  assert.ok(failing.records.some((r) => r.event === "proactive-line-generation-fell-back"));
 }
 const request = (patch = {}) => ({
   id: "r1", occasion: "greet_arrival", detail: {}, occasionText: "A person just came into view.", level: "reactions", invitesReply: true, ...patch,

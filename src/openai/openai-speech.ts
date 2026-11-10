@@ -22,6 +22,7 @@ import {
   normalizeTtsSpeed,
   type TtsStyleId,
 } from "../voice/tts-voices";
+import { noteSpeechPcm16, noteSpeechWav } from "../robot-mind/speech-level";
 
 export const OPENAI_SPEECH_MODEL = "gpt-4o-mini-tts";
 export const OPENAI_SPEECH_SHUTDOWN_DATE = "2027-01-06";
@@ -31,6 +32,8 @@ const REQUEST_TIMEOUT_MS = 20_000;
 const PLAYBACK_TIMEOUT_MS = 90_000;
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const MAX_TEXT_CHARACTERS = 4_096;
+/** Sample rate of the streamed pcm response format. */
+const STREAM_PCM_RATE = 24_000;
 
 export type OpenAiSpeechOptions = {
   voiceId: string;
@@ -41,6 +44,17 @@ export type OpenAiSpeechOptions = {
   onStart?: () => void;
   /** Caller must release microphone capture before enabling streamed output. */
   streaming?: boolean;
+  /**
+   * Reuse the audio of a repeated line. Only for non-streamed speech; the key
+   * covers model, voice, delivery instructions, speed and text, so a cached
+   * clip is exactly what the request would have produced.
+   */
+  cache?: {
+    read(requestKey: string): Promise<Uint8Array | null>;
+    write(requestKey: string, audio: Uint8Array): Promise<void>;
+  };
+  /** Reports whether the audio came from the cache (true) or a paid synthesis (false). */
+  onAudioSource?: (fromCache: boolean) => void;
 };
 
 type AudioPlayer = ReturnType<typeof createAudioPlayer>;
@@ -306,6 +320,7 @@ async function streamPcmAudio(response: CloudSpeechResponse, session: SpeechSess
           }
           if (session.streamTiming) session.streamTiming.firstEnqueueMs ??= performance.now();
           session.pcmPlayer.write(chunk);
+          noteSpeechPcm16(chunk, STREAM_PCM_RATE);
         });
         while (isCurrent(session) && session.pcmPlayer && session.pcmPlayer.queuedDurationMs() > 2000) {
           await new Promise((resolve) => setTimeout(resolve, 20));
@@ -372,6 +387,7 @@ async function startPlayback(session: SpeechSession, audio: Uint8Array): Promise
     if (session.requestTimer) clearTimeout(session.requestTimer);
     session.requestTimer = undefined;
     session.playbackTimer = setTimeout(() => playbackTimedOut(session), PLAYBACK_TIMEOUT_MS);
+    noteSpeechWav(audio);
     player.play();
   } catch {
     if (playbackOwner === session) await disposePlayer(session, true);
@@ -381,6 +397,20 @@ async function startPlayback(session: SpeechSession, audio: Uint8Array): Promise
 
 async function requestAndPlay(session: SpeechSession, text: string, options: OpenAiSpeechOptions): Promise<void> {
   try {
+    const instructions = [getTtsStyleInstructions(options.styleId ?? DEFAULT_TTS_STYLE_ID), buildCompanionDeliveryInstructions(options.personalityContext)].filter(Boolean).join(" ");
+    const speed = normalizeTtsSpeed(options.speed ?? DEFAULT_TTS_SPEED);
+    const cache = options.streaming ? undefined : options.cache;
+    const cacheKey = JSON.stringify([OPENAI_SPEECH_MODEL, options.voiceId, instructions, speed, text]);
+    if (cache) {
+      // A stored clip needs neither the network nor an API key.
+      const stored = await cache.read(cacheKey).catch(() => null);
+      if (!isCurrent(session)) return;
+      if (stored?.length) {
+        try { options.onAudioSource?.(true); } catch {}
+        await enqueuePlayback(() => startPlayback(session, stored));
+        return;
+      }
+    }
     const key = await getOpenAiApiKey();
     if (!isCurrent(session)) return;
     if (!key?.trim()) throw new MissingOpenAiApiKeyError();
@@ -399,8 +429,8 @@ async function requestAndPlay(session: SpeechSession, text: string, options: Ope
           model: OPENAI_SPEECH_MODEL,
           voice: options.voiceId,
           input: text,
-          instructions: [getTtsStyleInstructions(options.styleId ?? DEFAULT_TTS_STYLE_ID), buildCompanionDeliveryInstructions(options.personalityContext)].filter(Boolean).join(" "),
-          speed: normalizeTtsSpeed(options.speed ?? DEFAULT_TTS_SPEED),
+          instructions,
+          speed,
           response_format: streamRuntime ? "pcm" : "wav",
           ...(streamRuntime ? { stream_format: "audio" } : {}),
         }),
@@ -427,6 +457,8 @@ async function requestAndPlay(session: SpeechSession, text: string, options: Ope
     }
     const audio = await readBoundedAudio(response, session);
     if (!isCurrent(session)) return;
+    try { options.onAudioSource?.(false); } catch {}
+    if (cache) void cache.write(cacheKey, audio).catch(() => undefined);
     await enqueuePlayback(() => startPlayback(session, audio));
   } catch (error) {
     if (session.settled) return;

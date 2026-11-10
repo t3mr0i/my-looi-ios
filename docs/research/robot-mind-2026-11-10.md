@@ -57,6 +57,29 @@ Baut auf `capability-manifest-2026-11-10.md` auf. Dort bekam die KI Hände (Szen
 - Budget: ein Tag am Antwortanfang (`[happy]`), wird entfernt und angewendet; kein Tool-Durchlauf.
 - Ein Besitzer pro Antwort: Hat das Modell gewählt, ersetzt das die Text-Schätzung und sperrt die Decisions-Geste für diese Antwort. Hat es nicht gewählt, gilt das bisherige Verhalten.
 
+## Lokal statt KI (Kosten)
+
+Leitlinie: Wo der Anlass lokal bekannt ist, braucht es keine Modellanfrage. Vorbild ist die Reachy-Mini-Conversation-App: aufgezeichnete Clips statt generierter Bewegung, Kopfbewegung beim Sprechen aus dem Audiosignal, die KI wählt nur Namen.
+
+| Verhalten | KI-Anfragen |
+|---|---|
+| Umschauen, Suchen, Zuwenden, Annähern, Sensorik, Gesichtserkennung | keine |
+| Reaktions-Clips (`reaction-clips*`): aufhorchen, erschrecken, seufzen, freuen, strecken | keine |
+| Mund und Kopf folgen der Lautstärke der eigenen Sprache (`speech-level`, `speech-wobble-runtime`) | keine |
+| Eigene Äußerung, Stufe „Reaktionen" (`proactive-phrases`, `speech-clip-cache*`) | keine nach dem ersten Mal: fester Satz, Sprachausgabe einmal erzeugt und auf dem Gerät gespeichert |
+| Eigene Äußerung, Stufe „lebhaft" | 1 Textaufruf + 1 TTS je Äußerung (frische Formulierung, nicht gespeichert) |
+| Eigene Äußerung in laufender Realtime-Session | 1 Antwort der ohnehin offenen Session |
+| Decisions-Schicht | 1 Anfrage je Nutzer-Turn; die zweite nach der Antwort entfällt, wenn die Antwort schon ihren eigenen Ausdruck hatte (Ritual, Spiel, Reparatur oder pausierte Aufgabe ausgenommen) |
+
+Einzelheiten:
+
+- Feste Sätze: je Anlass 3–5 Varianten in de/en/uk/ru, nie zweimal derselbe hintereinander. Russisch und Ukrainisch ohne Vergangenheitsformen in der Ich-Form, damit sie zu beiden Sprechgeschlechtern passen.
+- Clip-Speicher: Schlüssel aus Modell, Stimme, Stilanweisung, Tempo und Text; höchstens 160 Clips bzw. 24 MB, die am längsten ungenutzten weichen. Ein gespeicherter Satz spielt auch ohne Netz und ohne API-Schlüssel. Feste Sätze werden im neutralen Stimmstil gesprochen, damit der Clip wiedergefunden wird.
+- Sprachpegel: Aus dem Audio, das zur Wiedergabe eingereiht wird (Realtime-PCM, Budget-Stream, WAV), entsteht eine Lautstärkekurve auf einer Zeitachse. Der Mund öffnet sich danach; am Beginn einer Phrase gibt es höchstens alle 2,8 s und fünfmal pro Antwort eine kleine Kopfbewegung, bei traurigem oder ruhigem Ausdruck keine. Der WebRTC-Transport liefert kein Audio an die App; dort bleibt der gleichmäßige Mundpuls.
+- Reaktions-Clips: Gesicht plus höchstens eine Kopfgeste, nie Räder; an der Kante nur das Gesicht. 30 s Abklingzeit je Clip. Streicheln hat bereits seine eigene Reaktion.
+
+Noch nicht gebaut: eine gemeinsame Bewegungsschleife mit Atmen als Grundschicht, Warteschlange für Clips und additiven Schichten (Reachys `MovementManager`). Heute stimmen sich die Steuerungen über Halte-Aufrufe und Prioritäten ab.
+
 ## Zusammenspiel geprüft
 
 `scripts/robot-mind-integration.test.mjs` führt die echten Module aller vier Teile durch eine Situation: allein → Suche → Person erscheint rechts → eine Begrüßung → Zuwenden zur gemeldeten Seite → begrenzte Annäherung → Ankunft → Streicheln → Kante → Gespräch → Schlaf.
@@ -74,4 +97,4 @@ Bei der Zusammenführung angepasst: Die Sensoren aktualisieren „zuletzt gesehe
 
 ## Tests
 
-`pnpm run robot:mind-test`
+`pnpm run robot:mind-test` (enthält `robot-mind-local-speech`, `robot-mind-speech-level`, `robot-mind-reaction-clips`)

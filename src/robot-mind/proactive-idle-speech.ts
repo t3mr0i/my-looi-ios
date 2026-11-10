@@ -1,8 +1,10 @@
 /**
- * The cheapest honest way for an idle LOOI to say something on its own: one
- * short line from the Budget text model, spoken by the existing cloud TTS,
- * then (when the occasion invites a reply) the microphone opens the same way
- * a wake word would, so the person can simply answer.
+ * The cheapest honest way for an idle LOOI to say something on its own. On
+ * the "reactions" level the line is a fixed authored sentence whose audio is
+ * reused from the device, so a repeated remark costs nothing. Only "lively"
+ * asks the Budget text model for fresh wording. Then (when the occasion
+ * invites a reply) the microphone opens the same way a wake word would, so
+ * the person can simply answer.
  *
  * Like Classic speech, the recorder stays warm and only wake-word feeding is
  * paused while LOOI talks, so it cannot wake itself. A tap or a conversation
@@ -16,7 +18,13 @@ export interface IdleProactiveSpeechDeps {
   /** null when the app is idle and safe to speak in, otherwise the reason it is not. */
   checkIdle(): string | null;
   generateLine(occasionText: string, signal: AbortSignal): Promise<{ text: string; model: string; usage: Record<string, number> }>;
-  speak(text: string, signal: AbortSignal): Promise<void>;
+  /** A fixed authored line for this occasion, or null when none exists. */
+  pickPhrase?(request: ProactiveLineRequest): string | null;
+  /**
+   * reusable: the text is a fixed line, so its audio may be stored and replayed.
+   * onAudioSource reports a replayed clip (true) or a paid synthesis (false).
+   */
+  speak(text: string, signal: AbortSignal, options: { reusable: boolean; onAudioSource(fromCache: boolean): void }): Promise<void>;
   isWakewordFeeding(): boolean;
   setWakewordFeeding(enabled: boolean): void;
   /** Show (text) or clear (null) the speaking face and subtitle; keepOverlay when a conversation took over. */
@@ -46,12 +54,23 @@ export function createIdleProactiveSpeaker(deps: IdleProactiveSpeechDeps) {
       const controller = new AbortController();
       try {
         let line: string;
-        try {
-          const reply = await deps.generateLine(request.occasionText, controller.signal);
-          deps.record("cost", "proactive-line-text-usage", { route: "idle", model: reply.model, ...reply.usage });
-          line = reply.text.trim();
-        } catch (error) {
-          return refuse(`generation-failed:${error instanceof Error ? error.message : String(error)}`);
+        const fixed = request.level === "lively" ? null : deps.pickPhrase?.(request)?.trim() || null;
+        let reusable = fixed !== null;
+        if (fixed) {
+          line = fixed;
+        } else {
+          try {
+            const reply = await deps.generateLine(request.occasionText, controller.signal);
+            deps.record("cost", "proactive-line-text-usage", { route: "idle", model: reply.model, ...reply.usage });
+            line = reply.text.trim();
+          } catch (error) {
+            // Fresh wording is a nicety; the occasion still deserves its fixed line.
+            const fallback = deps.pickPhrase?.(request)?.trim() || null;
+            if (!fallback) return refuse(`generation-failed:${error instanceof Error ? error.message : String(error)}`);
+            deps.record("runtime", "proactive-line-generation-fell-back", { occasion: request.occasion });
+            line = fallback;
+            reusable = true;
+          }
         }
         const blockedAfterGeneration = deps.checkIdle();
         if (!line) return refuse("empty-line");
@@ -61,11 +80,16 @@ export function createIdleProactiveSpeaker(deps: IdleProactiveSpeechDeps) {
         let takenOver = false;
         const stopWatching = deps.watchForTakeover(() => { takenOver = true; controller.abort(); });
         deps.setWakewordFeeding(false);
-        deps.record("cost", "proactive-line-speech", { route: "idle", characters: line.length });
         let completed = false;
         try {
           deps.showSpeaking(line);
-          await deps.speak(line, controller.signal);
+          await deps.speak(line, controller.signal, {
+            reusable,
+            onAudioSource(fromCache) {
+              if (fromCache) deps.record("runtime", "proactive-line-speech-reused", { route: "idle", occasion: request.occasion });
+              else deps.record("cost", "proactive-line-speech", { route: "idle", characters: line.length });
+            },
+          });
           completed = !controller.signal.aborted;
         } catch (error) {
           if (!takenOver) deps.record("runtime", "proactive-idle-speech-failed", { error: error instanceof Error ? error.message : String(error) });

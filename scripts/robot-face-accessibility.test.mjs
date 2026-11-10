@@ -176,6 +176,7 @@ function loadFace(accessibility, appState, overrides = {}) {
     "@/src/character/face-motion": loadTypeScript("src/character/face-motion.ts"),
     "@/src/character/face-stroke": loadTypeScript("src/character/face-stroke.ts"),
     "@/src/robot-mind/body-state": loadTypeScript("src/robot-mind/body-state.ts"),
+    "@/src/robot-mind/speech-level": loadTypeScript("src/robot-mind/speech-level.ts"),
   };
   deps.react = react;
   const glassModule = { exports: {} };

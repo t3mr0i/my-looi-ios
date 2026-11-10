@@ -166,7 +166,8 @@ export class BudgetConversationService {
    * for the person, then listen again. The line is generated while the
    * microphone keeps listening, so speech that starts meanwhile wins.
    */
-  async speakProactiveLine(occasion: string): Promise<boolean> {
+  /** fixedLine: an authored sentence to say as is, without asking the text model. */
+  async speakProactiveLine(occasion: string, fixedLine?: string): Promise<boolean> {
     const epoch = this.epoch;
     const waiting = () => this.current(epoch) && this.phase === "listening" && !this.hadSpeech
       && !useConversationStore.getState().isUserSpeaking;
@@ -174,7 +175,9 @@ export class BudgetConversationService {
     const controller = new AbortController();
     const preferences = useUserStore.getState().preferences;
     let line: string;
-    try {
+    if (fixedLine?.trim()) {
+      line = fixedLine.trim();
+    } else try {
       const reply = await generateBudgetReply({
         history: useConversationStore.getState().messages.map(({ role, content }) => ({ role, content })),
         language: preferences.language,

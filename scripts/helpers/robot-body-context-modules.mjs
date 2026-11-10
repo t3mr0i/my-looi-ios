@@ -11,7 +11,14 @@ export const inertRobotBodyContextRuntime = {
 };
 
 /** Mock entries for modules that import the body-context modules. */
+/** Inert speech-level hooks for transport tests that do not exercise mouth or head movement. */
+export const inertSpeechLevelModule = {
+  noteSpeechPcm16Base64() {}, noteSpeechPcm16() {}, noteSpeechWav() {},
+  speechLevel: { subscribe: () => () => {}, isLive: () => false, reset() {} },
+};
+
 export const robotBodyContextMocks = {
+  "../robot-mind/speech-level": inertSpeechLevelModule,
   "../robot-mind/body-context": robotBodyContextModule,
   "../robot-mind/body-context-runtime": inertRobotBodyContextRuntime,
 };

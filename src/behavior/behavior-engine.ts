@@ -445,7 +445,13 @@ export function createBehaviorEngine(deps: BehaviorEngineDependencies): Behavior
           { const heard = companion.assistantEnd(latestAssistantText); if (heard?.ritualMotif) pendingMotif = heard.ritualMotif; }
           companion.notePersonalitySpeech(event.text ?? "", state.sessionId ?? "");
           if (state.pendingIntention?.activity) updateActivity(hearSharedActivity(state.pendingIntention.activity, latestAssistantText, wall()));
-          state.posture = "yield"; moment("reacting"); queue("assistant-end"); break;
+          state.posture = "yield"; moment("reacting");
+          // The reply already carried its own expression (model-chosen or speech-driven head
+          // movement). Asking for a second, separate reaction would only cost a request,
+          // unless a ritual, game, repair or paused task still depends on that decision.
+          if (!pendingMotif && !returnConfirmation && !state.repairRequired && !gameOngoing() && !state.pendingIntention
+            && deps.reactionOwnedLocally?.()) { trace("reaction-owned-locally"); emit(); break; }
+          queue("assistant-end"); break;
         case "interrupt": if (environment.assistantSpeaking) interruptedReply = true; returnConfirmation = null; invalidate(event.reason); state.posture = "attend";
           cancelCompanion(); moment("settled");
           if (event.reason === "voice-emergency-kws" || /stop|cliff|sleep|disconnect/i.test(event.reason)) stopOngoingGame();

@@ -19,6 +19,7 @@ import { describeProactiveOccasion } from "../voice/realtime-config";
 import { robotBodyState } from "./body-state";
 import { createIdleProactiveSpeaker } from "./proactive-idle-speech";
 import { createProactiveSpeechRuntime, type ProactiveSpeechRoute } from "./proactive-speech-runtime";
+import { createProactivePhrasePicker, normalizeProactivePhraseLanguage } from "./proactive-phrases";
 
 type VoiceModules = {
   conversation: typeof import("../voice/realtime-conversation").realtimeConversationService;
@@ -70,6 +71,8 @@ function checkIdle(): string | null {
   return null;
 }
 
+const phrasePicker = createProactivePhrasePicker();
+
 const idleSpeaker = createIdleProactiveSpeaker({
   checkIdle,
   async generateLine(occasionText, signal) {
@@ -85,13 +88,18 @@ const idleSpeaker = createIdleProactiveSpeaker({
     });
     return { text: reply.text, model: reply.model, usage: { ...reply.usage } };
   },
-  async speak(text, signal) {
+  pickPhrase: (request) => phrasePicker.pick(request.occasion, normalizeProactivePhraseLanguage(useUserStore.getState().preferences.language), request.detail),
+  async speak(text, signal, options) {
     const { speakOpenAiText } = await import("../openai/openai-speech");
     const preferences = useUserStore.getState().preferences;
+    // A fixed line is spoken in the plain voice style, without the mood of the
+    // moment, so its stored audio stays valid and is found again next time.
+    const cache = options.reusable ? (await import("./speech-clip-cache-storage")).speechClipCache : undefined;
     // Not streamed: the wake-word recorder stays warm, as in Classic speech.
     await speakOpenAiText(text, {
       voiceId: preferences.ttsVoiceId, styleId: preferences.ttsStyleId, speed: preferences.ttsSpeed, signal,
-      personalityContext: getCompanionPersonalityContext(""),
+      ...(cache ? { cache } : { personalityContext: getCompanionPersonalityContext("") }),
+      onAudioSource: options.onAudioSource,
     });
   },
   isWakewordFeeding: () => modules?.feeder.diagnosticStatus.wakewordFeedingEnabled !== false,
@@ -169,7 +177,10 @@ export function installProactiveSpeechRuntime(): () => void {
     },
     async speakInBudgetSession(request) {
       const { budgetConversationService } = await import("../voice/budget-conversation");
-      return budgetConversationService.speakProactiveLine(request.occasionText);
+      // Below "lively" the fixed line saves the text model call inside a Budget session too.
+      const fixed = request.level === "lively" ? undefined
+        : phrasePicker.pick(request.occasion, normalizeProactivePhraseLanguage(useUserStore.getState().preferences.language), request.detail);
+      return budgetConversationService.speakProactiveLine(request.occasionText, fixed);
     },
     speakWhileIdle: (request) => idleSpeaker.speak(request),
     record: (category, event, details) => recordDiagnosticEvent(category, event, details),
