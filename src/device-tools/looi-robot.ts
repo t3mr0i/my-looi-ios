@@ -181,6 +181,15 @@ export function subscribeLooiRobotRuntimeState(listener: LooiRuntimeStateListene
   return () => runtimeStateListeners.delete(listener);
 }
 
+type LooiFed9FrameListener = (frame: { at: number; hex: string }) => void;
+const fed9FrameListeners = new Set<LooiFed9FrameListener>();
+
+/** Diagnostics only (device check): every FED9 notification as received, before decoding. */
+export function subscribeLooiFed9Frames(listener: LooiFed9FrameListener): () => void {
+  fed9FrameListeners.add(listener);
+  return () => fed9FrameListeners.delete(listener);
+}
+
 let pendingSensorObserverTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingSensorObserverGeneration: number | null = null;
 
@@ -276,6 +285,24 @@ export function handleLooiRobotTransportDisconnected(error?: unknown): void {
     reason: "transport-disconnected",
   });
   emitLooiRobotRuntimeStateChanged();
+}
+
+/**
+ * Device check only: drops the BLE link in the middle of a running wheel motion without writing STOP, so the
+ * owner can watch whether the robot stops by itself. robot.disconnect() ends the drive loop without a STOP frame
+ * and closes the transport synchronously before its first await, so no later write (including the bounded-motion
+ * cleanup STOP) can reach the robot. The state reset is the ordinary link-loss path and records ble-disconnected
+ * with previousDirection. Never call this outside the guided device check.
+ */
+export async function cutLooiLinkDuringMotionForDeviceCheck(): Promise<{ cut: boolean; direction: LooiMoveDirection | null }> {
+  const robot = state.robot;
+  const direction = state.activeDirection;
+  if (!robot || !state.connected || !state.motionActive || !direction || direction === "stop") return { cut: false, direction };
+  recordDiagnosticEvent("robot", "device-check-link-cut", { direction });
+  const closing = robot.disconnect();
+  handleLooiRobotTransportDisconnected(new Error("device-check link cut"));
+  await closing.catch(() => undefined);
+  return { cut: true, direction };
 }
 
 export async function connectLooiRobot(options: LooiConnectOptions = {}): Promise<{
@@ -1765,6 +1792,9 @@ function rememberRawNotification(event: LooiRawNotification): void {
   state.sensors.lastFed9At = now;
   const frameType = event.hex.slice(0, 2).toLowerCase() || "empty";
   state.sensors.fed9FrameCounts[frameType] = (state.sensors.fed9FrameCounts[frameType] ?? 0) + 1;
+  for (const listener of fed9FrameListeners) {
+    try { listener({ at: now, hex: event.hex }); } catch { /* Observers must never interfere with sensor handling. */ }
+  }
 
   if (now - lastFed9LoggedAt >= FED9_LOG_INTERVAL_MS) {
     lastFed9LoggedAt = now;
