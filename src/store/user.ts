@@ -25,6 +25,7 @@ import {
   normalizeInterfaceLanguage,
   type InterfaceLanguage,
 } from "../i18n/ui-language";
+import type { ProactiveSpeechLevel } from "../robot-mind/proactive-speech-policy";
 
 export type VoiceState =
   | "sleeping"
@@ -159,6 +160,11 @@ export function normalizeAmbientMotionLevel(value: unknown): AmbientMotionLevel 
   return value === "off" || value === "subtle" || value === "normal" || value === "lively" ? value : "normal";
 }
 
+/** Kept in step with normalizeProactiveSpeechLevel in robot-mind; reactions is the shipped default. */
+export function normalizeProactiveSpeech(value: unknown): ProactiveSpeechLevel {
+  return value === "off" || value === "reactions" || value === "lively" ? value : "reactions";
+}
+
 export function normalizeConversationMode(value: unknown): ConversationMode {
   return value === "budget" || value === "realtime" || value === "realtime_pcm"
     ? value
@@ -218,6 +224,8 @@ export type UserPreferences = {
   customVoiceCommands: CustomVoiceCommandMap;
   /** Selectable conversation transport. Unknown persisted values fall back to Realtime PCM. */
   conversationMode: ConversationMode;
+  /** Self-initiated lines about body events: off, reactions to things done to/near LOOI, or also idle remarks. */
+  proactiveSpeech: ProactiveSpeechLevel;
 };
 
 interface UserState {
@@ -278,6 +286,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   robotAddressRecognitionAliases: ["Луй", "Луни", "Луі", "Уи", "Уй"],
   customVoiceCommands: EMPTY_CUSTOM_VOICE_COMMANDS,
   conversationMode: "realtime_pcm",
+  proactiveSpeech: "reactions",
 };
 
 function loadPreferences(): UserPreferences {
@@ -348,6 +357,7 @@ function loadPreferences(): UserPreferences {
       conversationMode: normalizeConversationMode(
         (preferences as { conversationMode?: unknown }).conversationMode
       ),
+      proactiveSpeech: normalizeProactiveSpeech((preferences as Partial<UserPreferences>).proactiveSpeech),
     };
     if (
       (preferences as Partial<UserPreferences>).interfaceLanguage !== normalized.interfaceLanguage ||
@@ -367,6 +377,7 @@ function loadPreferences(): UserPreferences {
       Object.prototype.hasOwnProperty.call(preferences, "character2Id") ||
       stored.version !== 19 ||
       (preferences as Partial<UserPreferences>).conversationMode !== normalized.conversationMode ||
+      (preferences as Partial<UserPreferences>).proactiveSpeech !== normalized.proactiveSpeech ||
       Object.prototype.hasOwnProperty.call(preferences, "memoryBackend") ||
       Object.prototype.hasOwnProperty.call(preferences, "cameraEnabled") ||
       Object.prototype.hasOwnProperty.call(preferences, "calendarEnabled")
@@ -435,6 +446,10 @@ export const useUserStore = create<UserState>((set) => ({
             ? state.preferences.speechGender
             : normalizeSpeechGender(prefs.speechGender),
         wakeWordEnabled: true,
+        proactiveSpeech:
+          prefs.proactiveSpeech === undefined
+            ? state.preferences.proactiveSpeech
+            : normalizeProactiveSpeech(prefs.proactiveSpeech),
         ttsVoiceId:
           prefs.ttsVoiceId && isSupportedRealtimeVoiceId(prefs.ttsVoiceId)
             ? prefs.ttsVoiceId

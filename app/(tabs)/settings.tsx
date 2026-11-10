@@ -587,6 +587,17 @@ export default function SettingsScreen() {
           value={preferences.ambientMotionLevel}
           onChange={(id) => updatePreferences({ ambientMotionLevel: id })}
         />
+        <Text style={styles.label}>{t("settings.proactiveSpeech")}</Text>
+        <Text style={styles.help}>{t("settings.proactiveSpeechHelp")}</Text>
+        <Segmented
+          options={[
+            { id: "off" as const, label: t("settings.proactiveSpeechOff") },
+            { id: "reactions" as const, label: t("settings.proactiveSpeechReactions") },
+            { id: "lively" as const, label: t("settings.proactiveSpeechLively") },
+          ]}
+          value={preferences.proactiveSpeech}
+          onChange={(id) => updatePreferences({ proactiveSpeech: id })}
+        />
         <View style={styles.subCard}>
           <Text style={styles.label}>{t("settings.cameraAttention")}</Text>
           <Text style={styles.help}>{t("settings.cameraAttentionHelp")}</Text>
