@@ -71,6 +71,7 @@
     "ble:lifecycle-test": "node scripts/ble-autoconnect-behavior.test.mjs && node scripts/ble-cancellation-behavior.test.mjs && node scripts/ble-discovery-behavior.test.mjs",
     "vosk:emergency-stop-test": "node scripts/vosk-emergency-stop-behavior.test.mjs",
     "motion:cliff-test": "node scripts/cliff-directional-safety.test.mjs",
+    "motion:sensor-reset-test": "node scripts/looi-sensor-reset.test.mjs",
     "ble:adoption-test": "node scripts/ble-existing-connection-adoption.test.mjs",
     "wake:alias-test": "node scripts/wake-alias-behavior.test.mjs",
     "ble:foreground-retry-test": "node scripts/ble-foreground-retry-behavior.test.mjs",
