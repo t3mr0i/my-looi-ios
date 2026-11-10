@@ -1,11 +1,11 @@
 import { AppState } from "react-native";
-import { forceReconnectSavedLooiRobot } from "../device-tools/looi-robot-autoconnect";
+import { forceReconnectSavedLooiRobot, getLooiRobotDebugState } from "../device-tools/looi-robot-autoconnect";
 import { cutLooiLinkDuringMotionForDeviceCheck, getLooiRobotRuntimeState, setLooiHead, subscribeLooiFed9Frames, turnLooi } from "../device-tools/looi-robot";
 import { getDiagnosticLogEntries, recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { useUserStore } from "../store/user";
 import {
   LIFT_POSES, LINK_LOSS_CUT_AFTER_MS, LINK_LOSS_OBSERVE_MS, LINK_LOSS_TURN_DIRECTION, TOF_STEPS,
-  deviceCheckBlockersFor, evaluateLift, evaluateLinkLoss, evaluateTof, runHeadCheck, runHoldSequence, runLinkLossAttempt,
+  deviceCheckBlockersFor, evaluateLift, evaluateLinkLoss, evaluateTof, linkLossStopRecorded, runHeadCheck, runHoldSequence, runLinkLossAttempt,
   type DeviceCheckBlocker, type Fed9Frame, type HeadAnswer, type HeadReport, type HoldDeps, type LiftReport, type LinkLossAnswer,
   type LinkLossAttemptResult, type LinkLossSummary, type TofReport,
 } from "./device-check";
@@ -29,9 +29,9 @@ async function exclusive<T>(job: () => Promise<T>): Promise<T> {
   try { return await job(); } finally { running = false; }
 }
 
-/** True when the diagnostic log holds a link-loss verdict "stops" (two valid attempts, both within about a second). */
+/** True when the most recent real-hardware link-loss verdict in the diagnostic log is "stops" (two valid attempts, both within about a second). */
 export function hasRecordedLinkLossStop(): boolean {
-  return getDiagnosticLogEntries().some((e) => e.category === "robot" && e.event === "device-check-link-loss" && e.details.verdict === "stops");
+  return linkLossStopRecorded(getDiagnosticLogEntries());
 }
 
 export function currentDeviceCheckBlockers(): DeviceCheckBlocker[] {
@@ -96,7 +96,7 @@ export function runTofCheckOnDevice(ui: DeviceCheckUi): Promise<TofReport | null
   }));
 }
 
-export function runLinkLossAttemptOnDevice(ui: DeviceCheckUi, attempt: number): Promise<LinkLossAttemptResult> {
+export function runLinkLossAttemptOnDevice(ui: DeviceCheckUi, attempt: number): Promise<LinkLossAttemptResult | null> {
   return exclusive(async () => {
     let leftAt: number | null = null;
     const sub = AppState.addEventListener("change", (s) => { if (s !== "active" && leftAt === null) leftAt = Date.now(); });
@@ -115,7 +115,9 @@ export function runLinkLossAttemptOnDevice(ui: DeviceCheckUi, attempt: number): 
         reconnect: () => { void forceReconnectSavedLooiRobot().catch(() => undefined); },
         phase: (p) => ui.phase("link_loss", p, 0),
         ask: ui.askLinkLoss,
+        cancelled: ui.cancelled,
       }, attempt);
+      if (r === null || ui.cancelled()) return null;
       recordDiagnosticEvent("robot", "device-check-link-loss-attempt", {
         attempt: r.attempt, valid: r.valid, invalidReason: r.invalidReason ?? "none", motion: "turn-left-180", direction: r.cutDirection ?? "none",
         blockReason: r.blockReason ?? "none", answer: r.answer ?? "none", cutAfterMs: LINK_LOSS_CUT_AFTER_MS, observeMs: LINK_LOSS_OBSERVE_MS,
@@ -132,6 +134,8 @@ export function recordLinkLossVerdict(attempts: readonly LinkLossAttemptResult[]
   recordDiagnosticEvent("robot", "device-check-link-loss", {
     verdict: summary.verdict, recommendation: summary.recommendation, attempts: summary.attempts,
     validAttempts: summary.validAttempts, answers: list(summary.answers),
+    // Only a run against the real robot may open the gate; the log read by the gate ignores entries without this field.
+    mock: getLooiRobotDebugState().mode !== "hardware",
   });
   return summary;
 }

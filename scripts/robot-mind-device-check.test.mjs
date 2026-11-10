@@ -179,8 +179,9 @@ assert.deepEqual(summarise(attemptOf(null, false), attemptOf(null, false)), ["un
 }
 
 // Link loss runner
-function linkHarness({ appLeftAfter = null, neverStarts = false, reconnectAfterCut = null, cutResult = { cut: true, direction: "left" } } = {}) {
+function linkHarness({ appLeftAfter = null, neverStarts = false, reconnectAfterCut = null, cutResult = { cut: true, direction: "left" }, cancelAfter = null } = {}) {
   let now = 500_000;
+  const cancelAt = cancelAfter === null ? null : now + cancelAfter;
   const t0 = now;
   const calls = {};
   let turnAt = null;
@@ -199,6 +200,7 @@ function linkHarness({ appLeftAfter = null, neverStarts = false, reconnectAfterC
     async cutLink() { calls.cut = now; cutAt = now; if (cutResult.cut) connected = false; return cutResult; },
     reconnect() { calls.reconnect = (calls.reconnect ?? []).concat(now); },
     phase() {},
+    cancelled: () => cancelAt !== null && now >= cancelAt,
     async ask() { calls.ask = (calls.ask ?? []).concat(now); return "within_1s"; },
   };
   return { deps, calls };
@@ -233,6 +235,31 @@ assert.equal((await api.runLinkLossAttempt(linkHarness({ reconnectAfterCut: 1000
   assert.equal(result.invalidReason, "no-cut");
   assert.equal(h.calls.ask, undefined);
 }
+
+{
+  // Cancelled during the turn, before the cut: no cut, no ask, no result to record.
+  const h = linkHarness({ cancelAfter: 250 });
+  assert.equal(await api.runLinkLossAttempt(h.deps, 1), null);
+  assert.equal(h.calls.cut, undefined);
+  assert.equal(h.calls.ask, undefined);
+  assert.equal(h.calls.reconnect, undefined);
+}
+
+// Link-loss gate: only the most recent real-hardware verdict counts, and only "stops"
+const verdictEntry = (verdict, extra = {}) => ({ category: "robot", event: "device-check-link-loss", details: { verdict, mock: false, ...extra } });
+const gate = (...entries) => api.linkLossStopRecorded(entries);
+assert.equal(gate(verdictEntry("stops")), true);
+for (const v of ["keeps_going", "stops_late", "needs_more", "undecided"]) assert.equal(gate(verdictEntry(v)), false, v);
+assert.equal(gate(), false);
+assert.equal(gate(verdictEntry("stops"), verdictEntry("keeps_going")), false);
+assert.equal(gate(verdictEntry("stops"), verdictEntry("stops_late")), false);
+assert.equal(gate(verdictEntry("keeps_going"), verdictEntry("stops")), true);
+assert.equal(gate(verdictEntry("stops"), { category: "robot", event: "device-check-link-loss-attempt", details: { verdict: "keeps_going", mock: false } }), true);
+assert.equal(gate({ category: "robot", event: "device-check-head", details: { verdict: "stops", mock: false } }), false);
+assert.equal(gate(verdictEntry("stops", { mock: true })), false);
+assert.equal(gate({ category: "robot", event: "device-check-link-loss", details: { verdict: "stops" } }), false);
+assert.equal(gate(verdictEntry("stops"), verdictEntry("keeps_going", { mock: true })), true);
+assert.equal(gate(verdictEntry("keeps_going"), verdictEntry("stops", { mock: true })), false);
 
 // Head
 const headDeps = ({ w87 = true, w5a = true, ready5a = true, answer = "5a" } = {}) => {

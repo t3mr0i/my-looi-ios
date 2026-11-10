@@ -146,6 +146,7 @@ export function DeviceCheckPanel({ disabled }: { disabled?: boolean }) {
           setBlockers(again);
           if (again.length) break;
           const attempt = await install.runLinkLossAttemptOnDevice(ui, attemptsRef.current.length + 1);
+          if (attempt === null) { setResult(t("cancelled")); break; }
           attemptsRef.current.push(attempt);
           const line = attemptLine(attempt);
           setLog((lines) => [...lines, line]);

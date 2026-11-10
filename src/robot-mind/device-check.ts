@@ -257,6 +257,19 @@ export function evaluateLinkLoss(attempts: readonly LinkLossAttemptResult[]): Li
   if (valid.length >= 2) return summary("stops", "confirm-steps");
   return summary("needs_more", "repeat");
 }
+/** One diagnostic-log entry, as far as the gate needs it. */
+export interface LinkLossLogEntry { category: string; event: string; details: Record<string, string | number | boolean | null> }
+/**
+ * The gate for "Schritte beim Erkunden: Geprüft". Only the most recent real-hardware `device-check-link-loss` verdict counts, and only if it is
+ * `stops`. Entries recorded against the mock transport, or without the `mock` field, are ignored. Entries are in chronological order.
+ */
+export function linkLossStopRecorded(entries: readonly LinkLossLogEntry[]): boolean {
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    const e = entries[i];
+    if (e.category === "robot" && e.event === "device-check-link-loss" && e.details.mock === false) return e.details.verdict === "stops";
+  }
+  return false;
+}
 export interface LinkLossDeps {
   now(): number;
   wait(ms: number): Promise<void>;
@@ -269,8 +282,10 @@ export interface LinkLossDeps {
   reconnect(): void;
   phase(phase: "starting" | "observing"): void;
   ask(): Promise<LinkLossAnswer | null>;
+  cancelled(): boolean;
 }
-export async function runLinkLossAttempt(deps: LinkLossDeps, attempt: number): Promise<LinkLossAttemptResult> {
+/** null when the owner cancelled before the cut: nothing is cut and nothing is recorded (the bounded turn ends with its normal STOP). */
+export async function runLinkLossAttempt(deps: LinkLossDeps, attempt: number): Promise<LinkLossAttemptResult | null> {
   let appLeftActiveAt: number | null = null;
   const watch = () => { if (appLeftActiveAt === null && !deps.appActive()) appLeftActiveAt = deps.now(); };
   const facts = (more: Partial<LinkLossAttemptFacts>): LinkLossAttemptFacts => ({
@@ -287,11 +302,13 @@ export async function runLinkLossAttempt(deps: LinkLossDeps, attempt: number): P
   while (deps.now() < deadline) {
     await deps.wait(LINK_LOSS_POLL_MS);
     watch();
+    if (deps.cancelled()) return null;
     const r = deps.robot();
     if (r.motionActive && r.activeDirection === LINK_LOSS_TURN_DIRECTION) { startedAt = deps.now(); break; }
   }
   if (startedAt === null) return evaluateLinkLossAttempt(facts({ blockReason: deps.robot().lastMotionBlockReason ?? "turn-did-not-start" }));
   while (deps.now() - startedAt < LINK_LOSS_CUT_AFTER_MS) { await deps.wait(LINK_LOSS_POLL_MS); watch(); }
+  if (deps.cancelled()) return null;
   const cut = await deps.cutLink();
   const cutAt = deps.now();
   deps.phase("observing");
