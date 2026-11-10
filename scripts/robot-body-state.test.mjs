@@ -1,0 +1,32 @@
+import assert from "node:assert/strict";
+import { loadTypeScript } from "./helpers/load-typescript.mjs";
+
+const api = loadTypeScript("src/robot-mind/body-state.ts");
+let clock = 1_000;
+const store = api.createRobotBodyStateStore(() => clock);
+const seen = [], events = [];
+const stopState = store.subscribeState((state, source) => seen.push([source, state.people.visible, state.activity.mode]));
+store.subscribeEvents((event) => events.push(event.type));
+
+assert.equal(store.getState().connection, "unknown");
+assert.equal(store.getState().activity.since, 1_000);
+assert.equal(store.update({ people: { visible: 1, lastSeenAt: 1_200 } }, "camera"), true);
+assert.deepEqual(store.getState().people, { visible: 1, attended: null, lastSeenAt: 1_200 }, "nested objects merge one level");
+assert.equal(store.update({ people: { visible: 1 } }, "camera"), false, "an unchanged patch notifies nobody");
+assert.equal(store.getRevision(), 1);
+store.update({ people: { attended: { bearing: "left", distance: "near", since: 1_300 } }, activity: { mode: "attending", since: 1_300 } }, "attention");
+store.update({ people: { attended: null } }, "attention");
+assert.equal(store.getState().people.attended, null);
+assert.deepEqual(seen, [["camera", 1, "resting"], ["attention", 1, "attending"], ["attention", 1, "attending"]]);
+store.publishEvent({ type: "person_appeared", at: 1_300, bearing: "left" });
+store.subscribeEvents(() => { throw new Error("a broken listener must not stop the others"); });
+const warn = console.warn; console.warn = () => {};
+store.publishEvent({ type: "petted", at: 1_400 });
+console.warn = warn;
+assert.deepEqual(events, ["person_appeared", "petted"]);
+stopState();
+store.update({ wheelsMoving: true }, "motion");
+assert.equal(seen.length, 3, "unsubscribed listeners stay silent");
+clock = 5_000; store.reset();
+assert.deepEqual(store.getState(), api.createInitialRobotBodyState(5_000));
+console.log("Robot body state store tests passed");
