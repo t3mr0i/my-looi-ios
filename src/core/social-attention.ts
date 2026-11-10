@@ -116,6 +116,7 @@ let localInteractionSignalsEnabled: boolean | null = false;
 let interactionSignalsReconcilePromise: Promise<void> | null = null;
 let objectAttentionLease: { id: string; ended: (reason: string) => void } | null = null;
 let objectTrackingSupported = false;
+let idleLookRequested = false;
 
 /** Reuses the existing camera owner; an external media owner cannot be bypassed. */
 export async function acquireSocialObjectAttention(id: string, ended: (reason: string) => void): Promise<boolean> {
@@ -140,6 +141,26 @@ function endObjectAttentionLease(reason: string): void {
   const lease = objectAttentionLease;
   objectAttentionLease = null;
   try { lease?.ended(reason); } catch { /* Camera teardown must continue. */ }
+}
+
+/**
+ * Idle autonomy may keep the camera looking for faces while nobody talks. This
+ * never arms social motion, so no head or body correction comes from it, and it
+ * yields to rituals, object leases and the normal conversation lifecycle.
+ */
+export function setSocialIdleLookRequested(requested: boolean): void {
+  const changed = idleLookRequested !== requested;
+  idleLookRequested = requested;
+  if (!requested) {
+    if (changed && attentionActive && !interactionStateActive() && !interactionSignalRequest && !objectAttentionLease) {
+      scheduleRelease(0);
+    }
+    return;
+  }
+  // Motion armed by an earlier conversation must not keep correcting once only idle looking holds the camera.
+  if (motionArmed && !interactionStateActive() && !noteHoldTimer) motionArmed = false;
+  if (attentionActive || interactionSignalRequest || objectAttentionLease || !canUseAttention()) return;
+  activate("idle-look", false);
 }
 
 /** A short, explicitly armed interaction reuses this camera's existing owner. */
@@ -384,7 +405,7 @@ function scheduleRelease(delayMs = RELEASE_GRACE_MS): void {
   clearTimer(releaseTimer);
   releaseTimer = setTimeout(() => {
     releaseTimer = null;
-    if (interactionStateActive() || interactionSignalRequest || objectAttentionLease) return;
+    if (interactionStateActive() || interactionSignalRequest || objectAttentionLease || idleLookRequested) return;
     attentionActive = false;
     void stopNative("interaction-grace-finished");
   }, delayMs);
@@ -788,6 +809,7 @@ export async function stopSocialAttentionController(reason = "runtime"): Promise
   if (!running && !nativeStarted) return;
   running = false;
   interactionSignalRequest = null;
+  idleLookRequested = false;
   attentionActive = false;
   clearTimer(releaseTimer);
   clearTimer(noteHoldTimer);
@@ -821,6 +843,7 @@ export function getSocialAttentionControllerState() {
     interactionSignalsSupported,
     objectTrackingSupported,
     objectAttentionActive: objectAttentionLease !== null,
+    idleLookRequested,
     faceVisible: useSocialAttentionStore.getState().faceVisible,
     lastFaceAgeMs,
     faces,

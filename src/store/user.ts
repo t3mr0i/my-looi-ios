@@ -26,6 +26,7 @@ import {
   type InterfaceLanguage,
 } from "../i18n/ui-language";
 import type { ProactiveSpeechLevel } from "../robot-mind/proactive-speech-policy";
+import type { IdleAutonomyLevel } from "../robot-mind/idle-autonomy";
 
 export type VoiceState =
   | "sleeping"
@@ -38,6 +39,7 @@ export type VoiceState =
 export type ConversationMode = "budget" | "realtime" | "realtime_pcm";
 
 export type AmbientMotionLevel = "off" | "subtle" | "normal" | "lively";
+export type { IdleAutonomyLevel };
 
 /** Legacy v2.1.127-v2.1.128 combined face preset; retained only for migration compatibility. */
 export type FaceSkinId = "classic" | "soft" | "pixel" | "spark";
@@ -165,6 +167,11 @@ export function normalizeProactiveSpeech(value: unknown): ProactiveSpeechLevel {
   return value === "off" || value === "reactions" || value === "lively" ? value : "reactions";
 }
 
+/** Unknown or missing values fall back to head-and-turn-only idle life; driving is never a fallback. */
+export function normalizeIdleAutonomyLevel(value: unknown): IdleAutonomyLevel {
+  return value === "off" || value === "look" || value === "explore" ? value : "look";
+}
+
 export function normalizeConversationMode(value: unknown): ConversationMode {
   return value === "budget" || value === "realtime" || value === "realtime_pcm"
     ? value
@@ -208,6 +215,8 @@ export type UserPreferences = {
   ambientMotionLevel: AmbientMotionLevel;
   /** Opt-in local-only face attention used only during active social interaction. */
   cameraAttentionEnabled: boolean;
+  /** Idle life without a conversation: off, look (head and turning in place), or explore (may also take short steps). */
+  idleAutonomyLevel: IdleAutonomyLevel;
   /** Legacy combined visual preset kept only so older installs migrate predictably. */
   faceSkin: FaceSkinId;
   /** Independent facial geometry/decor style. Pure presentation only. */
@@ -278,6 +287,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   wakeWordEnabled: true,
   ambientMotionLevel: "normal",
   cameraAttentionEnabled: false,
+  idleAutonomyLevel: "look",
   faceSkin: "classic",
   faceStyle: "classic",
   facePalette: "cyan",
@@ -339,6 +349,7 @@ function loadPreferences(): UserPreferences {
       // Do not migrate the retired experimental `cameraEnabled` flag. The new
       // social camera feature is privacy-sensitive and must be explicitly enabled.
       cameraAttentionEnabled: (preferences as Partial<UserPreferences>).cameraAttentionEnabled === true,
+      idleAutonomyLevel: normalizeIdleAutonomyLevel((preferences as Partial<UserPreferences>).idleAutonomyLevel),
       faceSkin: normalizeFaceSkinId((preferences as Partial<UserPreferences>).faceSkin),
       faceStyle: normalizeFaceStyleId(
         (preferences as Partial<UserPreferences>).faceStyle,
@@ -371,6 +382,7 @@ function loadPreferences(): UserPreferences {
       (preferences as Partial<UserPreferences>).wakeWordEnabled !== true ||
       (preferences as Partial<UserPreferences>).ambientMotionLevel !== normalized.ambientMotionLevel ||
       (preferences as Partial<UserPreferences>).cameraAttentionEnabled !== normalized.cameraAttentionEnabled ||
+      (preferences as Partial<UserPreferences>).idleAutonomyLevel !== normalized.idleAutonomyLevel ||
       (preferences as Partial<UserPreferences>).faceSkin !== normalized.faceSkin ||
       (preferences as Partial<UserPreferences>).faceStyle !== normalized.faceStyle ||
       (preferences as Partial<UserPreferences>).facePalette !== normalized.facePalette ||

@@ -214,6 +214,7 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "../robot-mind/body-sensors-runtime": { installRobotBodySensors() { bootEvents.push(["bodySensors"]); return () => {}; } },
   "../robot-mind/proactive-speech-install": { installProactiveSpeechRuntime() { return () => {}; } },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
+  "../robot-mind/idle-autonomy-install": { installIdleAutonomyRuntime() {} },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();
 assert.equal(bootstrap.bootstrapApp(), boot, "Bootstrap must be coalesced");

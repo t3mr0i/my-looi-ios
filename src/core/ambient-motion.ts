@@ -354,6 +354,14 @@ export function stopAmbientMotionController(reason = "runtime"): void {
   recordDiagnosticEvent("character", "ambient-motion-controller-stopped", { reason });
 }
 
+const interactionListeners = new Set<(source: string) => void>();
+
+/** Observe the same human interactions that pause ambient motion (touch, speech, wake, bridge commands). */
+export function subscribeAmbientMotionInteractions(listener: (source: string) => void): () => void {
+  interactionListeners.add(listener);
+  return () => { interactionListeners.delete(listener); };
+}
+
 /**
  * Give real user activity priority over idle body motion. We re-check quickly
  * afterwards so a processing/speaking head gesture can still happen naturally;
@@ -362,6 +370,9 @@ export function stopAmbientMotionController(reason = "runtime"): void {
 export function noteAmbientMotionInteraction(source: string): void {
   lastInteractionAt = Date.now();
   generation += 1;
+  for (const listener of [...interactionListeners]) {
+    try { listener(source); } catch { /* observers never block ambient motion */ }
+  }
   if (!running) return;
   clearTimer();
   recordDiagnosticEvent("character", "ambient-motion-interaction", { source });
