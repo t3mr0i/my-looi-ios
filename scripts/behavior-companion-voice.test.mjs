@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 const robotCapabilityModules = loadRobotCapabilityModules();
 
 const flush = async () => {
@@ -317,6 +318,7 @@ const robotAppSkillCalls = [];
 const robotAppSkillToolModule = loadTypeScript("src/voice/robot-app-skill-tools.ts", {
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 });
 const robotAppSkillToolBridge = robotAppSkillToolModule.createRobotAppSkillToolBridge({
   async searchRobotAppSkills(query, limit) {
@@ -376,6 +378,7 @@ const configModule = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 });
 const preferences = {
   language: "en", listeningLanguage: "en", realtimeModelId: "test-realtime",
@@ -592,6 +595,7 @@ function mockCommonBehaviorDependencies() {
     "./robot-capability-tools": { robotCapabilityToolBridge: recordingRobotCapabilityToolBridge },
     "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
     "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
     "./realtime-physical-command": {
       parseRealtimePhysicalCommand: () => null, executeRealtimePhysicalCommand: async () => ({ ok: true }),
     },

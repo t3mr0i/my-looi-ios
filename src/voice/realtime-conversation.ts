@@ -1,4 +1,5 @@
 import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, readCompanionInterests, getBehaviorInteractionRevision, getBehaviorInteractionSnapshot, requiresBehaviorTurnCommit, performBehaviorCompanionAction, publishBehaviorEvent, type BehaviorInteractionSnapshot, type BehaviorSignalResponseRequest } from "../behavior/behavior-events";
+import { startRealtimeBodyContextFeed, type RobotBodyContextFeed } from "../robot-mind/body-context-runtime";
 import type { CompanionAction, CompanionActionResult } from "../behavior/behavior-companion";
 import { AppState, Platform } from "react-native";
 import { setIsAudioActiveAsync } from "expo-audio";
@@ -222,6 +223,7 @@ export class RealtimeConversationService {
   private armedSharedRituals = new Map<string, ArmedSharedRitual>();
   private attemptedSharedRituals = new Set<string>();
   private toolCallsInFlight = 0;
+  private bodyContextFeed: RobotBodyContextFeed | null = null;
   private pendingPreroll: { samples: number[]; sampleRate: number; source: "wake-command" | "startup" } | null = null;
   private startupPrerollSamples: number[] = [];
   private startupPrerollUnsubscribe: (() => void) | null = null;
@@ -787,6 +789,8 @@ export class RealtimeConversationService {
     if (this.stopping) return;
     this.stopping = true;
     if (this.sessionId) endBehaviorSession(this.sessionId);
+    this.bodyContextFeed?.stop();
+    this.bodyContextFeed = null;
     this.lastStopReason = reason;
     this.active = false;
     this.currentCompanionUserTurn = null;
@@ -1227,6 +1231,14 @@ export class RealtimeConversationService {
       }
       this.configured = true;
       if (this.configuredAt === 0) this.configuredAt = now;
+      if (!this.bodyContextFeed && this.sessionId) {
+        this.bodyContextFeed = startRealtimeBodyContextFeed({
+          transport: "webrtc",
+          sessionId: this.sessionId,
+          send: (bodyEvent) => this.send(bodyEvent),
+          canSend: () => this.canSendBodyContext(),
+        });
+      }
       const preroll = this.pendingPreroll;
       this.pendingPreroll = null;
       if (preroll) {
@@ -1549,6 +1561,7 @@ export class RealtimeConversationService {
       const completedResponseId = String(event.response?.id ?? "").trim();
       if ((completedResponseId && completedResponseId !== this.activeResponseId) || !this.activeResponseId) return;
       this.generationActive = false;
+      this.bodyContextFeed?.flush();
       if (!this.playbackActive) this.activeResponseId = null;
       const hasFunctionCall = Array.isArray(event.response?.output) &&
         event.response.output.some((item: any) => item?.type === "function_call");
@@ -2515,6 +2528,12 @@ export class RealtimeConversationService {
     } finally {
       this.vadHealthRecoveryInFlight = false;
     }
+  }
+
+  /** Body notes never go out while a response or tool call is running. */
+  private canSendBodyContext(): boolean {
+    return this.active && this.configured && this.dataChannel?.readyState === "open" && !this.generationActive &&
+      this.toolCallsInFlight === 0 && this.pendingCompanionToolCalls.size === 0;
   }
 
   private send(event: Record<string, unknown>): boolean {

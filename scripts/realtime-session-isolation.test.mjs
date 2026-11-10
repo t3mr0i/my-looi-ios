@@ -3,6 +3,7 @@ import fs from "node:fs";
 import ts from "typescript";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 const robotCapabilityModules = loadRobotCapabilityModules();
 
 const deferred = () => {
@@ -85,6 +86,7 @@ const dependencies = {
   "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
   "./realtime-physical-command": { executeRealtimePhysicalCommand: () => physical.promise },
   "./realtime-visual-command": {},
 };

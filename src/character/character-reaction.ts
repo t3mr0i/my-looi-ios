@@ -20,7 +20,9 @@ type CharacterReactionState = {
   mood: CharacterMood | null;
   reactionId: number;
   expiresAt: number | null;
-  setReaction: (mood: CharacterMood | null, reactionId: number, expiresAt: number | null) => void;
+  /** Who triggered the current reaction, e.g. "friendly-face-stroke". */
+  source?: string | null;
+  setReaction: (mood: CharacterMood | null, reactionId: number, expiresAt: number | null, source?: string | null) => void;
 };
 
 let nextReactionId = 1;
@@ -30,7 +32,8 @@ export const useCharacterReactionStore = create<CharacterReactionState>((set) =>
   mood: null,
   reactionId: 0,
   expiresAt: null,
-  setReaction: (mood, reactionId, expiresAt) => set({ mood, reactionId, expiresAt }),
+  source: null,
+  setReaction: (mood, reactionId, expiresAt, source = null) => set({ mood, reactionId, expiresAt, source }),
 }));
 
 export function triggerCharacterReaction(
@@ -41,7 +44,7 @@ export function triggerCharacterReaction(
   const reactionId = nextReactionId++;
   const durationMs = Math.max(250, Math.min(5_000, Math.round(options.durationMs ?? 900)));
   const expiresAt = Date.now() + durationMs;
-  useCharacterReactionStore.getState().setReaction(mood, reactionId, expiresAt);
+  useCharacterReactionStore.getState().setReaction(mood, reactionId, expiresAt, options.source ?? null);
   recordDiagnosticEvent("character", "reaction-started", {
     mood,
     reactionId,

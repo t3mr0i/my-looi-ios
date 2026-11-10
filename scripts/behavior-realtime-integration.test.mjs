@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { deferred, loadTypeScript } from "./helpers/load-typescript.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 const robotCapabilityModules = loadRobotCapabilityModules();
 
 const flush = async () => {
@@ -229,6 +230,7 @@ const pcmDependencies = {
   "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 };
 
 const originalWebSocket = globalThis.WebSocket;
@@ -444,6 +446,7 @@ const webrtcDependencies = {
   "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 };
 const { RealtimeConversationService } = loadTypeScript("src/voice/realtime-conversation.ts", webrtcDependencies);
 const webrtc = new RealtimeConversationService();
