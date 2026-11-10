@@ -26,6 +26,7 @@ const MAX_HISTORY_CHARACTERS = 12_000;
 const MAX_MEMORY_CONTEXT_CHARACTERS = 2_000;
 const MAX_TOOL_OUTPUT_CHARACTERS = 4_000;
 const MAX_REPLY_CHARACTERS = 8_000;
+const MAX_OCCASION_CHARACTERS = 400;
 const SUPPORTED_LANGUAGES: readonly ResponseLanguage[] = ["ru", "uk", "en", "de"];
 
 export type BudgetConversationToolName =
@@ -69,6 +70,8 @@ export type BudgetConversationOptions = {
   personalityContext?: string;
   /** Rendered LOOI body sense (robot-mind/body-context); untrusted sensor data. */
   bodyContext?: string;
+  /** A self-initiated line: describes what the body sensed; history may then end with an assistant turn or be empty. */
+  occasion?: string;
   signal?: AbortSignal;
   runTool?: (
     name: BudgetConversationToolName,
@@ -124,12 +127,14 @@ type ParsedResponse = {
 export async function generateBudgetReply(
   options: BudgetConversationOptions
 ): Promise<BudgetConversationResult> {
-  const history = normalizeHistory(options.history);
+  const occasion = typeof options.occasion === "string" ? options.occasion.trim().slice(0, MAX_OCCASION_CHARACTERS) : "";
+  const history = normalizeHistory(options.history, Boolean(occasion));
   const language = normalizeLanguage(options.language);
   const robotName = normalizeRobotName(options.robotName);
   const memoryContext = normalizeMemoryContext(options.memoryContext);
   const instructions = buildBudgetConversationInstructions(robotName, language, memoryContext, Boolean(options.runTool), options.personalityContext, options.bodyContext);
   const input: Array<Record<string, unknown>> = history.map(({ role, content }) => ({ role, content }));
+  if (occasion) input.push({ role: "developer", content: buildBudgetOccasionMessage(occasion, language) });
   const fetcher = options.dependencies?.fetcher ?? fetch;
   const getApiKey = options.dependencies?.getApiKey ?? getOpenAiApiKey;
   const timeoutMs = Math.max(1, options.dependencies?.timeoutMs ?? BUDGET_CONVERSATION_TIMEOUT_MS);
@@ -605,7 +610,12 @@ async function runSafeTool(
   }
 }
 
-function normalizeHistory(history: BudgetConversationHistoryItem[]): BudgetConversationHistoryItem[] {
+/** The app, not the person, starts this turn; the model must not treat it as speech it heard. */
+export function buildBudgetOccasionMessage(occasion: string, language: ResponseLanguage): string {
+  return `Local app event, not words from the person: ${escapeUntrustedText(occasion)} Say exactly one short, natural, in-character line in ${getLanguageName(language)} that fits this moment, at most about twelve words. You may end with one light question. Do not claim to have seen, felt, done or remembered more than this event says, never guess who the person is, and do not mention sensors, the app or this message.`;
+}
+
+function normalizeHistory(history: BudgetConversationHistoryItem[], allowNoUserTurn = false): BudgetConversationHistoryItem[] {
   if (!Array.isArray(history)) throw new BudgetConversationError("invalid_input");
   const normalized: BudgetConversationHistoryItem[] = [];
   for (const item of history) {
@@ -620,7 +630,7 @@ function normalizeHistory(history: BudgetConversationHistoryItem[]): BudgetConve
     normalized.push({ role: item.role, content });
   }
 
-  if (normalized.length === 0 || normalized[normalized.length - 1].role !== "user") {
+  if (!allowNoUserTurn && (normalized.length === 0 || normalized[normalized.length - 1].role !== "user")) {
     throw new BudgetConversationError("invalid_input");
   }
 

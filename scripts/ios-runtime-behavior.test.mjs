@@ -212,6 +212,7 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "./ambient-motion": { startAmbientMotionController() { bootEvents.push(["ambientStart"]); }, stopAmbientMotionController() {} },
   "./social-attention": { startSocialAttentionController() { bootEvents.push(["cameraStart"]); }, async stopSocialAttentionController() {} },
   "../robot-mind/body-sensors-runtime": { installRobotBodySensors() { bootEvents.push(["bodySensors"]); return () => {}; } },
+  "../robot-mind/proactive-speech-install": { installProactiveSpeechRuntime() { return () => {}; } },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();

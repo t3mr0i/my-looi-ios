@@ -51,6 +51,7 @@ function harness() {
     "../voice/retired-experimental-voice-assets": { async removeRetiredExperimentalVoiceAssets() {} },
     "./legacy-network-credentials-retirement": { async retireLegacyNetworkCredentials() {} },
     "./ambient-motion": { startAmbientMotionController() {}, stopAmbientMotionController() { record("ambientStop"); } },
+    "../robot-mind/proactive-speech-install": { installProactiveSpeechRuntime() { return () => {}; } },
     "./social-attention": { startSocialAttentionController() {}, async stopSocialAttentionController() {
       record("cameraStop"); hooks.cameraStarted.resolve(); await hooks.cameraGate?.promise;
     } },

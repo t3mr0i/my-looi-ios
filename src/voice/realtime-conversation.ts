@@ -30,6 +30,7 @@ import {
   buildRealtimeSessionUpdate,
   buildSharedCountdownInstructions,
   buildHermesCompletionInstructions,
+  buildProactiveOccasionResponse,
   bytesToBase64,
   floatSamplesToPcm16Bytes,
   REALTIME_MODEL,
@@ -706,6 +707,17 @@ export class RealtimeConversationService {
   }
 
   private requestSharedCountdown(signal: BehaviorSignalResponseRequest, sessionId: string): boolean {
+    if (signal.kind === "proactive-occasion") {
+      // Never talk over the person, an answer in progress, a tool or a pending confirmation.
+      const store = useConversationStore.getState();
+      if (this.sessionId !== sessionId || !this.active || !this.configured || this.dataChannel?.readyState !== "open" ||
+        AppState.currentState !== "active" || !isMainScreenFocused() || useUserStore.getState().robotSleeping ||
+        store.isUserSpeaking || this.generationActive || this.playbackActive || this.pendingAssistantCompletion !== null ||
+        this.toolCallsInFlight > 0 || requiresBehaviorTurnCommit(sessionId)) return false;
+      const response = buildProactiveOccasionResponse(signal.occasion, useUserStore.getState().preferences, { edgeSide: signal.edgeSide }, signal.id);
+      if (!response || !this.applySessionPreferences("proactive-occasion")) return false;
+      return this.send({ type: "response.create", response });
+    }
     if (signal.kind === "hermes-completed") {
       const revision = getBehaviorInteractionSnapshot(sessionId);
       const store = useConversationStore.getState();

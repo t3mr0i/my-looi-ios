@@ -20,6 +20,7 @@ import { retireLegacyNetworkCredentials } from "./legacy-network-credentials-ret
 import { startAmbientMotionController, stopAmbientMotionController } from "./ambient-motion";
 import { startSocialAttentionController, stopSocialAttentionController } from "./social-attention";
 import { installRobotBodySensors } from "../robot-mind/body-sensors-runtime";
+import { installProactiveSpeechRuntime } from "../robot-mind/proactive-speech-install";
 
 let bootstrapped = false;
 let paused = false;
@@ -103,6 +104,7 @@ async function performBootstrapApp(): Promise<void> {
   perceiverManager.register(voiceRuntime);
   installRobotBodySensors();
   void import("../robot-mind/expression-runtime").then(({ installRobotExpressionRuntime }) => { installRobotExpressionRuntime(); }).catch((error) => recordDiagnosticEvent("app", "expression-runtime-install-failed", { error: error instanceof Error ? error.message : String(error) }));
+  installProactiveSpeechRuntime();
 
   void retireLegacyNetworkCredentials().catch((error) => {
     recordDiagnosticEvent("app", "legacy-network-credential-retirement-failed", {

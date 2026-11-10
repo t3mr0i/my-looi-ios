@@ -1,6 +1,7 @@
 import type { BehaviorEvent } from "./behavior-types";
 import type { CompanionAction, CompanionActionResult } from "./behavior-companion";
 import type { ListeningAudioFrame } from "./listening-opportunity";
+import type { ProactiveOccasion } from "../robot-mind/proactive-speech-policy";
 
 export interface BehaviorInteractionSnapshot {
   revision: number;
@@ -9,7 +10,9 @@ export interface BehaviorInteractionSnapshot {
 
 export type BehaviorSignalResponseRequest =
   | { kind: "shared-countdown"; id: string; episodeTitle: string }
-  | { kind: "hermes-completed"; id: string; revision: number; userTurnRevision: number };
+  | { kind: "hermes-completed"; id: string; revision: number; userTurnRevision: number }
+  /** A self-initiated line about a body event, already accepted by the proactive speech policy. */
+  | { kind: "proactive-occasion"; id: string; occasion: ProactiveOccasion; edgeSide?: "front" | "rear" };
 
 type Adapter = {
   dispatch(event: BehaviorEvent): void;
@@ -146,6 +149,11 @@ export function noteCompanionPersonalitySpeech(text: string | null, sessionId: s
   refreshBehaviorContext();
 }
 
+/** The Realtime conversation currently bound to behavior, if any. */
+export function getBehaviorSessionId(): string | null {
+  return session;
+}
+
 export function isBehaviorGameActive(sessionId: string | null): boolean {
   return !!sessionId && sessionId === session && adapter?.isGameActive?.() === true;
 }
@@ -186,6 +194,11 @@ export function performBehaviorCompanionAction(action: CompanionAction, sessionI
   return result;
 }
 
+// Kept local so this seam stays free of runtime imports; must match ProactiveOccasion.
+const PROACTIVE_SIGNAL_OCCASIONS: ReadonlySet<string> = new Set<ProactiveOccasion>([
+  "greet_arrival", "welcome_back_after_quiet", "react_petting", "warn_edge", "gave_up_search", "arrived",
+]);
+
 /** Start one response for a locally accepted, previously agreed signal. */
 export function requestBehaviorSignalResponse(signal: BehaviorSignalResponseRequest, sessionId: string): boolean {
   if (!sessionId || sessionId !== session || !signalResponseRequester) return false;
@@ -194,6 +207,12 @@ export function requestBehaviorSignalResponse(signal: BehaviorSignalResponseRequ
     if (!current || current.revision !== signal.revision || current.userTurnRevision !== signal.userTurnRevision ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(signal.id)) return false;
     return signalResponseRequester(signal);
+  }
+  if (signal?.kind === "proactive-occasion") {
+    const id = typeof signal.id === "string" ? signal.id.trim() : "";
+    if (!id || id.length > 96 || !PROACTIVE_SIGNAL_OCCASIONS.has(signal.occasion) || adapter?.isGameActive?.() === true ||
+      signal.edgeSide !== undefined && signal.edgeSide !== "front" && signal.edgeSide !== "rear") return false;
+    return signalResponseRequester({ kind: "proactive-occasion", id, occasion: signal.occasion, ...(signal.edgeSide ? { edgeSide: signal.edgeSide } : {}) });
   }
   if (signal?.kind !== "shared-countdown") return false;
   const id = typeof signal.id === "string" ? signal.id.trim() : "";

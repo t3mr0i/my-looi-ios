@@ -161,6 +161,52 @@ export class BudgetConversationService {
     void this.vadQueue.then(() => this.commitTurn(epoch));
   }
 
+  /**
+   * Say one self-initiated line about a body event while this session waits
+   * for the person, then listen again. The line is generated while the
+   * microphone keeps listening, so speech that starts meanwhile wins.
+   */
+  async speakProactiveLine(occasion: string): Promise<boolean> {
+    const epoch = this.epoch;
+    const waiting = () => this.current(epoch) && this.phase === "listening" && !this.hadSpeech
+      && !useConversationStore.getState().isUserSpeaking;
+    if (!waiting() || !occasion.trim()) return false;
+    const controller = new AbortController();
+    const preferences = useUserStore.getState().preferences;
+    let line: string;
+    try {
+      const reply = await generateBudgetReply({
+        history: useConversationStore.getState().messages.map(({ role, content }) => ({ role, content })),
+        language: preferences.language,
+        robotName: preferences.robotName,
+        personalityContext: getCompanionPersonalityContext(""),
+        occasion,
+        signal: controller.signal,
+      });
+      recordDiagnosticEvent("cost", "proactive-line-text-usage", { model: reply.model, route: "budget-session", ...reply.usage });
+      line = reply.text;
+    } catch (error) {
+      recordDiagnosticEvent("runtime", "proactive-line-failed", { route: "budget-session", error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+    if (!waiting()) return false;
+    this.phase = "processing";
+    this.detach();
+    this.controller = controller;
+    const store = useConversationStore.getState();
+    store.setListening(false);
+    store.setUserSpeaking(false);
+    await this.enqueue(() => kwsAudioFeeder.stop());
+    if (!this.current(epoch) || controller.signal.aborted) return false;
+    store.addMessage({ role: "assistant", content: line });
+    store.setStreamingText(line);
+    if (this.sessionId) mirrorSessionMessage(this.sessionId, { role: "assistant", content: line });
+    if (preferences.ttsEnabled) recordDiagnosticEvent("cost", "proactive-line-speech", { route: "budget-session", characters: line.length });
+    await this.speak(epoch, line, controller.signal);
+    if (this.current(epoch) && !controller.signal.aborted) await this.enqueue(() => this.listen(epoch));
+    return true;
+  }
+
   private commitTurn(epoch: number): void {
     if (!this.active || this.phase !== "listening") return;
     if (!this.current(epoch)) return;
