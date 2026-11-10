@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { BehaviorSettings } from "@/src/ui/BehaviorSettings";
+import { hasRecordedLinkLossStop } from "@/src/robot-mind/device-check-install";
 import { DeviceCheckPanel } from "@/src/ui/DeviceCheckPanel";
 import { DeviceShell } from "@/src/ui/DeviceShell";
 import { looiTheme } from "@/src/ui/looi-theme";
@@ -641,7 +642,10 @@ export default function SettingsScreen() {
               { id: "checked" as const, label: t("settings.idleAutonomyLinkLossChecked") },
             ]}
             value={preferences.linkLossSelfStopConfirmed ? "checked" : "unchecked"}
-            onChange={(id) => updatePreferences({ linkLossSelfStopConfirmed: id === "checked" })}
+            onChange={(id) => {
+              if (id === "checked" && !hasRecordedLinkLossStop()) { Alert.alert(t("settings.idleAutonomyLinkLoss"), t("settings.idleAutonomyLinkLossHelp")); return; }
+              updatePreferences({ linkLossSelfStopConfirmed: id === "checked" });
+            }}
           />
         </View> : null}
         {preferences.idleAutonomyLevel !== "off" ? <View style={styles.subCard}>

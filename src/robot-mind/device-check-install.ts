@@ -1,7 +1,7 @@
 import { AppState } from "react-native";
 import { forceReconnectSavedLooiRobot } from "../device-tools/looi-robot-autoconnect";
 import { cutLooiLinkDuringMotionForDeviceCheck, getLooiRobotRuntimeState, setLooiHead, subscribeLooiFed9Frames, turnLooi } from "../device-tools/looi-robot";
-import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
+import { getDiagnosticLogEntries, recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 import { useUserStore } from "../store/user";
 import {
   LIFT_POSES, LINK_LOSS_CUT_AFTER_MS, LINK_LOSS_OBSERVE_MS, LINK_LOSS_TURN_DIRECTION, TOF_STEPS,
@@ -27,6 +27,11 @@ async function exclusive<T>(job: () => Promise<T>): Promise<T> {
   if (running) throw new Error("device-check-already-running");
   running = true;
   try { return await job(); } finally { running = false; }
+}
+
+/** True when the diagnostic log holds a link-loss verdict "stops" (two valid attempts, both within about a second). */
+export function hasRecordedLinkLossStop(): boolean {
+  return getDiagnosticLogEntries().some((e) => e.category === "robot" && e.event === "device-check-link-loss" && e.details.verdict === "stops");
 }
 
 export function currentDeviceCheckBlockers(): DeviceCheckBlocker[] {
