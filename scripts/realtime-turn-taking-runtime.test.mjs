@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 export function createRealtimeHarness(clockGlobals = {}) {
 const diagnostics = [];
@@ -33,6 +35,7 @@ const config = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-completion-copy": loadTypeScript("src/voice/hermes-completion-copy.ts"),
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
 });
 const fakeAudio = {
   addListener: () => ({ remove() {} }), beginPlayback() {}, enqueuePlayback() {}, finishPlayback() {},
@@ -102,7 +105,9 @@ const deps = {
   "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute() { return { ok: true }; } } },
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tools": { robotAppSkillToolBridge: { async execute() { return { ok: true }; } } },
+  "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
   "./realtime-physical-command": { parseRealtimePhysicalCommand: () => null, executeRealtimePhysicalCommand: async () => ({}) },
   "./realtime-visual-command": { parseRealtimeVisualCommand: () => null },
   "./realtime-pcm-conversation": { realtimePcmConversationService: { isActive: false } },

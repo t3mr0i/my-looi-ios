@@ -61,6 +61,8 @@ import { hermesTaskVoiceBridge } from "./hermes-task-tools";
 import { HERMES_TASK_TOOL_NAMES } from "./hermes-task-tool-definitions";
 import { robotAppSkillToolBridge } from "./robot-app-skill-tools";
 import { ROBOT_APP_SKILL_TOOL_NAMES } from "./robot-app-skill-tool-definitions";
+import { robotCapabilityToolBridge } from "./robot-capability-tools";
+import { ROBOT_CAPABILITY_TOOL_NAMES } from "./robot-capability-tool-definitions";
 import { normalizeResponseLanguage } from "../language/response-language";
 import { createRealtimeLatencyTracker } from "./realtime-latency";
 
@@ -1901,6 +1903,20 @@ export class RealtimePcmConversationService {
           createFollowupResponse = false;
         } else {
           output = await robotAppSkillToolBridge.execute(name, args, {
+            sessionId: companionTurnContext.sessionId,
+            userTurnRevision: companionTurnContext.userTurnRevision,
+            userText: companionTurnContext.text,
+            isCurrent: () => this.isCurrentCompanionTurn(companionTurnContext, sessionId),
+          });
+        }
+      } else if (ROBOT_CAPABILITY_TOOL_NAMES.has(name)) {
+        // Display scenes and bounded movement chosen by the model. The bridge
+        // binds every action to this committed user turn and yields to STOP.
+        if (!this.isCurrentCompanionTurn(companionTurnContext, sessionId)) {
+          output = { ok: false, status: "stale-turn" };
+          createFollowupResponse = false;
+        } else {
+          output = await robotCapabilityToolBridge.execute(name, args, {
             sessionId: companionTurnContext.sessionId,
             userTurnRevision: companionTurnContext.userTurnRevision,
             userText: companionTurnContext.text,

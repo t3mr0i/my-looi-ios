@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { createCompanionLiveRuntime } from "./helpers/companion-live-runtime.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 const flush = async () => { for (let index = 0; index < 36; index += 1) await Promise.resolve(); };
 function store(initial) {
@@ -76,6 +78,7 @@ const config = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-completion-copy": loadTypeScript("src/voice/hermes-completion-copy.ts"),
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
 });
 let pcmEnqueueCount = 0;
 let pcmFinishCount = 0;
@@ -108,7 +111,9 @@ const deps = {
   "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute() { return { ok: true }; } } },
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tools": { robotAppSkillToolBridge: { async execute() { return { ok: true }; } } },
+  "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
   "./wakeword": { wakewordService: { isListening: false, async stop() {}, async waitForFallbackIdle() {}, async start() {} } },
   "./realtime-physical-command": { parseRealtimePhysicalCommand: () => null, async executeRealtimePhysicalCommand() {} },
   "./realtime-visual-command": { parseRealtimeVisualCommand: (text) => forceVisualCommand && text.includes("look at this") ? { kind: "look_here", cameraFacing: "rear" } : null },

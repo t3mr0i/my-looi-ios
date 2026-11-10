@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add a shared robot capability manifest: Realtime and Budget conversations now describe LOOI's body from one source and receive `play_scene`, `perform_gesture`, `move_robot` and `stop_robot` tools. Display scenes are chosen by the model with the local phrase selector as fallback; movement uses only the existing bounded primitives, is tied to the current user turn, limited to three actions, serialized, and blocked by STOP. Budget mode keeps the wheels parked.
 - Add optional Decisions behavior with Off/Observe/Active modes, contextual expression, task continuity, attention policies, requested-image assessment, explicit greeting/style preferences, reference repair, candidate scoring, group face tracks and a bounded number game.
 - Serialize head movement across explicit, social, behavior and ambient owners, with cancellation at each sequence step and owner-scoped cleanup.
 - Add local Decisions usage/budget accounting and PCM/WebRTC lifecycle, visual-race, game-turn and interruption regressions.

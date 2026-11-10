@@ -72,6 +72,35 @@ for (const kind of api.CHARACTER_ACTIONS) {
   timer.advance(30_000); c.replyHeard("s1"); c.setAvailability({ allowed: true, busy: false });
   assert.equal(c.getState().active, null, "late reply cannot revive expired request");
 }
+{
+  // A scene the assistant chose through play_scene survives its own follow-up speech once.
+  const timer = clock();
+  const c = api.createCharacterActionController({ ...timer, publish() {} });
+  c.setAvailability({ allowed: true, busy: true });
+  const id = c.request("coffee", "assistant", "s1");
+  c.replyHeard("s1"); c.setAvailability({ allowed: true, busy: false });
+  assert.equal(c.getState().active?.kind, "coffee");
+  c.setAvailability({ allowed: true, busy: true });
+  assert.equal(c.getState().active, null, "the scene steps aside while the reply continues");
+  assert.deepEqual([c.getState().pending?.id, c.getState().pending?.kind, c.getState().pending?.awaitingReply], [id, "coffee", true]);
+  c.setAvailability({ allowed: true, busy: false });
+  assert.equal(c.getState().active, null, "it waits for the end of that reply, not merely for silence");
+  c.replyHeard("s1");
+  assert.deepEqual([c.getState().active?.kind, c.getState().active?.phase], ["coffee", "reveal"], "the scene restarts from the beginning");
+  c.setAvailability({ allowed: true, busy: true });
+  assert.deepEqual(c.getState(), { active: null, pending: null }, "a second interruption retires it");
+  c.setAvailability({ allowed: true, busy: false });
+  c.request("tea", "assistant", "s1"); c.replyHeard("s1");
+  assert.equal(c.getState().active?.kind, "tea");
+  c.cancel(); c.setAvailability({ allowed: true, busy: true }); c.setAvailability({ allowed: true, busy: false }); c.replyHeard("s1");
+  assert.deepEqual(c.getState(), { active: null, pending: null }, "a person speaking cancels for good");
+  c.request("read", "assistant", "s1"); c.replyHeard("s1"); timer.advance(60_000);
+  assert.deepEqual(c.getState(), { active: null, pending: null }, "a completed scene leaves nothing behind");
+  c.request("snack", "assistant", "s1"); c.replyHeard("s1");
+  c.setAvailability({ allowed: true, busy: true }); timer.advance(30_000); c.setAvailability({ allowed: true, busy: false }); c.replyHeard("s1");
+  assert.equal(c.getState().active, null, "a postponed scene expires after 30 seconds");
+  assert.equal(timer.jobs.size, 0);
+}
 
 // Run the real lifecycle adapter against observable stores and session events.
 function store(initial) {

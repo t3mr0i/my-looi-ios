@@ -1,4 +1,6 @@
 import { createTypeScriptTreeLoader } from "./load-typescript-tree.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 function createStore(initial) {
   let state = initial;
@@ -84,6 +86,7 @@ export function createCompanionLiveRuntime({ robotName = "LOOI", memoryFacts = [
     "../voice/driving-control-session": { isDrivingControlSessionActive: () => false },
     "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute(name, args) { externalBridgeCalls.push({ bridge: "hermes", name, args }); return { ok: false, status: "disabled-in-text-evaluation" }; } } },
     "./robot-app-skill-tools": { robotAppSkillToolBridge: { async execute(name, args) { externalBridgeCalls.push({ bridge: "robot-app", name, args }); return { ok: false, status: "disabled-in-text-evaluation" }; } } },
+    "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
     "../../modules/vosk-command-recognizer": { __esModule: true, default: voskCommandRecognizer },
     "../core/observation": { createObservation: () => ({ metadata: {} }) },
     "../core/robot-inactivity": { markRobotInteraction() {} },

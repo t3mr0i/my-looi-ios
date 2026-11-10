@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 const robotAppSkillToolDefinitions = loadTypeScript("src/voice/robot-app-skill-tool-definitions.ts");
 const api = loadTypeScript("src/openai/budget-conversation.ts", {
   "../character/companion-personality": loadTypeScript("src/character/companion-personality.ts"),
   "./openai-api-key": { getOpenAiApiKey: async () => "unused-test-key" },
   "../voice/robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "../voice/robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  "../character/character-scene-catalog": robotCapabilityModules.sceneCatalog,
 });
 
 function response(payload, status = 200, headers = {}) {
@@ -52,6 +56,10 @@ assert.deepEqual(toolSchema.map((tool) => tool.name), [
   "search_memory",
   "remember",
   "set_language_preferences",
+  "play_scene",
+  "perform_gesture",
+  "move_robot",
+  "stop_robot",
   "search_robot_apps",
   "describe_robot_app",
   "start_robot_app",
@@ -67,6 +75,14 @@ assert.deepEqual(languageTool.parameters.properties.listening_language.enum, ["r
 assert.deepEqual(appSearchTool.parameters.required, ["query", "limit"]);
 assert.deepEqual(appSearchTool.parameters.properties.limit.enum, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, null]);
 assert.match(toolSchema.find((tool) => tool.name === "start_robot_app").description, /Budget voice mode refuses app starts with start_requires_realtime/u);
+const sceneTool = toolSchema.find((tool) => tool.name === "play_scene");
+assert.equal(sceneTool.parameters.properties.scene.enum.length, 200, "the model chooses from the complete scene catalog");
+assert.ok(sceneTool.parameters.properties.scene.enum.includes("coffee"));
+assert.match(sceneTool.description, /coffee=Coffee break/u);
+const gestureTool = toolSchema.find((tool) => tool.name === "perform_gesture");
+assert.deepEqual(gestureTool.parameters.required, ["gesture", "count"]);
+assert.deepEqual(gestureTool.parameters.properties.count.enum, [1, 2, 3, 4, 5, null]);
+assert.match(toolSchema.find((tool) => tool.name === "move_robot").description, /refused with requires_realtime/u);
 
 const basicBody = api.buildBudgetConversationRequestBody("hello", [{ role: "user", content: "Hi" }], false);
 assert.equal(basicBody.model, "gpt-6-luna");
@@ -212,7 +228,7 @@ const toolErrorResult = await api.generateBudgetReply({
 assert.equal(toolErrorResult.text, "Das Speichern hat gerade nicht geklappt.");
 assert.deepEqual(JSON.parse(safeToolOutput), {
   ok: false,
-  error: "This memory or language action could not be completed.",
+  error: "This action could not be completed.",
 });
 assert.doesNotMatch(safeToolOutput, /private database path/u);
 
@@ -224,11 +240,50 @@ const unknownToolApi = await api.generateBudgetReply({
   runTool: async () => { callCount += 1; },
   dependencies: {
     getApiKey: async () => "key",
-    fetcher: async () => response(completed(functionCall("move_robot", { direction: "forward" }))),
+    fetcher: async () => response(completed(functionCall("drive_continuously", { direction: "forward" }))),
   },
 }).then(() => null, (error) => error);
 assert.equal(unknownToolApi.code, "unsupported_tool");
-assert.equal(callCount, 0, "unsupported or physical tools must never run");
+assert.equal(callCount, 0, "tools outside the capability manifest must never run");
+
+const malformedMove = await api.generateBudgetReply({
+  history: [{ role: "user", content: "Fahre los." }],
+  language: "de",
+  robotName: "Louis",
+  runTool: async () => { callCount += 1; },
+  dependencies: {
+    getApiKey: async () => "key",
+    fetcher: async () => response(completed(functionCall("move_robot", { action: "forward", durationMs: 60000 }))),
+  },
+}).then(() => null, (error) => error);
+assert.equal(malformedMove.code, "response");
+assert.equal(callCount, 0, "a movement call with extra parameters never reaches the robot");
+
+const sceneCalls = [];
+let sceneToolOutput = "";
+const coffeeReply = await api.generateBudgetReply({
+  history: [{ role: "user", content: "Trink mal einen Kaffee." }],
+  language: "de",
+  robotName: "Louis",
+  runTool: async (name, args) => { sceneCalls.push({ name, args }); return { ok: true, status: "scene_queued", scene: args.scene }; },
+  dependencies: {
+    getApiKey: async () => "key",
+    fetcher: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      sceneToolOutput = body.input.find((item) => item.type === "function_call_output")?.output ?? sceneToolOutput;
+      if (!sceneToolOutput) {
+        assert.match(body.instructions, /call play_scene with the best matching id first/u);
+        assert.match(body.instructions, /Never decline because robots cannot eat, drink or read/u);
+        assert.match(body.instructions, /dance and every move_robot wheel movement are refused with requires_realtime/u);
+        return response(completed(functionCall("play_scene", { scene: "coffee" })));
+      }
+      return response(completed(textOutput("Mmh, Kaffeepause!")));
+    },
+  },
+});
+assert.deepEqual(sceneCalls, [{ name: "play_scene", args: { scene: "coffee" } }]);
+assert.equal(JSON.parse(sceneToolOutput).status, "scene_queued");
+assert.equal(coffeeReply.text, "Mmh, Kaffeepause!");
 
 // Three tool rounds are permitted; the fourth request is never executed.
 let roundFetches = 0;

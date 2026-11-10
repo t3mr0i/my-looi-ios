@@ -1,10 +1,45 @@
 import assert from "node:assert/strict";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 const flush = async () => {
   for (let index = 0; index < 16; index += 1) await Promise.resolve();
 };
+
+const robotCapabilityCalls = [];
+const recordingRobotCapabilityToolBridge = {
+  async execute(name, args, turn) {
+    robotCapabilityCalls.push({ name, args, userText: turn.userText, current: turn.isCurrent() });
+    return name === "play_scene" ? { ok: true, status: "scene_queued", scene: args.scene } : { ok: true, status: "completed", action: args.action };
+  },
+};
+async function assertRobotCapabilityThroughTransport(service, sent, prefix) {
+  const before = robotCapabilityCalls.length;
+  const followUps = () => sent.filter((event) => event.type === "response.create").length;
+  const followUpsBefore = followUps();
+  await callCompanionTool(service, `${prefix}-scene`, "Please have a coffee now.", "play_scene", { scene: "coffee" });
+  assert.deepEqual(JSON.parse(sent.find((event) => event.item?.call_id === `${prefix}-scene`).item.output), { ok: true, status: "scene_queued", scene: "coffee" }, `${prefix} returns the scene result to the model`);
+  assert.equal(followUps(), followUpsBefore + 1, `${prefix} asks the model to speak after the scene result`);
+  await callCompanionTool(service, `${prefix}-move`, "Come a little closer to me.", "move_robot", { action: "forward" });
+  assert.equal(JSON.parse(sent.find((event) => event.item?.call_id === `${prefix}-move`).item.output).status, "completed");
+  assert.deepEqual(robotCapabilityCalls.slice(before), [
+    { name: "play_scene", args: { scene: "coffee" }, userText: "Please have a coffee now.", current: true },
+    { name: "move_robot", args: { action: "forward" }, userText: "Come a little closer to me.", current: true },
+  ], `${prefix} binds each robot action to the committed user turn`);
+  // A call from a response that a newer user turn has replaced never reaches the robot.
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "response.created", response: { id: `${prefix}-move-stale-response` } });
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "conversation.item.input_audio_transcription.completed", transcript: "Never mind, please stay there.", item_id: `${prefix}-move-new-turn` });
+  await service.handleEvent({
+    type: "response.output_item.done", response_id: `${prefix}-move-stale-response`,
+    item: { type: "function_call", call_id: `${prefix}-move-stale`, name: "move_robot", arguments: JSON.stringify({ action: "forward" }) },
+  });
+  await flush();
+  assert.equal(robotCapabilityCalls.length, before + 2, `${prefix} drops a movement call from a replaced response`);
+}
 
 const loadBehaviorCompanion = () => createTypeScriptTreeLoader()("src/behavior/behavior-companion.ts");
 
@@ -281,6 +316,7 @@ const robotAppSkillToolDefinitions = loadTypeScript("src/voice/robot-app-skill-t
 const robotAppSkillCalls = [];
 const robotAppSkillToolModule = loadTypeScript("src/voice/robot-app-skill-tools.ts", {
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
 });
 const robotAppSkillToolBridge = robotAppSkillToolModule.createRobotAppSkillToolBridge({
   async searchRobotAppSkills(query, limit) {
@@ -339,6 +375,7 @@ const configModule = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-completion-copy": loadTypeScript("src/voice/hermes-completion-copy.ts"),
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
 });
 const preferences = {
   language: "en", listeningLanguage: "en", realtimeModelId: "test-realtime",
@@ -552,7 +589,9 @@ function mockCommonBehaviorDependencies() {
     "./hermes-task-tools": { hermesTaskVoiceBridge: hermesVoiceBridge },
     "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
     "./robot-app-skill-tools": { robotAppSkillToolBridge },
+    "./robot-capability-tools": { robotCapabilityToolBridge: recordingRobotCapabilityToolBridge },
     "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
+    "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
     "./realtime-physical-command": {
       parseRealtimePhysicalCommand: () => null, executeRealtimePhysicalCommand: async () => ({ ok: true }),
     },
@@ -617,6 +656,7 @@ async function exerciseWebRtcTransport() {
   assert.deepEqual(JSON.parse(toolOutput.item.output), actionResult, "WebRTC passes the engine result through unchanged");
   assert.equal(sent.filter((event) => event.type === "response.create").length, 1, "WebRTC uses only the existing tool-response follow-up");
 
+  await assertRobotCapabilityThroughTransport(service, sent, "webrtc-capability");
   const webRtcAppCallsBefore = robotAppSkillCalls.length;
   await callCompanionTool(service, "webrtc-app-search", "Find a dance app and try a suitable one.", "search_robot_apps", { query: "dance", limit: 2 });
   assert.deepEqual(JSON.parse(sent.find((event) => event.item?.call_id === "webrtc-app-search").item.output), {
@@ -962,6 +1002,7 @@ async function exercisePcmTransport() {
   assert.deepEqual(receivedActions.at(-1), { type: "offer_interest", topic: "paper rocket", question: "Should it fly again?" });
   assert.equal(sent.filter((event) => event.type === "response.create").length, 1, "PCM uses only the existing tool-response follow-up");
 
+  await assertRobotCapabilityThroughTransport(service, sent, "pcm-capability");
   const pcmAppCallsBefore = robotAppSkillCalls.length;
   await callCompanionTool(service, "pcm-app-search", "Find a suitable app for dancing and try it.", "search_robot_apps", { query: "dance" });
   assert.equal(JSON.parse(sent.find((event) => event.item?.call_id === "pcm-app-search").item.output).status, "listed");

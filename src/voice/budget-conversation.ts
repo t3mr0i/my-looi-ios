@@ -23,6 +23,8 @@ import { vadService } from "./vad-service";
 import { InputAttentionDetector } from "./input-attention";
 import { wakewordService, type WakewordDetection } from "./wakeword";
 import { robotAppSkillToolBridge } from "./robot-app-skill-tools";
+import { robotCapabilityToolBridge } from "./robot-capability-tools";
+import { ROBOT_CAPABILITY_TOOL_NAMES } from "./robot-capability-tool-definitions";
 import { ROBOT_APP_SKILL_TOOL_NAMES } from "./robot-app-skill-tool-definitions";
 import { acceptCompanionPersonalityTurn, getCompanionPersonalityContext, noteCompanionPersonalitySpeech, readCompanionInterests } from "../behavior/behavior-events";
 
@@ -52,6 +54,8 @@ type TurnTiming = {
 export class BudgetConversationService {
   private active = false;
   private epoch = 0;
+  /** Advances with every committed user transcript; bounds per-turn robot actions. */
+  private userTurnSerial = 0;
   private sessionId: string | null = null;
   private phase: "idle" | "listening" | "processing" | "speaking" = "idle";
   private controller: AbortController | null = null;
@@ -353,6 +357,7 @@ export class BudgetConversationService {
     store.addMessage({ role: "user", content: transcript });
     if (this.sessionId) mirrorSessionMessage(this.sessionId, { role: "user", content: transcript });
     const preferences = useUserStore.getState().preferences;
+    this.userTurnSerial += 1;
     cancelCharacterAction("budget-user-turn");
     if (this.sessionId) requestCharacterActionFromVoice(transcript, this.sessionId, preferences.robotName);
     const physical = parseRealtimePhysicalCommand(transcript, preferences);
@@ -410,6 +415,18 @@ export class BudgetConversationService {
         userText,
         isCurrent: () => this.current(epoch) && !signal.aborted,
         allowAppStart: false,
+      });
+    }
+    if (ROBOT_CAPABILITY_TOOL_NAMES.has(name)) {
+      // Turn-based speech releases the microphone, so the bridge keeps the
+      // wheels parked here; display scenes, nod and STOP remain available.
+      if (!this.sessionId) return { ok: false, status: "unavailable" };
+      return robotCapabilityToolBridge.execute(name, args, {
+        sessionId: this.sessionId,
+        userTurnRevision: this.userTurnSerial,
+        userText,
+        isCurrent: () => this.current(epoch) && !signal.aborted,
+        allowWheelMotion: false,
       });
     }
     if (name === "search_memory") return memoryService.search(String(args.query ?? "").slice(0, 500));

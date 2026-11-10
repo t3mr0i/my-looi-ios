@@ -32,6 +32,11 @@ export function requestCharacterActionFromVoice(text: string, sessionId: string,
   }
   return null;
 }
+/** A scene the conversational model chose through play_scene. It waits for the spoken reply and survives that reply's own follow-up speech once. */
+export function requestCharacterSceneFromAssistant(kind: CharacterActionKind, sessionId: string) {
+  refreshAvailability();
+  return controller.request(kind, "assistant", sessionId);
+}
 export function completeCharacterActionReply(sessionId: string) { controller.replyHeard(sessionId); }
 
 export function installCharacterActionRuntime(): () => void {

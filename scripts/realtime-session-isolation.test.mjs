@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import ts from "typescript";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
+import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+const robotCapabilityModules = loadRobotCapabilityModules();
 
 const deferred = () => {
   let resolve;
@@ -80,7 +82,9 @@ const dependencies = {
   "./hermes-task-tools": { hermesTaskVoiceBridge: { async execute() { return { ok: true }; } } },
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tools": { ROBOT_APP_TOOL_NAMES: new Set(), async executeRobotAppTool() { return { ok: true }; } },
+  "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": { ROBOT_APP_SKILL_TOOL_NAMES: new Set() },
+  "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
   "./realtime-physical-command": { executeRealtimePhysicalCommand: () => physical.promise },
   "./realtime-visual-command": {},
 };

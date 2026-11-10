@@ -5,7 +5,8 @@ export const CHARACTER_ACTIONS = ["drink", "coffee", "snack", "read"] as const;
 export type CharacterActionKind = CharacterSceneId;
 export type CharacterActionPhase = "reveal" | "use" | "enjoy" | "put-away";
 export type CharacterActionFrame = { id: number; kind: CharacterActionKind; phase: CharacterActionPhase };
-export type CharacterActionRequest = { id: number; kind: CharacterActionKind; source: "menu" | "voice" | "context"; sessionId?: string; awaitingReply: boolean; expiresAt: number };
+export type CharacterActionSource = "menu" | "voice" | "context" | "assistant";
+export type CharacterActionRequest = { id: number; kind: CharacterActionKind; source: CharacterActionSource; sessionId?: string; awaitingReply: boolean; expiresAt: number };
 export type CharacterActionState = { active: CharacterActionFrame | null; pending: CharacterActionRequest | null };
 export const CHARACTER_ACTION_PHASES: readonly CharacterActionPhase[] = ["reveal", "use", "enjoy", "put-away"];
 const DURATIONS: Partial<Record<CharacterActionKind, readonly number[]>> = {
@@ -114,12 +115,29 @@ export function createCharacterActionController(deps: {
   let state: CharacterActionState = { active: null, pending: null };
   let allowed = false, busy = false, serial = 0;
   let timer: unknown = null;
+  /** The assistant-chosen scene now playing, kept so its own follow-up speech can postpone it once. */
+  let resumable: { id: number; kind: CharacterActionKind; sessionId?: string } | null = null;
+  let postponedId: number | null = null;
   const clearTimer = () => { if (timer !== null) deps.unschedule(timer); timer = null; };
   const publish = () => deps.publish({ ...state });
-  const cancel = () => { clearTimer(); state = { active: null, pending: null }; publish(); };
+  const cancel = () => { clearTimer(); resumable = null; state = { active: null, pending: null }; publish(); };
+  /**
+   * A scene the assistant chose may begin while the same reply still continues,
+   * for example after the tool result. That speech postpones the scene once, to
+   * the end of the reply; a person speaking cancels it through cancel().
+   */
+  const postpone = () => {
+    const scene = resumable!;
+    clearTimer(); resumable = null; postponedId = scene.id;
+    const expiresAt = deps.now() + 30_000;
+    state = { active: null, pending: { id: scene.id, kind: scene.kind, source: "assistant", sessionId: scene.sessionId, awaitingReply: true, expiresAt } };
+    publish();
+    if (state.pending?.id !== scene.id) return;
+    timer = deps.schedule(() => { if (state.pending?.id === scene.id) cancel(); }, 30_000);
+  };
   const step = (id: number, index: number) => {
     if (state.active?.id !== id || !allowed || busy) return;
-    if (index === CHARACTER_ACTION_PHASES.length) { timer = null; state = { active: null, pending: null }; publish(); return; }
+    if (index === CHARACTER_ACTION_PHASES.length) { timer = null; resumable = null; state = { active: null, pending: null }; publish(); return; }
     const phase = CHARACTER_ACTION_PHASES[index];
     const kind = state.active.kind;
     state = { ...state, active: { ...state.active, phase } }; publish();
@@ -129,6 +147,9 @@ export function createCharacterActionController(deps: {
     if (!allowed || busy || !state.pending || state.pending.awaitingReply) return;
     if (deps.now() >= state.pending.expiresAt) { cancel(); return; }
     clearTimer();
+    // Only a first start is resumable; a scene already postponed once is not postponed again.
+    resumable = state.pending.source === "assistant" && postponedId !== state.pending.id
+      ? { id: state.pending.id, kind: state.pending.kind, sessionId: state.pending.sessionId } : null;
     state = { active: { id: state.pending.id, kind: state.pending.kind, phase: "reveal" }, pending: null };
     step(state.active!.id, 0);
   };
@@ -137,12 +158,12 @@ export function createCharacterActionController(deps: {
     setAvailability(next: { allowed: boolean; busy: boolean }) {
       allowed = next.allowed; busy = next.busy;
       if (!allowed) { if (state.active || state.pending) cancel(); return; }
-      if (busy && state.active) { cancel(); return; }
+      if (busy && state.active) { if (resumable?.id === state.active.id) postpone(); else cancel(); return; }
       startIfReady();
     },
-    request(kind: CharacterActionKind, source: "menu" | "voice" | "context", sessionId?: string) {
+    request(kind: CharacterActionKind, source: CharacterActionSource, sessionId?: string) {
       if (!isCharacterAction(kind) || !allowed) return null;
-      clearTimer();
+      clearTimer(); resumable = null; postponedId = null;
       const id = ++serial;
       state = { active: null, pending: { id, kind, source, sessionId, awaitingReply: source !== "menu", expiresAt: deps.now() + 30_000 } };
       publish();

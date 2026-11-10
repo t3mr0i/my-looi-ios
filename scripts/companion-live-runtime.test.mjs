@@ -195,7 +195,7 @@ for (const testCase of cases) {
     const directExecutionTools = update.session.tools
       .map((tool) => tool.name)
       .filter((name) => /^(?:move|drive|turn|capture|take_photo|look_here|start_audio|play_audio|record_audio|execute_physical)/iu.test(name));
-    assert.deepEqual(directExecutionTools, [], "production Realtime tools expose no direct motor, camera, or audio execution action");
+    assert.deepEqual(directExecutionTools, ["move_robot"], "the only direct motor tool is the bounded capability-manifest step; no camera, audio or continuous-drive action is exposed");
     if (testCase.memoryFacts?.length) {
       assert.ok(update.session.instructions.includes(testCase.memoryFacts[0].memory), "case-local memory reaches the production instruction builder");
     }
