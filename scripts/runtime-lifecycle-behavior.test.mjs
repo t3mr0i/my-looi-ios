@@ -56,6 +56,7 @@ function harness() {
     } },
     "../voice/wakeword": { wakewordService: { isListening: false } },
     "../voice/stt": { sttService: { async initialize() { record("sttInitialize"); } } },
+    "../robot-mind/idle-autonomy-install": { installIdleAutonomyRuntime() {} },
   };
   Object.defineProperty(dependencies, "../voice/kws-audio-feeder", {
     get() { record("loadCapture"); return { kwsAudioFeeder: feeder }; },

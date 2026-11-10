@@ -212,6 +212,7 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "./ambient-motion": { startAmbientMotionController() { bootEvents.push(["ambientStart"]); }, stopAmbientMotionController() {} },
   "./social-attention": { startSocialAttentionController() { bootEvents.push(["cameraStart"]); }, async stopSocialAttentionController() {} },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
+  "../robot-mind/idle-autonomy-install": { installIdleAutonomyRuntime() {} },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();
 assert.equal(bootstrap.bootstrapApp(), boot, "Bootstrap must be coalesced");

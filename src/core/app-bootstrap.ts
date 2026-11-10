@@ -19,6 +19,7 @@ import { removeRetiredExperimentalVoiceAssets } from "../voice/retired-experimen
 import { retireLegacyNetworkCredentials } from "./legacy-network-credentials-retirement";
 import { startAmbientMotionController, stopAmbientMotionController } from "./ambient-motion";
 import { startSocialAttentionController, stopSocialAttentionController } from "./social-attention";
+import { installIdleAutonomyRuntime } from "../robot-mind/idle-autonomy-install";
 
 let bootstrapped = false;
 let paused = false;
@@ -100,6 +101,7 @@ async function performBootstrapApp(): Promise<void> {
   // opt-in local-only social controller that activates only during interaction;
   // calendar/reminder pipelines remain disabled.
   perceiverManager.register(voiceRuntime);
+  installIdleAutonomyRuntime();
 
   void retireLegacyNetworkCredentials().catch((error) => {
     recordDiagnosticEvent("app", "legacy-network-credential-retirement-failed", {

@@ -596,6 +596,17 @@ export default function SettingsScreen() {
             onChange={(id) => void setCameraAttentionEnabled(id === "on")}
           />
         </View>
+        <Text style={styles.label}>{t("settings.idleAutonomy")}</Text>
+        <Text style={styles.help}>{t("settings.idleAutonomyHelp")}</Text>
+        <Segmented
+          options={[
+            { id: "off" as const, label: t("settings.idleAutonomyOff") },
+            { id: "look" as const, label: t("settings.idleAutonomyLook") },
+            { id: "explore" as const, label: t("settings.idleAutonomyExplore") },
+          ]}
+          value={preferences.idleAutonomyLevel}
+          onChange={(id) => updatePreferences({ idleAutonomyLevel: id })}
+        />
         <BehaviorSettings />
       </Section>
 
