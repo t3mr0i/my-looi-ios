@@ -17,7 +17,12 @@ export interface SelfCheckReport { at: number; durationMs: number; lines: SelfCh
 export interface SelfCheckDeps {
   now(): number;
   wait(ms: number): Promise<void>;
-  robot(): { connected: boolean; driveControlReady: boolean; lastSensorFrameAt: number | null; cliff: Record<string, boolean> | null; obstacleNear: boolean | null };
+  robot(): {
+    connected: boolean; driveControlReady: boolean; lastSensorFrameAt: number | null;
+    /** Sensor notifications received on this connection, by frame type ("01" edge sensors, "0e", "02", ...). */
+    frameCounts: Record<string, number>;
+    cliff: Record<string, boolean> | null; obstacleNear: boolean | null;
+  };
   /** The longest gap between sensor frames idle autonomy accepts before it treats the surface as unknown. */
   sensorFreshMs: number;
   microphoneLive(): boolean;
@@ -42,31 +47,47 @@ export async function runRobotMindSelfCheck(deps: SelfCheckDeps, observeMs = SEL
     : { id: "base", status: "problem", detail: first.connected ? "wheel base connected but the drive channel is not ready" : "wheel base not connected",
       values: { connected: first.connected, driveControlReady: first.driveControlReady } });
 
-  // How often does this robot report its sensors while standing still?
-  let frames = 0, maxGapMs = 0, lastFrameAt = first.lastSensorFrameAt, lastChangeAt = startedAt;
+  // Does this robot report its sensors while standing still, and which ones? No source has
+  // established whether FED9 frames are periodic or only sent on change; this measures it.
+  // Frames are counted exactly; gaps are seen at the sampling resolution.
+  let arrivals = 0, maxGapMs = 0, lastFrameAt = first.lastSensorFrameAt, lastChangeAt = startedAt;
+  let lastCounts = first.frameCounts;
   if (first.connected) {
     while (deps.now() - startedAt < observeMs) {
       await deps.wait(SAMPLE_MS);
       const state = deps.robot();
       if (!state.connected) break;
+      lastCounts = state.frameCounts;
       if (state.lastSensorFrameAt !== null && state.lastSensorFrameAt !== lastFrameAt) {
-        if (frames > 0 || lastFrameAt !== null) maxGapMs = Math.max(maxGapMs, deps.now() - lastChangeAt);
-        frames += 1; lastFrameAt = state.lastSensorFrameAt; lastChangeAt = deps.now();
+        if (arrivals > 0 || lastFrameAt !== null) maxGapMs = Math.max(maxGapMs, deps.now() - lastChangeAt);
+        arrivals += 1; lastFrameAt = state.lastSensorFrameAt; lastChangeAt = deps.now();
       }
     }
     maxGapMs = Math.max(maxGapMs, deps.now() - lastChangeAt);
   }
   const observedMs = deps.now() - startedAt;
+  const byType: Record<string, number> = {};
+  for (const [type, count] of Object.entries(lastCounts)) {
+    const delta = count - (first.frameCounts[type] ?? 0);
+    if (delta > 0) byType[type] = delta;
+  }
+  const frames = Object.values(byType).reduce((sum, count) => sum + count, 0);
+  const edgeFrames = byType["01"] ?? 0;
+  const types = Object.keys(byType).sort().map((type) => `${type}:${byType[type]}`).join(",") || "none";
+  const seconds = Math.round(observedMs / 1000);
+  const cadenceValues = { frames, edgeFrames, types, maxGapMs: frames ? Math.round(maxGapMs) : null, limitMs: deps.sensorFreshMs, sampleMs: SAMPLE_MS };
   if (!first.connected) {
-    lines.push({ id: "sensor_cadence", status: "unknown", detail: "not measured without the wheel base", values: { frames: 0, maxGapMs: null, limitMs: deps.sensorFreshMs } });
+    lines.push({ id: "sensor_cadence", status: "unknown", detail: "not measured without the wheel base",
+      values: { frames: 0, edgeFrames: 0, types: "none", maxGapMs: null, limitMs: deps.sensorFreshMs, sampleMs: SAMPLE_MS } });
   } else if (frames === 0) {
-    lines.push({ id: "sensor_cadence", status: "problem", detail: `no sensor frame in ${Math.round(observedMs / 1000)} s; idle autonomy will not move the wheels`,
-      values: { frames, maxGapMs: null, limitMs: deps.sensorFreshMs } });
+    lines.push({ id: "sensor_cadence", status: "problem",
+      detail: `with the wheels parked, the robot sent no sensor frame in ${seconds} s; idle autonomy needs one within ${deps.sensorFreshMs} ms, so it will not move the wheels`,
+      values: cadenceValues });
   } else {
     const fits = maxGapMs <= deps.sensorFreshMs;
     lines.push({ id: "sensor_cadence", status: fits ? "ok" : "problem",
-      detail: `${frames} sensor frames in ${Math.round(observedMs / 1000)} s, longest gap ${Math.round(maxGapMs)} ms (limit ${deps.sensorFreshMs} ms)${fits ? "" : "; idle autonomy will often refuse to move the wheels"}`,
-      values: { frames, maxGapMs: Math.round(maxGapMs), limitMs: deps.sensorFreshMs } });
+      detail: `with the wheels parked, the robot sent ${frames} sensor frames in ${seconds} s (${edgeFrames} from the edge sensors; by type ${types}), longest gap ${Math.round(maxGapMs)} ms (autonomy limit ${deps.sensorFreshMs} ms)${fits ? "" : "; idle autonomy will often refuse to move the wheels"}`,
+      values: cadenceValues });
   }
 
   const last = deps.robot();

@@ -222,4 +222,39 @@ await assert.rejects(queuedDriveStart, /disconnected/);
 assert.deepEqual(acceptedDriveWrites, [], "stale queued motor frames must not reach the disconnected mock");
 assert.equal(delayedWriteRobot.driveTimer, null, "a cancelled first frame must not arm the SDK repeat timer");
 
+// On-change cadence: what community captures describe instead of a 250 ms stream.
+{
+  const frames = [];
+  const quiet = new MockLooiTransport({ initialScenario: "clear", sensorCadence: { cadence: "on-change" } });
+  const quietRobot = new sdk.LooiRobot(quiet);
+  await quietRobot.connect({ onRawNotify: (event) => { if (event.characteristic === "fed9") frames.push(event.hex); } });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.deepEqual(frames, ["110100", "0101010101"], "boot frame and the edge-sensor state on subscribe, no 0e at rest");
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  assert.equal(frames.length, 2, "nothing more while it stands still");
+  quiet.setScenario("clear");
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(frames.length, 2, "an unchanged surface sends nothing");
+  quiet.setScenario("front-edge");
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(frames.at(-1), "0100000101", "a changed surface sends one edge-sensor frame");
+  const beforeMove = frames.length;
+  await quietRobot.move("forward");
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.deepEqual(frames.slice(beforeMove), ["02ffb2", "0e7501"], "body motion sends published 02/0e samples");
+  await quietRobot.stop();
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(frames.length, beforeMove + 2, "a stop write is not motion");
+  // Optional frames at rest, for a robot that turns out to repeat its state.
+  quiet.setSensorCadence({ cadence: "on-change", restFrameIntervalMs: 200 });
+  const beforeRest = frames.length;
+  await new Promise((resolve) => setTimeout(resolve, 650));
+  assert.ok(frames.length - beforeRest >= 2 && frames.slice(beforeRest).every((hex) => hex === "0100000101"));
+  await quietRobot.disconnect();
+  const afterDisconnect = frames.length;
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  assert.equal(frames.length, afterDisconnect, "no frames after the link is gone");
+  quiet.dispose();
+}
+
 console.log("Mock LOOI transport behavioral tests passed");

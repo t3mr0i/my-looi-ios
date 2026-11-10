@@ -5,23 +5,34 @@ import { createIdleAutonomyWorld } from "./helpers/idle-autonomy-world.mjs";
 // mock transport, with faults thrown in at random moments. The scenario test
 // shows that each safety rule holds in the case written for it; this shows
 // that no ordering of events found by chance breaks one.
+//
+// Three passes:
+// 1. the app's original sensor model (frames every 250 ms) with the link-loss check confirmed;
+// 2. the same model while the owner's link-loss confirmation is on or off and flips at random;
+// 3. a robot that reports only on change, as community captures describe (no frames at rest).
 const SEEDS = Number(process.env.IDLE_SOAK_SEEDS ?? 60);
+const SIDE_SEEDS = Number(process.env.IDLE_SOAK_SIDE_SEEDS ?? 30);
 const MINUTES_PER_SEED = Number(process.env.IDLE_SOAK_MINUTES ?? 40);
+const REST_FRAME_MS = process.env.IDLE_SOAK_REST_FRAME_MS ? Number(process.env.IDLE_SOAK_REST_FRAME_MS) : null;
 
 const { clock, connection, robot, idle, harness, settle, advance, connectMock, resetRobot, writes, seeded, MINUTE, DRIVE_PAYLOAD } = createIdleAutonomyWorld();
 const SCENARIOS = ["clear", "clear", "clear", "clear", "clear", "front-edge", "rear-edge", "obstacle", "unknown"];
-const totals = { drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, refusedForStop: 0, faults: 0, events: {} };
+
+async function soak({ seeds, cadence, confirmation }) {
+const totals = { drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, refusedForStop: 0, faults: 0, unconfirmedExploreChecks: 0, events: {} };
 const violations = [];
 /** Moments the BLE link dropped. The app cannot send a stop then; what the robot does is a hardware question. */
 const linkLosses = [];
+const firstWrite = writes.length;
 
-for (let seed = 1; seed <= SEEDS; seed += 1) {
+for (let seed = 1; seed <= seeds; seed += 1) {
   const random = seeded(seed * 7919);
   const pick = (items) => items[Math.floor(random() * items.length)];
   const between = (low, high) => low + random() * (high - low);
   await resetRobot();
+  connection.setMockLooiSensorCadence(cadence);
   await connectMock("clear");
-  const h = harness({ level: pick(["look", "explore", "explore", "explore"]), seed });
+  const h = harness({ level: pick(["look", "explore", "explore", "explore"]), seed, linkLossConfirmed: confirmation === "random" ? random() < 0.5 : true });
   const startedAt = clock.now;
   const world = { scenario: "clear", unsafeSince: null, connected: true, stopLockedAt: null, levelChangedAt: startedAt };
   const fail = (rule, detail) => violations.push({ seed, rule, at: Math.round((clock.now - startedAt) / 1000), ...detail });
@@ -112,6 +123,11 @@ for (let seed = 1; seed <= SEEDS; seed += 1) {
       h.samples(Array.from({ length: 1_600 }, (_, i) => 0.2 * Math.sin(i / 5)));
     }
     if (clock.now >= nextInteraction) { h.interact("touch"); nextInteraction = clock.now + between(1, 4) * MINUTE; }
+    if (confirmation === "random") {
+      // The owner changes the link-loss confirmation now and then, also in the middle of a movement.
+      if (random() < 0.08) h.linkLossConfirmed = !h.linkLossConfirmed;
+      if (!h.linkLossConfirmed && h.level === "explore") totals.unconfirmedExploreChecks += 1;
+    }
 
     // Checked after every fault: what happened since the previous check.
     if (world.stopLockedAt !== null) {
@@ -137,6 +153,7 @@ for (let seed = 1; seed <= SEEDS; seed += 1) {
     if (drive.direction === "forward") {
       totals.forward += 1;
       if (drive.levelAtStart !== "explore") fail("only-explore-drives-forward", where);
+      if (!drive.linkLossConfirmedAtStart) fail("no-step-without-link-loss-check", where);
       if (drive.durationMs > idle.MAX_AUTONOMOUS_STEP_MS) fail("step-length-capped", { ...where, ms: drive.durationMs });
     } else if (drive.direction === "left" || drive.direction === "right") {
       if (drive.durationMs > idle.MAX_AUTONOMOUS_TURN_MS) fail("turn-length-capped", { ...where, ms: drive.durationMs });
@@ -168,7 +185,7 @@ for (let seed = 1; seed <= SEEDS; seed += 1) {
 }
 
 // --- Rules on the wire, over every seed: what the mock robot actually received -----
-const driveWrites = writes.filter((write) => write.action === "drive");
+const driveWrites = writes.slice(firstWrite).filter((write) => write.action === "drive");
 let moving = null;
 for (const write of driveWrites) {
   const stopped = /^0+$/u.test(write.detail);
@@ -185,14 +202,37 @@ for (const write of driveWrites) {
 }
 if (moving !== null && !linkLosses.some((at) => at >= moving)) violations.push({ rule: "wheels-parked-at-the-end", since: moving });
 await resetRobot();
+connection.setMockLooiSensorCadence({ cadence: "periodic" });
+return { totals, violations };
+}
 
-if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
-assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
-// The run must have exercised what it claims to prove.
-assert.ok(totals.drives >= 150, `enough wheel actions to mean something: ${totals.drives}`);
-assert.ok(totals.forward >= 10, `forward steps happened: ${totals.forward}`);
-assert.ok(totals.edgeStops >= 5, `edges were hit during movement: ${totals.edgeStops}`);
-assert.ok(totals.stopLocks >= 5, `STOP was heard during movement: ${totals.stopLocks}`);
-assert.ok(totals.yieldsDuringMotion >= 5, `conversations started during movement: ${totals.yieldsDuringMotion}`);
-assert.ok(totals.refusedForStop >= 5, `wheels were refused for a missing STOP decoder: ${totals.refusedForStop}`);
-console.log(`Idle autonomy soak: ${SEEDS} seeds x ${MINUTES_PER_SEED} virtual minutes, ${totals.faults} faults, ${totals.drives} wheel actions (${totals.forward} forward), ${totals.edgeStops} edge stops, ${totals.stopLocks} STOP locks, ${totals.refusedForStop} refusals without STOP decoder, ${totals.yieldsDuringMotion} yields during motion, ${totals.linkLossDuringMotion} link losses during motion, ${totals.repositions} manual repositions; events ${JSON.stringify(totals.events)}; 0 violations PASS`);
+const summary = (label, seeds, totals) => `${label}: ${seeds} seeds x ${MINUTES_PER_SEED} virtual minutes, ${totals.faults} faults, ${totals.drives} wheel actions (${totals.forward} forward), ${totals.edgeStops} edge stops, ${totals.stopLocks} STOP locks, ${totals.refusedForStop} refusals without STOP decoder, ${totals.yieldsDuringMotion} yields during motion, ${totals.linkLossDuringMotion} link losses during motion, ${totals.repositions} manual repositions; events ${JSON.stringify(totals.events)}; 0 violations`;
+
+{
+  const { totals, violations } = await soak({ seeds: SEEDS, cadence: { cadence: "periodic" }, confirmation: "confirmed" });
+  if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
+  assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
+  // The run must have exercised what it claims to prove.
+  assert.ok(totals.drives >= 150, `enough wheel actions to mean something: ${totals.drives}`);
+  assert.ok(totals.forward >= 10, `forward steps happened: ${totals.forward}`);
+  assert.ok(totals.edgeStops >= 5, `edges were hit during movement: ${totals.edgeStops}`);
+  assert.ok(totals.stopLocks >= 5, `STOP was heard during movement: ${totals.stopLocks}`);
+  assert.ok(totals.yieldsDuringMotion >= 5, `conversations started during movement: ${totals.yieldsDuringMotion}`);
+  assert.ok(totals.refusedForStop >= 5, `wheels were refused for a missing STOP decoder: ${totals.refusedForStop}`);
+  console.log(`Idle autonomy soak, ${summary("250 ms sensor stream, link-loss check confirmed", SEEDS, totals)} PASS`);
+}
+{
+  const { totals, violations } = await soak({ seeds: SIDE_SEEDS, cadence: { cadence: "periodic" }, confirmation: "random" });
+  if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
+  assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
+  assert.ok(totals.unconfirmedExploreChecks >= 50, `explore ran unconfirmed often enough: ${totals.unconfirmedExploreChecks}`);
+  assert.ok(totals.forward >= 1, `steps still happened while confirmed: ${totals.forward}`);
+  console.log(`Idle autonomy soak, ${summary("link-loss confirmation flipping", SIDE_SEEDS, totals)}, ${totals.unconfirmedExploreChecks} unconfirmed explore checkpoints PASS`);
+}
+{
+  const cadence = { cadence: "on-change", restFrameIntervalMs: REST_FRAME_MS };
+  const { totals, violations } = await soak({ seeds: SIDE_SEEDS, cadence, confirmation: "confirmed" });
+  if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
+  assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
+  console.log(`Idle autonomy soak, ${summary(`on-change sensor frames${REST_FRAME_MS ? `, edge frame every ${REST_FRAME_MS} ms at rest` : ", none at rest"}`, SIDE_SEEDS, totals)} PASS`);
+}

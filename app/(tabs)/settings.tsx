@@ -631,6 +631,18 @@ export default function SettingsScreen() {
           value={preferences.idleAutonomyLevel}
           onChange={(id) => updatePreferences({ idleAutonomyLevel: id })}
         />
+        {preferences.idleAutonomyLevel === "explore" ? <View style={styles.subCard}>
+          <Text style={styles.label}>{t("settings.idleAutonomyLinkLoss")}</Text>
+          <Text style={styles.help}>{t("settings.idleAutonomyLinkLossHelp")}</Text>
+          <Segmented
+            options={[
+              { id: "unchecked" as const, label: t("settings.idleAutonomyLinkLossUnchecked") },
+              { id: "checked" as const, label: t("settings.idleAutonomyLinkLossChecked") },
+            ]}
+            value={preferences.linkLossSelfStopConfirmed ? "checked" : "unchecked"}
+            onChange={(id) => updatePreferences({ linkLossSelfStopConfirmed: id === "checked" })}
+          />
+        </View> : null}
         <BehaviorSettings />
       </Section>
 

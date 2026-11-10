@@ -44,6 +44,7 @@ function facts(now, overrides = {}) {
     otherMotionBusy: false,
     turnSurfaceSafe: true,
     forwardSurfaceSafe: true,
+    linkLossSelfStopConfirmed: true,
     stopListenerLive: true,
     cameraAvailable: true,
     ...overrides,
@@ -209,6 +210,21 @@ test("unknown surface, missing STOP listener or an unready base keep the wheels 
 
   const disconnected = idle.createIdleAutonomy({ random: seeded(9), startedAt: START });
   assert.deepEqual(simulate(disconnected, { durationMs: 9 * MINUTE, factsAt: (now) => facts(now, { robotReady: false }) }).actions, []);
+});
+
+test("explore takes no step until the owner confirmed the robot stops by itself on link loss", () => {
+  // No source establishes that LOOI stops when the BLE link drops mid-move; until the owner checked, explore only turns.
+  const machine = idle.createIdleAutonomy({ random: seeded(5), startedAt: START });
+  const run = simulate(machine, { durationMs: 8 * MINUTE, factsAt: (now) => facts(now, { level: "explore", linkLossSelfStopConfirmed: false, body: body(now, { distance: "far" }) }) });
+  assert.equal(run.actions.filter((action) => action.kind === "step").length, 0);
+  assert.ok(wheel(run.actions).length > 0, "turning in place continues");
+  const confirmed = simulate(idle.createIdleAutonomy({ random: seeded(5), startedAt: START }), { durationMs: 8 * MINUTE,
+    factsAt: (now) => facts(now, { level: "explore", body: body(now, { distance: "far" }) }) });
+  assert.ok(confirmed.actions.some((action) => action.kind === "step"), "the same run steps once confirmed");
+  // A missing value is never a confirmation.
+  const missing = simulate(idle.createIdleAutonomy({ random: seeded(5), startedAt: START }), { durationMs: 8 * MINUTE,
+    factsAt: (now) => facts(now, { level: "explore", linkLossSelfStopConfirmed: undefined, body: body(now, { distance: "far" }) }) });
+  assert.equal(missing.actions.filter((action) => action.kind === "step").length, 0);
 });
 
 test("a body-state edge vetoes steps even when the motion layer looks clear", () => {

@@ -207,7 +207,60 @@ try {
     h.runtime.stop();
   }
 
-  console.log("Idle autonomy -> real controller/SDK/mock: silent while disconnected, STOP-armed search turns, bounded approach with arrival, front-edge stop without retry, STOP lock, yield on touch, no wheels without STOP decoder, voice guard PASS (no model, network or hardware)");
+  // 8. Explore without the owner's link-loss check: the same far, centred person gets turns at most, never a step,
+  // and a confirmation withdrawn while a step is being prepared is honoured before the wheels move.
+  {
+    await resetRobot();
+    await connectMock("clear");
+    const h = harness({ level: "explore", seed: 3, linkLossConfirmed: false });
+    h.person = { bearing: "center", distance: "far" };
+    const from = clock.now;
+    h.runtime.start();
+    await advance(6 * MINUTE);
+    assert.equal(h.drives.filter((drive) => drive.direction === "forward").length, 0, "no forward step unconfirmed");
+    assert.ok(!driveDirections(from).includes("forward"), "the mock robot never received a forward frame");
+    assert.ok(h.logs.some((entry) => entry.event === "wait" || entry.event === "action"), "idle life still runs");
+    h.runtime.stop();
+  }
+  {
+    await resetRobot();
+    await connectMock("clear");
+    const h = harness({ level: "explore", seed: 3 });
+    h.person = { bearing: "center", distance: "far" };
+    // Confirmed when the step is chosen, withdrawn by the time the wheels would move.
+    const stepChosen = () => h.logs.some((entry) => entry.event === "action" && entry.detail === "forward");
+    Object.defineProperty(h, "linkLossConfirmed", { get: () => !stepChosen() });
+    const from = clock.now;
+    h.runtime.start();
+    await clock.until(() => stepChosen() && h.logs.some((entry) => entry.event === "action-finished" && entry.kind === "step"), 4 * MINUTE);
+    h.runtime.stop();
+    assert.ok(stepChosen(), "a step was chosen while confirmed");
+    assert.equal(h.logs.find((entry) => entry.event === "action-finished" && entry.kind === "step").outcome, "blocked");
+    assert.equal(h.drives.filter((drive) => drive.direction === "forward").length, 0, "the pre-drive recheck refused it");
+    assert.ok(!driveDirections(from).includes("forward"));
+  }
+
+  // 9. A robot that reports only on change (as community captures describe): after the frames
+  // that came with connecting, nothing is fresh any more, so idle life keeps the wheels still.
+  {
+    await resetRobot();
+    connection.setMockLooiSensorCadence({ cadence: "on-change" });
+    try {
+      await connectMock("clear");
+      const h = harness({ level: "explore", seed: 2 });
+      const from = clock.now;
+      h.runtime.start();
+      await advance(10 * MINUTE);
+      h.runtime.stop();
+      const late = h.drives.filter((drive) => drive.at - from > idle.SURFACE_SENSOR_FRESH_MS);
+      assert.deepEqual(late, [], "no wheel action once the last frame is older than the freshness limit");
+      assert.ok(h.logs.some((entry) => entry.event === "action" && (entry.kind === "head" || entry.kind === "head_gesture")), "head-only life continues");
+    } finally {
+      connection.setMockLooiSensorCadence({ cadence: "periodic" });
+    }
+  }
+
+  console.log("Idle autonomy -> real controller/SDK/mock: silent while disconnected, STOP-armed search turns, bounded approach with arrival, front-edge stop without retry, STOP lock, yield on touch, no wheels without STOP decoder, voice guard, no step without the link-loss check, still wheels on an on-change robot PASS (no model, network or hardware)");
 } finally {
   await settle(connection.setLooiConnectionMode("disconnected")).catch(() => undefined);
   await settle(robot.disconnectLooiRobot()).catch(() => undefined);

@@ -100,8 +100,13 @@ export interface IdleAutonomyFacts {
   otherMotionBusy: boolean;
   /** All four cliff sensors report ground, stable and fresh, and no near-edge latch. */
   turnSurfaceSafe: boolean;
-  /** turnSurfaceSafe plus a known-clear front TOF. */
+  /** turnSurfaceSafe plus a 0e reading the app decodes as clear (an unverified signal that can only add caution). */
   forwardSurfaceSafe: boolean;
+  /**
+   * The owner has checked on this robot that it stops by itself when the Bluetooth link drops
+   * mid-movement. No source establishes that it does; without this, explore takes no steps.
+   */
+  linkLossSelfStopConfirmed: boolean;
   /** Microphone PCM is flowing, so a local STOP decoder can be armed for a wheel action. */
   stopListenerLive: boolean;
   /** The user allows the camera and it can look for faces now. */
@@ -203,6 +208,7 @@ export function createIdleAutonomy(options: IdleAutonomyOptions) {
     if (facts.level !== "explore") return "level-not-explore";
     const turn = turnBlocker(facts);
     if (turn) return turn;
+    if (!facts.linkLossSelfStopConfirmed) return "link-loss-stop-unconfirmed";
     if (!facts.forwardSurfaceSafe) return "forward-not-known-safe";
     if (facts.body.surface === "edge_front" || facts.body.surface === "edge_rear") return "body-state-edge";
     if (edge && facts.now - edge.at < EDGE_TRANSLATION_LOCK_MS) return "edge-translation-lock";
@@ -514,7 +520,12 @@ export interface IdleMotionLayerSnapshot {
   safety: { lastSafetyStopReason: string | null };
 }
 
-/** Sensor frames older than this make the surface unknown for autonomy, even if the motion layer still trusts them. */
+/**
+ * Sensor frames older than this make the surface unknown for autonomy, even if the motion layer still trusts them.
+ * Any FED9 frame counts: it shows the notification stream is alive. Whether the robot sends frames while it
+ * stands still is not established (community notes describe change-driven frames), so on such a robot this
+ * keeps the wheels still; the self-check measures it. Loosening it needs a measurement on the robot.
+ */
 export const SURFACE_SENSOR_FRESH_MS = 6_000;
 /** All four cliff sensors must have reported ground continuously for this long. */
 export const SURFACE_STABLE_MS = 1_000;

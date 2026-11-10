@@ -4,7 +4,7 @@ import { loadTypeScript } from "./helpers/load-typescript.mjs";
 const api = loadTypeScript("src/robot-mind/self-check.ts");
 
 /** A fake device whose sensor frames arrive at the given times (ms after start). */
-function device({ connected = true, driveControlReady = true, frameTimes = [], cliff = { frontLeft: true, frontRight: true, rearLeft: true, rearRight: true },
+function device({ connected = true, driveControlReady = true, frameTimes = [], frameType = () => "01", earlierFrames = { "01": 3, "11": 1 }, cliff = { frontLeft: true, frontRight: true, rearLeft: true, rearRight: true },
   obstacleNear = false, microphone = true, decoder = true, decoderThrows = false, keyword = true, storage = "ok", camera = { enabled: true, looking: true, faces: 1 }, disconnectAt = null } = {}) {
   let now = 1_000_000;
   const start = now;
@@ -17,8 +17,10 @@ function device({ connected = true, driveControlReady = true, frameTimes = [], c
     robot() {
       const elapsed = now - start;
       const arrived = frameTimes.filter((time) => time <= elapsed);
+      const frameCounts = { ...earlierFrames };
+      arrived.forEach((time, index) => { const type = frameType(index, time); frameCounts[type] = (frameCounts[type] ?? 0) + 1; });
       return { connected: connected && (disconnectAt === null || elapsed < disconnectAt), driveControlReady,
-        lastSensorFrameAt: arrived.length ? start + arrived.at(-1) : null, cliff, obstacleNear };
+        lastSensorFrameAt: arrived.length ? start + arrived.at(-1) : null, frameCounts, cliff, obstacleNear };
     },
     sensorFreshMs: 6_000,
     microphoneLive: () => microphone,
@@ -44,13 +46,17 @@ const every = (ms, until = 30_000) => Array.from({ length: Math.floor(until / ms
   assert.deepEqual(report.lines.map((item) => item.id), ["base", "sensor_cadence", "surface", "stop_decoder", "keyword_stop", "speech_clips", "camera"]);
   const cadence = line(report, "sensor_cadence");
   assert.equal(cadence.status, "ok");
-  assert.ok(cadence.values.frames >= 29 && cadence.values.maxGapMs <= 1_100, JSON.stringify(cadence.values));
+  assert.equal(cadence.values.frames, 30, "frames are counted exactly, not inferred from samples");
+  assert.equal(cadence.values.edgeFrames, 30);
+  assert.equal(cadence.values.types, "01:30", "frames from before the check are not counted");
+  assert.ok(cadence.values.maxGapMs <= 1_100, JSON.stringify(cadence.values));
   assert.ok(report.durationMs >= 30_000 && report.durationMs < 31_000, "observes for 30 seconds");
   assert.deepEqual(d.recorded, [report], "the report goes to the diagnostic log");
-  assert.match(api.formatSelfCheckReport(report), /^✓ wheel base connected and ready\n✓ \d+ sensor frames/u);
+  assert.match(api.formatSelfCheckReport(report), /^✓ wheel base connected and ready\n✓ with the wheels parked, the robot sent 30 sensor frames in 30 s \(30 from the edge sensors; by type 01:30\)/u);
 }
 {
-  // Frames about five seconds apart (as real captures showed) still fit the six-second limit.
+  // Frames about five seconds apart still fit the six-second limit. (A code comment once claimed real captures
+  // showed this spacing; no capture backs it, which is why the check measures it.)
   const report = await api.runRobotMindSelfCheck(device({ frameTimes: every(5_000) }).deps);
   assert.equal(line(report, "sensor_cadence").status, "ok");
   assert.ok(line(report, "sensor_cadence").values.maxGapMs <= 5_100);
@@ -74,7 +80,19 @@ const every = (ms, until = 30_000) => Array.from({ length: Math.floor(until / ms
   // No frames at all, and a robot that only reports on change.
   const silent = await api.runRobotMindSelfCheck(device({ frameTimes: [] }).deps);
   assert.equal(line(silent, "sensor_cadence").status, "problem");
-  assert.match(line(silent, "sensor_cadence").detail, /no sensor frame in 30 s/u);
+  assert.match(line(silent, "sensor_cadence").detail, /sent no sensor frame in 30 s; idle autonomy needs one within 6000 ms/u);
+  assert.equal(line(silent, "sensor_cadence").values.frames, 0);
+}
+{
+  // Several frames in one sample are all counted, and the line names which types arrived: a robot that only
+  // sends motion frames at rest shows zero edge-sensor frames.
+  const burst = await api.runRobotMindSelfCheck(device({ frameTimes: [...every(1_000), ...every(1_000)].sort((a, b) => a - b),
+    frameType: (index) => (index % 2 ? "0e" : "02") }).deps);
+  const cadence = line(burst, "sensor_cadence");
+  assert.equal(cadence.values.frames, 60);
+  assert.equal(cadence.values.edgeFrames, 0);
+  assert.equal(cadence.values.types, "02:30,0e:30");
+  assert.match(cadence.detail, /0 from the edge sensors/u);
 }
 {
   // Without the base nothing is measured, and it takes no 30 seconds.

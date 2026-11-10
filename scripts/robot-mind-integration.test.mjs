@@ -31,7 +31,7 @@ const random = () => { seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648; r
 const autonomy = idle.createIdleAutonomy({ random, startedAt: now });
 const facts = (level, extra = {}) => ({
   now, level, body: store.getState(), yieldReason: null, lastInteractionAt: null, robotReady: true, otherMotionBusy: false,
-  turnSurfaceSafe: true, forwardSurfaceSafe: true, stopListenerLive: true, cameraAvailable: true, ...extra,
+  turnSurfaceSafe: true, forwardSurfaceSafe: true, linkLossSelfStopConfirmed: true, stopListenerLive: true, cameraAvailable: true, ...extra,
 });
 /** Run decisions until autonomy asks for something other than a pause; apply its mode and events like the runtime. */
 function nextAction(level, extra, limitMs = 10 * 60_000, faces = null) {

@@ -12,7 +12,7 @@ import {
   subscribeLooiRobotRuntimeState,
 } from "./looi-robot";
 import type { LooiConnectionDebugSource, LooiConnectionMode } from "./looi-connection-mode";
-import type { MockLooiScenario, MockLooiSnapshot, MockLooiTransport } from "./mock-looi-transport";
+import type { MockLooiScenario, MockLooiSensorCadenceOptions, MockLooiSnapshot, MockLooiTransport } from "./mock-looi-transport";
 
 export type { LooiConnectionDebugSource, LooiConnectionMode } from "./looi-connection-mode";
 export type { MockLooiScenario, MockLooiSnapshot, MockLooiTraceEntry } from "./mock-looi-transport";
@@ -114,6 +114,7 @@ let modeSwitchGeneration = 0;
 let modeSwitching = false;
 let debugLastError: string | null = null;
 let mockScenario: MockLooiScenario = "clear";
+let mockSensorCadence: MockLooiSensorCadenceOptions = { cadence: "periodic" };
 let mockTransport: MockLooiTransport | null = null;
 let unsubscribeMockTransport: (() => void) | null = null;
 const debugStateListeners = new Set<(snapshot: LooiRobotDebugState) => void>();
@@ -262,6 +263,7 @@ async function configureMockTransport(
   let nextTransport!: MockLooiTransport;
   nextTransport = new MockLooiTransport({
     initialScenario: mockScenario,
+    sensorCadence: mockSensorCadence,
     onDisconnected: (error) => mockTransportDisconnected(nextTransport, error),
   });
   releaseMockTransport();
@@ -392,6 +394,12 @@ function restartMockTransport(shouldConnect: boolean): Promise<void> {
       emitDebugState();
     }
   });
+}
+
+/** How the simulated robot reports its sensors; applies to the current and every later mock transport. Not persisted. */
+export function setMockLooiSensorCadence(options: MockLooiSensorCadenceOptions): void {
+  mockSensorCadence = { ...options };
+  mockTransport?.setSensorCadence(mockSensorCadence);
 }
 
 /** Enable or disable the simulated link. Disabling is a persistent link-loss injection. */

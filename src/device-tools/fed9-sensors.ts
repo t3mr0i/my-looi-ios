@@ -17,7 +17,7 @@ export type Fed9DecodedFrame =
       sensors: Fed9CliffSensors;
       safe: boolean;
     }
-  | { kind: "tof"; distanceMm: number | null; obstacleNear: boolean }
+  | { kind: "tof"; distanceMm: number | null; obstacleNear: boolean | null }
   | { kind: "unknown" };
 
 /**
@@ -28,7 +28,14 @@ export type Fed9DecodedFrame =
  * - five bytes containing only 00/01: one marker/status byte followed by four
  *   downward cliff sensors in calibrated order:
  *     [marker, front-left, front-right, rear-left, rear-right]
- * - 0e XX XX: front TOF distance as uint16 little-endian; 0x1fff=no target
+ * - 0e XX XX: read here as a front TOF distance, uint16 little-endian, with
+ *   0x1fff = no target. This reading is NOT established. Community captures
+ *   (andrey-tut/LOOI-Robot, docs/FED9_TELEMETRY.md) see 0e only while the body
+ *   is turned, slid or tilted and call it a motion/attitude scalar; nobody has
+ *   published a test with an object in front of the robot. The value may only
+ *   ever add caution: values above 0x1fff (such as the ffff those captures
+ *   report) cannot be a distance under this reading and decode as unknown, so
+ *   forward motion stays blocked instead of being treated as clear.
  *
  * The first binary byte is retained for diagnostics but intentionally does not
  * participate in the cliff-safe decision. Its exact semantic meaning remains
@@ -57,6 +64,7 @@ export function decodeFed9SensorFrame(bytes: Uint8Array): Fed9DecodedFrame {
 
   if (bytes.length === 3 && bytes[0] === 0x0e) {
     const rawDistance = bytes[1] | (bytes[2] << 8);
+    if (rawDistance > TOF_NO_TARGET) return { kind: "tof", distanceMm: null, obstacleNear: null };
     const distanceMm = rawDistance === TOF_NO_TARGET ? null : rawDistance;
     return {
       kind: "tof",

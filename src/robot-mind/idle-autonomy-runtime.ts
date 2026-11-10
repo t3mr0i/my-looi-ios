@@ -75,6 +75,8 @@ export interface IdleAutonomyRuntimeDeps {
   setTimeout(callback: () => void, delayMs: number): unknown;
   clearTimeout(handle: unknown): void;
   getLevel(): IdleAutonomyLevel;
+  /** The owner confirmed on the robot that it stops by itself when the link drops mid-movement. */
+  linkLossSelfStopConfirmed(): boolean;
   /** App-level reasons to stay still (conversation, background, sleep, driving session, robot app...). */
   getYieldReason(): string | null;
   /** Human interactions such as touch, speech or a robot-bridge command. */
@@ -231,7 +233,7 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
             // Re-read the motion layer right before the wheels move; nothing from before the await is trusted.
             const surface = assessIdleSurface(deps.motion.getState(), deps.now());
             if (!isCurrent()) outcome = "interrupted";
-            else if (!(action.kind === "step" ? surface.forward : surface.turn)) outcome = "blocked";
+            else if (!(action.kind === "step" ? surface.forward && deps.linkLossSelfStopConfirmed() : surface.turn)) outcome = "blocked";
             else outcome = settle(await deps.motion.drive(action.direction, action.durationMs, { isCurrent }), isCurrent);
           } finally {
             await deps.stopListener.disarm(`idle-autonomy-${action.kind}-finished`).catch(() => undefined);
@@ -273,6 +275,7 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
       otherMotionBusy: robot.motionActive || deps.ambient.busy() || deps.camera.bodyMotionInFlight(),
       turnSurfaceSafe: surface.turn,
       forwardSurfaceSafe: surface.forward,
+      linkLossSelfStopConfirmed: deps.linkLossSelfStopConfirmed(),
       stopListenerLive: deps.stopListener.isLive(),
       cameraAvailable: level !== "off" && deps.camera.available(),
     };

@@ -20,6 +20,7 @@ export function runRobotMindSelfCheckOnDevice(): Promise<SelfCheckReport> {
       robot() {
         const robot = getLooiRobotRuntimeState();
         return { connected: robot.connected, driveControlReady: robot.driveControlReady, lastSensorFrameAt: robot.sensors.lastFed9At,
+          frameCounts: { ...robot.sensors.fed9FrameCounts },
           cliff: robot.sensors.cliffSensors ? { ...robot.sensors.cliffSensors } : null, obstacleNear: robot.sensors.obstacleNear };
       },
       sensorFreshMs: SURFACE_SENSOR_FRESH_MS,
