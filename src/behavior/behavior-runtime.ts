@@ -333,6 +333,15 @@ export function recordFriendlyStroke(): { durationMs: number } | null {
   return behaviorEngine.noteFriendlyStroke();
 }
 
+let physicalCueGate: ((cue: BehaviorCue) => boolean) | null = null;
+/**
+ * Lets the owner of the current reply's expression decline a physical cue for
+ * that reply. Presentation-only cues are never gated.
+ */
+export function configureBehaviorCueGate(gate: ((cue: BehaviorCue) => boolean) | null): void {
+  physicalCueGate = gate;
+}
+
 async function executeCue(cue: BehaviorCue): Promise<void> {
   const settings = useBehaviorStore.getState().settings;
   const controller = new AbortController();
@@ -349,6 +358,11 @@ async function executeCue(cue: BehaviorCue): Promise<void> {
       && !getSocialAttentionControllerState().objectAttentionActive;
   };
   if (settings.mode !== "active") return;
+  if (!cue.presentationOnly && physicalCueGate) {
+    let allowed = true;
+    try { allowed = physicalCueGate(cue); } catch { allowed = true; }
+    if (!allowed) return;
+  }
   // A local game outcome already owns its single visual beat; do not add an
   // unrelated cloud-selected head gesture on top of it.
   const feedback = useBehaviorStore.getState().feedback;

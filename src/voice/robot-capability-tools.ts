@@ -4,10 +4,13 @@ import {
   ROBOT_MAX_NOD_COUNT,
   ROBOT_MAX_PHYSICAL_ACTIONS_PER_TURN,
   ROBOT_MOVE_ACTIONS,
+  isRobotExpressionIntent,
   type RobotGesture,
   type RobotMoveAction,
 } from "./robot-capability-tool-definitions";
 import { isCharacterScene } from "../character/character-scene-catalog";
+import { robotExpressionConductor, type RobotExpressionReply } from "../robot-mind/expression";
+import type { RobotExpressionIntent } from "../robot-mind/body-state";
 import { containsEmergencyStopWord } from "./explicit-robot-command";
 import { useUserStore } from "../store/user";
 
@@ -32,6 +35,10 @@ export type RobotCapabilityRuntime = {
   stop(reason: string): Promise<void>;
   /** True when the user turn itself contains an emergency STOP word. */
   isStopRequest(text: string): boolean;
+  /** Give the reply being spoken the model's expression; false when it no longer applies. */
+  express(intent: RobotExpressionIntent, reply: RobotExpressionReply): boolean;
+  /** An admitted gesture or movement owns the head for the rest of this reply. */
+  notePhysicalAction(): void;
 };
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -90,6 +97,8 @@ const defaultRuntime: RobotCapabilityRuntime = {
       customVoiceCommands: preferences.customVoiceCommands,
     });
   },
+  express: (intent, reply) => robotExpressionConductor.expressFromModel(intent, reply),
+  notePhysicalAction: () => robotExpressionConductor.notePhysicalAction(),
 };
 
 /**
@@ -125,6 +134,7 @@ export function createRobotCapabilityToolBridge(runtime: RobotCapabilityRuntime 
     if (stopped || runtime.isStopRequest(turn.userText)) return { ok: false, status: "refused", reason: "stop_requested", action };
     if (physicalActions >= ROBOT_MAX_PHYSICAL_ACTIONS_PER_TURN) return { ok: false, status: "refused", reason: "too_many_actions_this_turn", action };
     physicalActions += 1;
+    runtime.notePhysicalAction();
     return serialized(async () => {
       if (!turn.isCurrent()) return stale();
       if (stopped) return { ok: false, status: "refused", reason: "stop_requested", action };
@@ -143,6 +153,27 @@ export function createRobotCapabilityToolBridge(runtime: RobotCapabilityRuntime 
   };
 
   return {
+    /**
+     * The model's expression for the reply it is speaking. Synchronous and not
+     * bound to a user turn: it is acknowledged without a follow-up response and
+     * also serves proactive replies. Wheels are never involved.
+     */
+    express(rawArgs: unknown, reply: RobotExpressionReply): Record<string, unknown> {
+      let current = false;
+      try { current = reply.isCurrent(); } catch { current = false; }
+      if (!current) return stale();
+      if (!isPlainRecord(rawArgs) || !hasOnlyKeys(rawArgs, ["intent"]) || !isRobotExpressionIntent(rawArgs.intent)) {
+        return { ok: false, status: "invalid-arguments" };
+      }
+      try {
+        return runtime.express(rawArgs.intent, reply)
+          ? { ok: true, status: "expressed", intent: rawArgs.intent }
+          : stale();
+      } catch {
+        return { ok: false, status: "unavailable", intent: rawArgs.intent };
+      }
+    },
+
     async execute(name: string, rawArgs: unknown, turn: RobotCapabilityTurn): Promise<Record<string, unknown>> {
       if (!turn.isCurrent()) return stale();
       if (!ROBOT_CAPABILITY_TOOL_NAMES.has(name)) return { ok: false, status: "unsupported-tool" };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFocusEffect } from "expo-router";
 import { AccessibilityInfo, AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
@@ -37,6 +37,9 @@ import { createCharacterChoreography, sampleCharacterChoreography, type Characte
 import { createFaceStrokeRecognizer, type FaceStrokePoint } from "@/src/character/face-stroke";
 import type { GestureResponderEvent } from "react-native";
 import type { BehaviorRehearsalFaceFixture } from "@/src/behavior/behavior-rehearsal-expression";
+import { robotBodyState } from "@/src/robot-mind/body-state";
+
+const readBodyExpression = () => robotBodyState.getState().expression;
 
 type RobotFaceMode = "fullscreen" | "avatar";
 
@@ -84,6 +87,9 @@ function ClassicRobotFace({
   // select a speaking expression; unavailable alignment deliberately stays neutral.
   const heardSpeechText = useConversationStore((state) => state.heardSpeechText);
   const streamingText = fixture ? "" : heardSpeechText ?? "";
+  // The model's own expression for this reply owns the speaking face.
+  const bodyExpression = useSyncExternalStore(robotBodyState.subscribeState, readBodyExpression);
+  const speechIntent = !fixture && bodyExpression.source === "model" ? bodyExpression.intent : null;
   const realtimeReadiness = useConversationStore((state) => state.realtimeReadiness);
   const inputAttentionCue = useConversationStore((state) => state.inputAttention);
   const activeSessionId = useConversationStore((state) => state.activeSessionId);
@@ -203,8 +209,8 @@ function ClassicRobotFace({
   const presentation = useMemo(
     () => resolveFacePresentation({ robotSleeping, voiceState, streamingText, characterMood,
       behaviorMood: feedback?.kind === "game" ? feedback.mood : behaviorPresentation?.mood ?? null,
-      feedbackMood: feedback?.kind !== "game" ? feedback?.mood : null, assistantSpeaking: !fixture && assistantSpeaking, action, inputAttention }),
-    [action, assistantSpeaking, behaviorPresentation, characterMood, feedback, fixture, inputAttention, robotSleeping, streamingText, voiceState]
+      feedbackMood: feedback?.kind !== "game" ? feedback?.mood : null, assistantSpeaking: !fixture && assistantSpeaking, action, inputAttention, speechIntent }),
+    [action, assistantSpeaking, behaviorPresentation, characterMood, feedback, fixture, inputAttention, robotSleeping, speechIntent, streamingText, voiceState]
   );
   const face = presentation.expression;
   const characterReactionVisible = presentation.characterReactionVisible;

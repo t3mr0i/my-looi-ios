@@ -15,7 +15,65 @@ const recordingRobotCapabilityToolBridge = {
     robotCapabilityCalls.push({ name, args, userText: turn.userText, current: turn.isCurrent() });
     return name === "play_scene" ? { ok: true, status: "scene_queued", scene: args.scene } : { ok: true, status: "completed", action: args.action };
   },
+  express(args, reply) {
+    robotExpressionCalls.push({ args, replyId: reply.replyId, current: reply.isCurrent() });
+    return reply.isCurrent() ? { ok: true, status: "expressed", intent: args?.intent } : { ok: false, status: "stale-turn" };
+  },
 };
+const robotExpressionCalls = [];
+
+async function assertRobotExpressionThroughTransport(service, sent, prefix) {
+  const followUps = () => sent.filter((event) => event.type === "response.create").length;
+  const outputOf = (callId) => JSON.parse(sent.find((event) => event.item?.call_id === callId).item.output);
+  const expressItem = (callId, intent) => ({ type: "function_call", call_id: callId, name: "express", arguments: JSON.stringify({ intent }) });
+
+  // Express next to speech: applied at once, acknowledged, no extra response.
+  const before = robotExpressionCalls.length;
+  const followUpsBefore = followUps();
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "conversation.item.input_audio_transcription.completed", transcript: "Do you like robots?", item_id: `${prefix}-express-turn` });
+  const responseId = `${prefix}-express-response`;
+  await service.handleEvent({ type: "response.created", response: { id: responseId } });
+  await service.handleEvent({ type: "response.output_item.done", response_id: responseId, item: expressItem(`${prefix}-express`, "happy") });
+  await flush();
+  assert.deepEqual(robotExpressionCalls.slice(before), [{ args: { intent: "happy" }, replyId: responseId, current: true }], `${prefix} applies the model's expression for this reply`);
+  assert.deepEqual(outputOf(`${prefix}-express`), { ok: true, status: "expressed", intent: "happy" }, `${prefix} acknowledges the expression`);
+  assert.equal(followUps(), followUpsBefore, `${prefix} requests no extra response for an expression`);
+  await service.handleEvent({ type: "response.done", response: { id: responseId, status: "completed", output: [
+    { type: "message", role: "assistant" }, expressItem(`${prefix}-express`, "happy"),
+  ] } });
+  await flush();
+  assert.equal(followUps(), followUpsBefore, `${prefix} speech and expression in one response finish without a round trip`);
+
+  // Express without any words: the reply is still owed, exactly once.
+  const silentResponse = `${prefix}-express-only-response`;
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "conversation.item.input_audio_transcription.completed", transcript: "Tell me something.", item_id: `${prefix}-express-only-turn` });
+  await service.handleEvent({ type: "response.created", response: { id: silentResponse } });
+  await service.handleEvent({ type: "response.output_item.done", response_id: silentResponse, item: expressItem(`${prefix}-express-only`, "curious") });
+  await flush();
+  assert.equal(followUps(), followUpsBefore, `${prefix} waits for the response to finish before asking for words`);
+  await service.handleEvent({ type: "response.done", response: { id: silentResponse, status: "completed", output: [expressItem(`${prefix}-express-only`, "curious")] } });
+  await flush();
+  assert.equal(followUps(), followUpsBefore + 1, `${prefix} asks for the spoken reply the model still owes`);
+  const repeatResponse = `${prefix}-express-repeat-response`;
+  await service.handleEvent({ type: "response.created", response: { id: repeatResponse } });
+  await service.handleEvent({ type: "response.output_item.done", response_id: repeatResponse, item: expressItem(`${prefix}-express-repeat`, "curious") });
+  await service.handleEvent({ type: "response.done", response: { id: repeatResponse, status: "completed", output: [expressItem(`${prefix}-express-repeat`, "curious")] } });
+  await flush();
+  assert.equal(followUps(), followUpsBefore + 1, `${prefix} never chases a second wordless expression`);
+
+  // An expression from a response replaced by new user speech is stale.
+  const staleResponse = `${prefix}-express-stale-response`;
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "response.created", response: { id: staleResponse } });
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  const staleBefore = robotExpressionCalls.length;
+  await service.handleEvent({ type: "response.output_item.done", response_id: staleResponse, item: expressItem(`${prefix}-express-stale`, "playful") });
+  await flush();
+  assert.equal(robotExpressionCalls.length, staleBefore, `${prefix} never applies an expression from a replaced response`);
+  assert.equal(outputOf(`${prefix}-express-stale`).status, "stale-turn");
+}
 async function assertRobotCapabilityThroughTransport(service, sent, prefix) {
   const before = robotCapabilityCalls.length;
   const followUps = () => sent.filter((event) => event.type === "response.create").length;
@@ -661,6 +719,7 @@ async function exerciseWebRtcTransport() {
   assert.equal(sent.filter((event) => event.type === "response.create").length, 1, "WebRTC uses only the existing tool-response follow-up");
 
   await assertRobotCapabilityThroughTransport(service, sent, "webrtc-capability");
+  await assertRobotExpressionThroughTransport(service, sent, "webrtc-expression");
   const webRtcAppCallsBefore = robotAppSkillCalls.length;
   await callCompanionTool(service, "webrtc-app-search", "Find a dance app and try a suitable one.", "search_robot_apps", { query: "dance", limit: 2 });
   assert.deepEqual(JSON.parse(sent.find((event) => event.item?.call_id === "webrtc-app-search").item.output), {
@@ -1007,6 +1066,7 @@ async function exercisePcmTransport() {
   assert.equal(sent.filter((event) => event.type === "response.create").length, 1, "PCM uses only the existing tool-response follow-up");
 
   await assertRobotCapabilityThroughTransport(service, sent, "pcm-capability");
+  await assertRobotExpressionThroughTransport(service, sent, "pcm-expression");
   const pcmAppCallsBefore = robotAppSkillCalls.length;
   await callCompanionTool(service, "pcm-app-search", "Find a suitable app for dancing and try it.", "search_robot_apps", { query: "dance" });
   assert.equal(JSON.parse(sent.find((event) => event.item?.call_id === "pcm-app-search").item.output).status, "listed");

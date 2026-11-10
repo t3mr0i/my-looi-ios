@@ -9,11 +9,14 @@ const tools = loadTypeScript("src/voice/robot-capability-tools.ts", {
   "../character/character-scene-catalog": sceneCatalog,
   "./explicit-robot-command": explicit,
   "../store/user": { useUserStore: { getState: () => ({ preferences: { robotName: "LOOI", listeningLanguage: "de" } }) } },
+  "../robot-mind/expression": { robotExpressionConductor: { expressFromModel() { throw new Error("tests inject the runtime"); }, notePhysicalAction() {} } },
 });
 
 // --- Manifest: one source for prompt and tools -----------------------------
-assert.deepEqual(definitions.ROBOT_CAPABILITY_TOOLS.map((tool) => tool.name), ["play_scene", "perform_gesture", "move_robot", "stop_robot"]);
-assert.deepEqual([...definitions.ROBOT_CAPABILITY_TOOL_NAMES], definitions.ROBOT_CAPABILITY_TOOLS.map((tool) => tool.name));
+assert.deepEqual(definitions.ROBOT_CAPABILITY_TOOLS.map((tool) => tool.name), ["play_scene", "perform_gesture", "move_robot", "stop_robot", "express"]);
+// The turn-bound action tools; express belongs to the reply, not to a user turn.
+assert.deepEqual([...definitions.ROBOT_CAPABILITY_TOOL_NAMES], ["play_scene", "perform_gesture", "move_robot", "stop_robot"]);
+assert.equal(definitions.ROBOT_EXPRESSION_TOOL_NAME, "express");
 const sceneTool = definitions.ROBOT_CAPABILITY_TOOLS[0];
 assert.deepEqual(sceneTool.parameters.properties.scene.enum, sceneCatalog.CHARACTER_SCENES.map((scene) => scene.id), "every catalog scene is selectable and nothing else");
 for (const scene of sceneCatalog.CHARACTER_SCENES) {
@@ -40,6 +43,7 @@ assert.doesNotMatch(noToolPrompt, /call play_scene/u);
 // --- Executor --------------------------------------------------------------
 function createHarness(overrides = {}) {
   const calls = [];
+  const physicalNotes = [];
   let displayAvailable = true;
   const runtime = {
     isScene: (scene) => sceneCatalog.isCharacterScene(scene),
@@ -50,9 +54,11 @@ function createHarness(overrides = {}) {
     async turn(direction, degrees) { calls.push(["turn", direction, degrees]); return { ok: true, direction, degrees, completed: true }; },
     async stop(reason) { calls.push(["stop", reason]); },
     isStopRequest: (text) => explicit.containsEmergencyStopWord(text, { listeningLanguage: "de" }),
+    express(intent, reply) { calls.push(["express", intent, reply.replyId]); return true; },
+    notePhysicalAction() { physicalNotes.push(calls.length); },
     ...overrides,
   };
-  return { calls, bridge: tools.createRobotCapabilityToolBridge(runtime), setDisplay(value) { displayAvailable = value; } };
+  return { calls, physicalNotes, bridge: tools.createRobotCapabilityToolBridge(runtime), setDisplay(value) { displayAvailable = value; } };
 }
 let current = true;
 const turn = (userText, revision = 1, extra = {}) => ({ sessionId: "voice-1", userTurnRevision: revision, userText, isCurrent: () => current, ...extra });
@@ -153,6 +159,71 @@ const turn = (userText, revision = 1, extra = {}) => ({ sessionId: "voice-1", us
   ]);
   assert.equal(overlap, false);
   assert.deepEqual(order, ["move", "turn"]);
+}
+
+// --- Expression: one tool for Realtime, one text tag for turn-based ---------
+{
+  const intents = ["neutral", "happy", "playful", "agreeing", "curious", "thinking", "surprised", "sad", "calm"];
+  assert.deepEqual(definitions.ROBOT_EXPRESSION_INTENTS, intents);
+  const expressTool = definitions.ROBOT_CAPABILITY_TOOLS.find((tool) => tool.name === "express");
+  assert.deepEqual(expressTool.parameters.properties.intent.enum, intents);
+  assert.equal(expressTool.parameters.additionalProperties, false);
+  assert.match(expressTool.description, /never instead of speaking/u);
+  assert.match(expressTool.description, /needs no answer/u);
+  assert.equal(definitions.buildStrictRobotCapabilityTools().some((tool) => tool.name === "express"), false, "turn-based mode gets the tag, not an extra tool round");
+  for (const intent of intents) {
+    const head = definitions.ROBOT_EXPRESSION_VOCABULARY[intent].head;
+    if (head) assert.ok(["nod", "curious", "happy_bob", "thinking", "speaking_soft"].includes(head.gesture), `${intent} uses a head-only gesture`);
+  }
+  for (const quiet of ["neutral", "sad", "calm"]) assert.equal(definitions.ROBOT_EXPRESSION_VOCABULARY[quiet].head, null, `${quiet} keeps the head still`);
+  assert.deepEqual(definitions.ROBOT_EXPRESSION_VOCABULARY.agreeing.head, { gesture: "nod", at: "speech_start" });
+  assert.deepEqual(definitions.ROBOT_EXPRESSION_VOCABULARY.curious.head, { gesture: "curious", at: "speech_end" });
+
+  assert.match(realtimePrompt, /call express with the one intent that fits/u);
+  assert.match(realtimePrompt, /Serious, sad, worrying or distressing topics always get calm or sad/u);
+  assert.doesNotMatch(realtimePrompt, /expression tag in square brackets/u);
+  for (const prompt of [turnBasedPrompt, noToolPrompt]) {
+    assert.match(prompt, /begin every reply with exactly one expression tag in square brackets/u);
+    assert.match(prompt, /\[agreeing\]/u);
+    assert.doesNotMatch(prompt, /call express/u);
+  }
+
+  assert.deepEqual(definitions.parseRobotExpressionTag("[happy] Oh, das klingt schön!"), { intent: "happy", text: "Oh, das klingt schön!" });
+  assert.deepEqual(definitions.parseRobotExpressionTag("  [Curious]Was meinst du?"), { intent: "curious", text: "Was meinst du?" });
+  assert.deepEqual(definitions.parseRobotExpressionTag("Ja. [agreeing] Genau. [sad]"), { intent: "agreeing", text: "Ja. Genau." }, "every tag is removed before speech; the first wins");
+  assert.deepEqual(definitions.parseRobotExpressionTag("Kein Tag hier [x]."), { intent: null, text: "Kein Tag hier [x]." });
+
+  const express = (name = "express") => ({ type: "function_call", name, call_id: "c" });
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "completed", output: [express()] }), true, "a face without words still owes the reply");
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "completed", output: [express(), { type: "message" }] }), false, "speech in the same response needs no follow-up");
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "completed", output: [{ type: "message" }, express()] }), false);
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "completed", output: [express(), express("play_scene")] }), false, "other tools request their own follow-up");
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "cancelled", output: [express()] }), false);
+  assert.equal(definitions.robotExpressionNeedsSpokenFollowup({ status: "completed", output: [] }), false);
+}
+
+{
+  const { calls, bridge } = createHarness();
+  let replyCurrent = true;
+  const reply = { sessionId: "voice-1", replyId: "resp-1", isCurrent: () => replyCurrent };
+  assert.deepEqual(bridge.express({ intent: "agreeing" }, reply), { ok: true, status: "expressed", intent: "agreeing" });
+  assert.equal(bridge.express({ intent: "angry" }, reply).status, "invalid-arguments");
+  assert.equal(bridge.express({ intent: "happy", gesture: "dance" }, reply).status, "invalid-arguments");
+  assert.equal(bridge.express(null, reply).status, "invalid-arguments");
+  replyCurrent = false;
+  assert.equal(bridge.express({ intent: "happy" }, reply).status, "stale-turn");
+  assert.deepEqual(calls, [["express", "agreeing", "resp-1"]], "only valid, current expressions reach the face");
+  const refused = createHarness({ express() { return false; } });
+  assert.equal(refused.bridge.express({ intent: "sad" }, { ...reply, isCurrent: () => true }).status, "stale-turn");
+}
+
+{
+  // An admitted gesture tells the expression that this reply's head is taken.
+  const { calls, physicalNotes, bridge } = createHarness();
+  await bridge.execute("perform_gesture", { gesture: "nod" }, turn("Nick mal.", 40));
+  assert.deepEqual([physicalNotes, calls], [[0], [["nod", 1]]], "the head is claimed before the nod starts");
+  await bridge.execute("play_scene", { scene: "coffee" }, turn("Trink Kaffee.", 41));
+  assert.equal(physicalNotes.length, 1, "a display scene does not take the head");
 }
 
 console.log("Robot capability manifest and tool bridge tests passed");

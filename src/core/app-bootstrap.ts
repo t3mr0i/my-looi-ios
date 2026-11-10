@@ -102,6 +102,7 @@ async function performBootstrapApp(): Promise<void> {
   // calendar/reminder pipelines remain disabled.
   perceiverManager.register(voiceRuntime);
   installRobotBodySensors();
+  void import("../robot-mind/expression-runtime").then(({ installRobotExpressionRuntime }) => { installRobotExpressionRuntime(); }).catch((error) => recordDiagnosticEvent("app", "expression-runtime-install-failed", { error: error instanceof Error ? error.message : String(error) }));
 
   void retireLegacyNetworkCredentials().catch((error) => {
     recordDiagnosticEvent("app", "legacy-network-credential-retirement-failed", {

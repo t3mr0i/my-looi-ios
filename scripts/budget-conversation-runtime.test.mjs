@@ -287,6 +287,7 @@ export function createHarness(options = {}) {
   };
   const load = createTypeScriptTreeLoader(dependencies, options.globals);
   h.dependencies = dependencies;
+  h.load = load;
   const { BudgetConversationService } = load("src/voice/budget-conversation.ts");
   h.service = new BudgetConversationService();
   h.feeder = feeder;
@@ -434,6 +435,31 @@ try {
   setback.appState.currentState = "background";
   await setback.service.stop("background");
   characterEngine.dispose();
+
+  // The reply's own expression, carried by its tag, owns the face before the
+  // first clip plays; a reply without one leaves the local fallback in charge.
+  const expressive = createHarness({ ttsEnabled: true });
+  const expressiveSpeech = deferred();
+  expressive.modelHandler = async (_request, callNumber) => callNumber === 1
+    ? { text: "Ja, genau so!", model: "gpt-6-luna", usage: {}, expression: "agreeing" }
+    : { text: "Das weiß ich nicht.", model: "gpt-6-luna", usage: {}, expression: null };
+  expressive.speechHandler = async () => expressiveSpeech.promise;
+  const { robotBodyState: expressiveBody } = expressive.load("src/robot-mind/body-state.ts");
+  await expressive.service.start();
+  await expressive.emitTurn("Stimmt das so?");
+  await waitFor(() => expressive.speechCalls.length === 1, "expressive speech");
+  assert.deepEqual([expressiveBody.getState().expression.intent, expressiveBody.getState().expression.source], ["agreeing", "model"]);
+  assert.equal(expressive.speechCalls[0].text, "Ja, genau so!", "the spoken text carries no tag");
+  expressiveSpeech.resolve();
+  await waitFor(() => expressive.captureStartCalls === 2, "expressive reply completion");
+  const { robotExpressionConductor } = expressive.load("src/robot-mind/expression.ts");
+  robotExpressionConductor.endReply(true, "test-speech-ended");
+  expressive.speechHandler = async () => {};
+  await expressive.emitTurn("Und was ist mit morgen?");
+  await waitFor(() => expressive.captureStartCalls === 3, "untagged reply completion");
+  assert.equal(expressiveBody.getState().expression.source, "rest", "an untagged reply claims no expression");
+  expressive.appState.currentState = "background";
+  await expressive.service.stop("background");
 
   // Empty local recognition gets the short local not-heard response and never
   // consults memory or the text model.

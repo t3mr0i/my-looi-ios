@@ -7,7 +7,9 @@ import {
   ROBOT_CAPABILITY_TOOL_NAMES,
   ROBOT_GESTURES,
   ROBOT_MOVE_ACTIONS,
+  parseRobotExpressionTag,
 } from "../voice/robot-capability-tool-definitions";
+import type { RobotExpressionIntent } from "../robot-mind/body-state";
 import { isCharacterScene } from "../character/character-scene-catalog";
 import { buildCompanionCharacterInstructions, COMPANION_INTERESTS_TOOL } from "../character/companion-personality";
 
@@ -55,6 +57,8 @@ export type BudgetConversationResult = {
   text: string;
   model: string;
   usage: BudgetConversationUsage;
+  /** The reply's expression from its leading tag; the tag is already removed from text. */
+  expression: RobotExpressionIntent | null;
 };
 
 export type BudgetConversationOptions = {
@@ -186,10 +190,13 @@ export async function generateBudgetReply(
           if (!parsed.text?.trim() || parsed.text.length > MAX_REPLY_CHARACTERS) {
             throw new BudgetConversationError("response");
           }
+          const expressed = parseRobotExpressionTag(parsed.text);
+          if (!expressed.text) throw new BudgetConversationError("response");
           return {
-            text: parsed.text.trim(),
+            text: expressed.text,
             model: BUDGET_CONVERSATION_MODEL,
             usage: totalUsage,
+            expression: expressed.intent,
           };
         }
 

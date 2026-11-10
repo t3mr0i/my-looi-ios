@@ -2,6 +2,7 @@ import type { CharacterMood } from "./character-reaction";
 import type { VoiceState } from "../store/user";
 import type { CharacterActionFrame } from "./character-action";
 import { getCharacterScene } from "./character-scene-catalog";
+import type { RobotExpressionIntent } from "../robot-mind/body-state";
 
 export type MouthShape = "none" | "line" | "smile" | "frown" | "dot";
 
@@ -149,6 +150,43 @@ function getSpeakingExpression(mood: ReturnType<typeof inferSpeakingMood>): Face
   }
 }
 
+function getSadExpression(): FaceExpression {
+  return makeExpression("sad", {
+    leftEyeScaleX: 0.94, rightEyeScaleX: 0.94, leftEyeScaleY: 0.78, rightEyeScaleY: 0.78,
+    leftEyeRotation: -10, rightEyeRotation: 10, leftEyeOffsetY: 5, rightEyeOffsetY: 5,
+    mouth: "frown", mouthWidth: 30,
+  }, { lift: -3, leftLid: 0.25, rightLid: 0.25 });
+}
+
+/**
+ * The speaking face for an expression intent the conversational model chose.
+ * Every shape reuses an existing face so the vocabulary stays within what the
+ * display already animates; calm is a steady, softened neutral.
+ */
+export function getExpressionIntentFace(intent: RobotExpressionIntent): FaceExpression {
+  switch (intent) {
+    case "happy": return getSpeakingExpression("happy");
+    case "playful": return getSpeakingExpression("excited");
+    case "curious": return getSpeakingExpression("curious");
+    case "agreeing": return getCharacterExpression("clarified");
+    case "thinking": return getCharacterExpression("thoughtful");
+    case "surprised": return getCharacterExpression("startled");
+    case "sad": return getSadExpression();
+    case "calm":
+      return makeExpression("neutral", {
+        leftEyeScaleX: 1.02, leftEyeScaleY: 0.9, rightEyeScaleX: 1.02, rightEyeScaleY: 0.9,
+        mouth: "line", mouthWidth: 22,
+      }, { leftLid: 0.12, rightLid: 0.12 });
+    default: return getSpeakingExpression("neutral");
+  }
+}
+
+/** The intent the local text-based speaking face shows for these heard words. */
+export function inferSpeechTextIntent(text: string): RobotExpressionIntent {
+  const mood = inferSpeakingMood(text);
+  return mood === "excited" ? "playful" : mood === "concerned" ? "calm" : mood;
+}
+
 function getCharacterExpression(mood: CharacterMood): FaceExpression {
   switch (mood) {
     case "listening":
@@ -272,11 +310,7 @@ export function resolveFaceExpression(
 
 export function getCharacterActionExpression(action: CharacterActionFrame): FaceExpression {
   const scene = getCharacterScene(action.kind);
-  const target = () => scene.id === "sadness" ? makeExpression("sad", {
-    leftEyeScaleX: 0.94, rightEyeScaleX: 0.94, leftEyeScaleY: 0.78, rightEyeScaleY: 0.78,
-    leftEyeRotation: -10, rightEyeRotation: 10, leftEyeOffsetY: 5, rightEyeOffsetY: 5,
-    mouth: "frown", mouthWidth: 30,
-  }, { lift: -3, leftLid: 0.25, rightLid: 0.25 })
+  const target = () => scene.id === "sadness" ? getSadExpression()
     : scene.mood === "concerned" ? getSpeakingExpression("concerned") : getCharacterExpression(scene.mood);
   // A sad or frustrated situation never turns into a generic celebration.
   if (action.phase === "enjoy" || action.phase === "put-away") return target();
@@ -308,6 +342,8 @@ export type FacePresentationInput = {
   action?: CharacterActionFrame | null;
   /** Fresh input energy only; never a recognized meaning or confirmation. */
   inputAttention?: boolean;
+  /** The model's expression for the reply being spoken; replaces the text-based speaking face. */
+  speechIntent?: RobotExpressionIntent | null;
 };
 
 export type FacePresentation = {
@@ -334,7 +370,7 @@ export function resolveFacePresentation(input: FacePresentationInput): FacePrese
 
   if (input.assistantSpeaking === true || voiceState === "speaking") {
     return {
-      expression: getSpeakingExpression(inferSpeakingMood(streamingText)),
+      expression: input.speechIntent ? getExpressionIntentFace(input.speechIntent) : getSpeakingExpression(inferSpeakingMood(streamingText)),
       source: "speech",
       characterReactionVisible: false,
     };
