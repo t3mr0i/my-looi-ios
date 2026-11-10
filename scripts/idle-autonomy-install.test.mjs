@@ -74,6 +74,14 @@ assert.equal(captured.getLevel(), "explore");
 user.preferences.idleAutonomyLevel = undefined;
 assert.equal(captured.getLevel(), "look", "a store without the field falls back to look, never explore");
 user.preferences.idleAutonomyLevel = "explore";
+assert.equal(captured.linkLossSelfStopConfirmed(), false, "a store without the field never confirms the link-loss check");
+for (const value of ["true", 1, "checked", null]) {
+  user.preferences.linkLossSelfStopConfirmed = value;
+  assert.equal(captured.linkLossSelfStopConfirmed(), false, `only true confirms: ${JSON.stringify(value)}`);
+}
+user.preferences.linkLossSelfStopConfirmed = true;
+assert.equal(captured.linkLossSelfStopConfirmed(), true);
+user.preferences.linkLossSelfStopConfirmed = false;
 
 // The STOP listener is not live until the voice modules have loaded, and never on web.
 assert.equal(captured.stopListener.isLive(), false);

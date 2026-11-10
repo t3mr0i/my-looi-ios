@@ -12,6 +12,15 @@ type MockNotificationHandler = NonNullable<
 export type MockLooiScenario = "clear" | "front-edge" | "rear-edge" | "obstacle" | "unknown";
 export type MockLooiDirection = "stop" | "forward" | "back" | "left" | "right";
 export type MockLooiHeadPosition = "up" | "center" | "down" | { raw: string };
+/**
+ * periodic: the app's original model, every edge-sensor and 0e frame repeated every 250 ms.
+ * on-change: closer to what community captures describe (andrey-tut/LOOI-Robot, novolei/ulooi):
+ * a boot frame and the edge-sensor state on subscribe, a new edge-sensor frame only when the
+ * surface changes, and 02/0e frames only while the body moves. No source has measured whether
+ * the real robot also repeats frames at rest; restFrameIntervalMs models that if it does.
+ */
+export type MockLooiSensorCadence = "periodic" | "on-change";
+export type MockLooiSensorCadenceOptions = { cadence: MockLooiSensorCadence; restFrameIntervalMs?: number | null };
 
 export type MockLooiTraceEntry = {
   id: number;
@@ -53,6 +62,7 @@ export type MockLooiTransportOptions = {
   onDisconnected?: (error?: Error) => void;
   initialConnected?: boolean;
   initialScenario?: MockLooiScenario;
+  sensorCadence?: MockLooiSensorCadenceOptions;
 };
 
 const LOOI_SERVICE_UUID = "000000ff-0000-1000-8000-00805f9b34fb";
@@ -74,6 +84,16 @@ const DRIVE_DIRECTIONS: Readonly<Record<string, MockLooiDirection>> = {
   "0082": "right",
 };
 const SENSOR_INTERVAL_MS = 250;
+const NOTIFY_LATENCY_MS = 20;
+const BOOT_FRAME = "110100";
+// Frames published in andrey-tut/LOOI-Robot docs/FED9_TELEMETRY.md, sent while the body moves.
+// Their meaning is not established; replaying them shows what the app makes of real values.
+const MOTION_FRAMES: readonly (readonly string[])[] = [
+  ["02ffb2", "0e7501"],
+  ["02dc9e", "0effff"],
+  ["02ffb2", "0e4200"],
+  ["020000", "0ed305"],
+];
 const MAX_TRACE_ENTRIES = 120;
 
 function bytesFromHex(hex: string): Uint8Array {
@@ -82,6 +102,10 @@ function bytesFromHex(hex: string): Uint8Array {
     bytes[offset / 2] = Number.parseInt(hex.slice(offset, offset + 2), 16);
   }
   return bytes;
+}
+
+function cliffFrameForScenario(scenario: MockLooiScenario): string | null {
+  return framesForScenario(scenario).find((hex) => hex.length === 10) ?? null;
 }
 
 function framesForScenario(scenario: MockLooiScenario): string[] {
@@ -119,11 +143,29 @@ export class MockLooiTransport implements LooiTransport {
   private readonly snapshotListeners = new Set<(snapshot: MockLooiSnapshot) => void>();
   private readonly notificationHandlers = new Map<MockCharacteristicKey, MockNotificationHandler>();
   private sensorTimer: ReturnType<typeof setInterval> | null = null;
+  private cadence: MockLooiSensorCadenceOptions;
+  private readonly pendingNotifications = new Set<ReturnType<typeof setTimeout>>();
+  private motionFrameIndex = 0;
 
   constructor(options: MockLooiTransportOptions = {}) {
     this.connected = options.initialConnected ?? false;
     this.scenario = options.initialScenario ?? "unknown";
     this.onDisconnected = options.onDisconnected;
+    this.cadence = options.sensorCadence ?? { cadence: "periodic" };
+  }
+
+  getSensorCadence(): MockLooiSensorCadenceOptions {
+    return { ...this.cadence };
+  }
+
+  /** Switch how the simulated robot reports its sensors; takes effect from the next frame. */
+  setSensorCadence(options: MockLooiSensorCadenceOptions): void {
+    this.cadence = { ...options };
+    this.record("sensor-cadence", options.cadence);
+    if (this.connected && this.notificationHandlers.has("dockNotify")) {
+      this.stopSensorStream();
+      this.startSensorStreamIfReady();
+    }
   }
 
   async connect(): Promise<void> {
@@ -185,7 +227,11 @@ export class MockLooiTransport implements LooiTransport {
     this.record("notifications", `${characteristicKey}:${onValue ? "subscribed" : "unsubscribed"}`);
     if (characteristicKey === "dockNotify") {
       this.stopSensorStream();
-      this.emitScenarioFrames();
+      if (this.cadence.cadence === "on-change") {
+        if (onValue) this.emitFrames([BOOT_FRAME, ...this.changeFramesForScenario()]);
+      } else {
+        this.emitScenarioFrames();
+      }
       this.startSensorStreamIfReady();
     }
     this.emitSnapshot();
@@ -203,14 +249,24 @@ export class MockLooiTransport implements LooiTransport {
     const payload = normalizeHex(payloadHex, options.expectedBytes ?? null);
     this.applyWrite(characteristicKey, payload);
     this.record(characteristicKey, payload, 1);
+    if (characteristicKey === "drive" && this.direction !== "stop" && this.cadence.cadence === "on-change") {
+      const frames = MOTION_FRAMES[this.motionFrameIndex % MOTION_FRAMES.length]!;
+      this.motionFrameIndex += 1;
+      this.emitFrames(frames);
+    }
     this.emitSnapshot();
   }
 
   setScenario(scenario: MockLooiScenario): void {
     if (!isMockLooiScenario(scenario)) throw new Error(`Unknown mock LOOI scenario: ${String(scenario)}`);
+    const previous = this.scenario;
     this.scenario = scenario;
     this.record("scenario", scenario);
-    if (scenario === "unknown") this.stopSensorStream();
+    if (this.cadence.cadence === "on-change") {
+      if (previous !== scenario && this.connected && this.notificationHandlers.has("dockNotify")) {
+        this.emitFrames(this.changeFramesForScenario());
+      }
+    } else if (scenario === "unknown") this.stopSensorStream();
     else if (this.connected && this.notificationHandlers.has("dockNotify")) {
       this.stopSensorStream();
       this.emitScenarioFrames();
@@ -290,13 +346,49 @@ export class MockLooiTransport implements LooiTransport {
 
   private startSensorStreamIfReady(): void {
     if (!this.connected || !this.notificationHandlers.has("dockNotify") || this.scenario === "unknown" || this.sensorTimer) return;
+    if (this.cadence.cadence === "on-change") {
+      const restMs = this.cadence.restFrameIntervalMs;
+      if (!restMs || restMs <= 0) return;
+      this.sensorTimer = setInterval(() => {
+        const cliff = cliffFrameForScenario(this.scenario);
+        if (cliff) this.emitFrames([cliff]);
+      }, restMs);
+      return;
+    }
     this.sensorTimer = setInterval(() => this.emitScenarioFrames(), SENSOR_INTERVAL_MS);
   }
 
   private stopSensorStream(): void {
+    for (const pending of this.pendingNotifications) clearTimeout(pending);
+    this.pendingNotifications.clear();
     if (!this.sensorTimer) return;
     clearInterval(this.sensorTimer);
     this.sensorTimer = null;
+  }
+
+  /** On-change frames for the current scenario: the edge-sensor state, plus the obstacle value for that scenario. */
+  private changeFramesForScenario(): string[] {
+    if (this.scenario === "obstacle") return framesForScenario("obstacle");
+    const cliff = cliffFrameForScenario(this.scenario);
+    return cliff ? [cliff] : [];
+  }
+
+  /** Deliver frames after a short delay, as BLE notifications arrive after the event that caused them. */
+  private emitFrames(frames: readonly string[]): void {
+    const handler = this.notificationHandlers.get("dockNotify");
+    if (!this.connected || !handler || frames.length === 0) return;
+    const timer = setTimeout(() => {
+      this.pendingNotifications.delete(timer);
+      for (const hex of frames) {
+        if (!this.connected || this.notificationHandlers.get("dockNotify") !== handler) return;
+        try {
+          handler({ characteristic: "dockNotify", hex, bytes: bytesFromHex(hex) });
+        } catch {
+          // Match BLE's event boundary: receiver exceptions must not kill future notifications.
+        }
+      }
+    }, NOTIFY_LATENCY_MS);
+    this.pendingNotifications.add(timer);
   }
 
   private emitScenarioFrames(): void {

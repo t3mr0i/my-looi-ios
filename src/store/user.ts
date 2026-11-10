@@ -217,6 +217,11 @@ export type UserPreferences = {
   cameraAttentionEnabled: boolean;
   /** Idle life without a conversation: off, look (head and turning in place), or explore (may also take short steps). */
   idleAutonomyLevel: IdleAutonomyLevel;
+  /**
+   * The owner checked on the robot that it stops by itself when Bluetooth drops mid-movement.
+   * Until then "explore" takes no forward steps. Never set by the app itself.
+   */
+  linkLossSelfStopConfirmed: boolean;
   /** Legacy combined visual preset kept only so older installs migrate predictably. */
   faceSkin: FaceSkinId;
   /** Independent facial geometry/decor style. Pure presentation only. */
@@ -288,6 +293,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   ambientMotionLevel: "normal",
   cameraAttentionEnabled: false,
   idleAutonomyLevel: "look",
+  linkLossSelfStopConfirmed: false,
   faceSkin: "classic",
   faceStyle: "classic",
   facePalette: "cyan",
@@ -350,6 +356,7 @@ function loadPreferences(): UserPreferences {
       // social camera feature is privacy-sensitive and must be explicitly enabled.
       cameraAttentionEnabled: (preferences as Partial<UserPreferences>).cameraAttentionEnabled === true,
       idleAutonomyLevel: normalizeIdleAutonomyLevel((preferences as Partial<UserPreferences>).idleAutonomyLevel),
+      linkLossSelfStopConfirmed: (preferences as Partial<UserPreferences>).linkLossSelfStopConfirmed === true,
       faceSkin: normalizeFaceSkinId((preferences as Partial<UserPreferences>).faceSkin),
       faceStyle: normalizeFaceStyleId(
         (preferences as Partial<UserPreferences>).faceStyle,
@@ -383,6 +390,7 @@ function loadPreferences(): UserPreferences {
       (preferences as Partial<UserPreferences>).ambientMotionLevel !== normalized.ambientMotionLevel ||
       (preferences as Partial<UserPreferences>).cameraAttentionEnabled !== normalized.cameraAttentionEnabled ||
       (preferences as Partial<UserPreferences>).idleAutonomyLevel !== normalized.idleAutonomyLevel ||
+      (preferences as Partial<UserPreferences>).linkLossSelfStopConfirmed !== normalized.linkLossSelfStopConfirmed ||
       (preferences as Partial<UserPreferences>).faceSkin !== normalized.faceSkin ||
       (preferences as Partial<UserPreferences>).faceStyle !== normalized.faceStyle ||
       (preferences as Partial<UserPreferences>).facePalette !== normalized.facePalette ||

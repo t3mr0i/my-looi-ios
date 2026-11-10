@@ -195,5 +195,36 @@ await new Promise((resolve) => setTimeout(resolve, 40));
 assert.equal(robot.getLooiRobotRuntimeState().motionActive, true, "front edge must allow backward escape");
 await robot.stopLooiMotion("test-backward-escape");
 
+// FED9 0e is not established as a distance. A value that cannot be one under the app's
+// reading (community captures show ffff) must never count as "clear": it makes the front
+// unknown, which blocks a forward start, while turns and backing away stay as they were.
+const sentinel = fed9.decodeFed9SensorFrame(new Uint8Array([0x0e, 0xff, 0xff]));
+assert.deepEqual(sentinel, { kind: "tof", distanceMm: null, obstacleNear: null });
+assert.deepEqual(fed9.decodeFed9SensorFrame(new Uint8Array([0x0e, 0xff, 0x1f])), { kind: "tof", distanceMm: null, obstacleNear: false });
+assert.equal(fed9.decodeFed9SensorFrame(new Uint8Array([0x0e, 0x00, 0x20])).obstacleNear, null, "just above 0x1fff is unknown");
+assert.equal(fed9.decodeFed9SensorFrame(new Uint8Array([0x0e, 0x42, 0x00])).obstacleNear, true, "66 still reads as near");
+cliff([1, 1, 1, 1, 1]);
+tofClear();
+await new Promise((resolve) => setTimeout(resolve, 280));
+if (robot.getLooiRobotRuntimeState().nearEdge.front || robot.getLooiRobotRuntimeState().nearEdge.rear) robot.clearLooiNearEdgeAfterManualReposition();
+await robot.startLooiMotion("forward");
+notifyFed9({ characteristic: "dockNotify", hex: "0effff", bytes: new Uint8Array([0x0e, 0xff, 0xff]) });
+assert.equal(robot.getLooiRobotRuntimeState().motionActive, true, "an unreadable value does not stop a running move");
+assert.equal(robot.getLooiRobotRuntimeState().sensors.obstacleNear, null);
+await robot.stopLooiMotion("test-unreadable-0e");
+await expectBlocked(() => robot.startLooiMotion("forward"), /tof-unknown/);
+await robot.startLooiMotion("back");
+await robot.stopLooiMotion("test-unreadable-0e-back");
+tofClear();
+await robot.startLooiMotion("forward");
+await robot.stopLooiMotion("test-readable-0e-again");
+
+// Frames are counted by type for the self-check; the counts are a copy, not the live state.
+const counts = robot.getLooiRobotRuntimeState().sensors.fed9FrameCounts;
+assert.ok(counts["01"] > 5 && counts["0e"] >= 3, JSON.stringify(counts));
+counts["01"] = -1;
+assert.notEqual(robot.getLooiRobotRuntimeState().sensors.fed9FrameCounts["01"], -1);
+
 await robot.disconnectLooiRobot();
+assert.deepEqual(robot.getLooiRobotRuntimeState().sensors.fed9FrameCounts, {}, "counts start again with each connection");
 console.log("Directional cliff safety behavioral tests passed");

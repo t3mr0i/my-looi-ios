@@ -39,11 +39,11 @@ Baut auf `capability-manifest-2026-11-10.md` auf. Dort bekam die KI Hände (Szen
 ## Leerlauf-Autonomie
 
 - Einstellung `idleAutonomyLevel`: aus / umschauen (Standard) / erkunden.
-- Ablauf: ruhen → umschauen → Person suchen (max. 4 Drehungen, 40 s) → zuwenden → annähern (max. 3 Schritte, nur „erkunden").
+- Ablauf: ruhen → umschauen → Person suchen (max. 4 Drehungen, 40 s) → zuwenden → annähern (max. 3 Schritte, nur „erkunden" und erst, wenn der Besitzer in den Einstellungen bestätigt hat, dass der Roboter bei Verbindungsabbruch von selbst hält; siehe `robot-mind-device-check-2026-11-10.md`).
 - Mehr Ruhe als Bewegung; ab 5 min ruhiger, ab 10 min nichts mehr, damit der Auto-Schlaf greift.
 - Sicherheit:
   - Vor jeder Radbewegung muss Mikrofon-Audio fließen und der lokale STOP-Decoder scharf sein; sonst stehen die Räder.
-  - Untergrund wird direkt aus der Bewegungsschicht gelesen: alle vier Kantensensoren frisch und stabil, für Schritte zusätzlich freier Frontsensor.
+  - Untergrund wird direkt aus der Bewegungsschicht gelesen: alle vier Kantensensoren stabil und irgendein Sensorrahmen höchstens 6 s alt; für Schritte zusätzlich ein `FED9 0E`-Wert, den die App als „frei" liest. Ob `0E` überhaupt ein Abstand ist, ist nicht belegt; der Wert kann Schritte nur verhindern, nie erlauben.
   - Kante: 2 min keine Räder, 15 min kein Vorwärtsfahren.
   - STOP während eigener Bewegung sperrt die Autonomie, bis die Einstellung geändert wird oder LOOI geschlafen hat.
   - Berührung, Sprache, Gespräch, Hintergrund, Schlaf brechen eine laufende Bewegung ab.
@@ -90,7 +90,7 @@ Bei der Zusammenführung angepasst: Die Sensoren aktualisieren „zuletzt gesehe
 
 - Ob das Realtime-Modell die Systemnotiz mit eigener ID annimmt, `express` zusammen mit Sprache sendet und bei proaktiven Anlässen bei einer kurzen Zeile bleibt.
 - Ob der STOP-Decoder während einer 200–400 ms kurzen Drehung reagiert und das Vosk-Modell auf iOS lädt.
-- Ob der Roboter Kantendaten oft genug sendet (sonst bewegt die Autonomie die Räder nie).
+- Ob der Roboter Sensorrahmen auch im Stillstand sendet. Community-Mitschnitte beschreiben Rahmen nur bei Änderung; dann bewegt die Autonomie die Räder fast nie (Dauerlauf: 3 Radaktionen in 1.200 virtuellen Minuten).
 - Ob „links" die linke Seite des Roboters ist (gleiche Konvention wie die bestehende Gesichtsverfolgung).
 - Audiowiedergabe im Leerlauf neben dem Weckwort-Mikrofon.
 - Schwellen: Gesichtsgröße für nah/fern, Lautstärke für den Abbruch zwischen Schritten, Dreh- und Schrittdauern.

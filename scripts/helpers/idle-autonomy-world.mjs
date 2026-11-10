@@ -64,12 +64,12 @@ export function createIdleAutonomyWorld() {
     .map((write) => DRIVE_PAYLOAD[write.detail]);
 
   /** One runtime with fake microphone, camera and app-state ports around the real motion layer. */
-  function harness({ level = "look", seed = 1, micLive = true, armReady = true } = {}) {
+  function harness({ level = "look", seed = 1, micLive = true, armReady = true, linkLossConfirmed = true } = {}) {
     const store = createRobotBodyStateStore(() => clock.now);
     const interactionListeners = new Set();
     const sampleListeners = new Set();
     const h = {
-      store, level, micLive, armReady, yieldReason: null, armed: 0, arms: [], disarms: 0, drives: [], events: [], logs: [],
+      store, level, micLive, armReady, linkLossConfirmed, yieldReason: null, armed: 0, arms: [], disarms: 0, drives: [], events: [], logs: [],
       person: null,
       interact(source) { for (const listener of [...interactionListeners]) listener(source); },
       samples(values) { for (const listener of [...sampleListeners]) listener(values); },
@@ -87,13 +87,14 @@ export function createIdleAutonomyWorld() {
       setTimeout: (callback, delayMs) => clock.setTimeout(callback, delayMs),
       clearTimeout: (handle) => clock.clearTimeout(handle),
       getLevel: () => h.level,
+      linkLossSelfStopConfirmed: () => h.linkLossConfirmed,
       getYieldReason: () => h.yieldReason,
       subscribeInteractions(listener) { interactionListeners.add(listener); return () => interactionListeners.delete(listener); },
       motion: {
         getState: robot.getLooiRobotRuntimeState,
         subscribe: robot.subscribeLooiRobotRuntimeState,
         async drive(direction, durationMs, options) {
-          const record = { at: clock.now, direction, durationMs, armedAtStart: h.armed > 0, yieldAtStart: h.yieldReason, levelAtStart: h.level, micLiveAtStart: h.micLive, connectedAtStart: robot.getLooiRobotRuntimeState().connected };
+          const record = { at: clock.now, direction, durationMs, linkLossConfirmedAtStart: h.linkLossConfirmed, armedAtStart: h.armed > 0, yieldAtStart: h.yieldReason, levelAtStart: h.level, micLiveAtStart: h.micLive, connectedAtStart: robot.getLooiRobotRuntimeState().connected };
           h.drives.push(record);
           record.result = await robot.driveLooiForDuration(direction, durationMs, options);
           return record.result;

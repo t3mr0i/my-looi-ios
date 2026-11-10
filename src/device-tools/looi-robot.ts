@@ -27,7 +27,6 @@ export const CLIFF_REARM_STABLE_MS = 250;
 export const CLIFF_ESCAPE_CLEAR_MS = 650;
 export const MANUAL_REPOSITION_SAFE_MS = 900;
 export const CONTINUOUS_MOTION_DEADMAN_MS = 5_000;
-/** Real captures occasionally space FED9 notifications ~5 s apart. */
 /** First physical calibration estimates; Settings exposes dedicated test buttons. */
 export const TURN_90_MS = 650;
 export const TURN_180_MS = 1_560;
@@ -92,6 +91,8 @@ let activeDriveStartReservation: DriveStartReservation | null = null;
 type LooiSensorSnapshot = {
   lastFed9Hex: string | null;
   lastFed9At: number | null;
+  /** FED9 notifications since this connection began, by first byte ("01", "0e", ...). Diagnostics only. */
+  fed9FrameCounts: Record<string, number>;
   docked: boolean | null;
   /** Raw five-bit FED9 binary frame retained for diagnostics/backward UI compatibility. */
   cliffGroundFlags: boolean[] | null;
@@ -103,9 +104,9 @@ type LooiSensorSnapshot = {
   cliffSafe: boolean | null;
   /** Timestamp from which each sensor has continuously reported ground. */
   cliffSafeSince: Record<keyof Fed9CliffSensors, number | null>;
-  /** Provisional FED9 decode of 0e + uint16le as front TOF millimetres. */
+  /** Unverified FED9 decode of 0e + uint16le as front TOF millimetres; see fed9-sensors.ts. */
   tofDistanceMm: number | null;
-  /** null means TOF has never been decoded; false with null distance means valid no-target. */
+  /** null means no usable 0e value (none yet, or one that cannot be a distance); it only ever blocks forward motion. */
   obstacleNear: boolean | null;
 };
 
@@ -140,6 +141,7 @@ function emptySensors(): LooiSensorSnapshot {
   return {
     lastFed9Hex: null,
     lastFed9At: null,
+    fed9FrameCounts: {},
     docked: null,
     cliffGroundFlags: null,
     cliffSensors: null,
@@ -572,7 +574,7 @@ export function getLooiRobotRuntimeState() {
     stopGeneration: state.stopGeneration,
     driveControlReady: state.connected && !state.driveControlRevalidationRequired,
     driveControlRevalidationReason: state.driveControlRevalidationReason,
-    sensors: { ...state.sensors },
+    sensors: { ...state.sensors, fed9FrameCounts: { ...state.sensors.fed9FrameCounts } },
     nearEdge: { ...state.nearEdge },
     safety: {
       ...computeSafety(state.activeDirection ?? undefined),
@@ -1724,6 +1726,8 @@ function rememberRawNotification(event: LooiRawNotification): void {
   const now = Date.now();
   state.sensors.lastFed9Hex = event.hex;
   state.sensors.lastFed9At = now;
+  const frameType = event.hex.slice(0, 2).toLowerCase() || "empty";
+  state.sensors.fed9FrameCounts[frameType] = (state.sensors.fed9FrameCounts[frameType] ?? 0) + 1;
 
   if (now - lastFed9LoggedAt >= FED9_LOG_INTERVAL_MS) {
     lastFed9LoggedAt = now;
@@ -1818,10 +1822,11 @@ function rememberRawNotification(event: LooiRawNotification): void {
     state.sensors.obstacleNear = decoded.obstacleNear;
     if (previousNear !== decoded.obstacleNear) {
       recordDiagnosticEvent("robot", "tof-state", {
-        distanceMm: decoded.distanceMm ?? "no-target",
-        obstacleNear: decoded.obstacleNear,
+        distanceMm: decoded.distanceMm ?? (decoded.obstacleNear === null ? "unreadable" : "no-target"),
+        obstacleNear: decoded.obstacleNear ?? "unknown",
+        hex: event.hex,
         thresholdMm: PROVISIONAL_TOF_OBSTACLE_MM,
-        decoder: "provisional-fed9-v1",
+        decoder: "unverified-fed9-0e-v2",
       });
     }
     if (decoded.obstacleNear && state.activeDirection === "forward") {
