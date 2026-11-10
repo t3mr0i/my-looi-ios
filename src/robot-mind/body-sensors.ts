@@ -49,8 +49,8 @@ export const ROBOT_BODY_SENSOR_TIMING = Object.freeze({
   cameraGapContinuityMs: 60_000,
   /** Face count or bearing must be stable this long before it is written. */
   stableDetailMs: 1_000,
-  /** lastSeenAt is refreshed at most this often while a face stays visible. */
-  lastSeenRefreshMs: 2_000,
+  /** lastSeenAt is refreshed at most this often while a face stays visible. Idle autonomy treats a sighting older than 2 s as stale, so this stays well below that. */
+  lastSeenRefreshMs: 1_000,
   /** Raw edge readings while standing still must persist this long. */
   rawEdgeConfirmMs: 500,
   /** A disconnect must last this long before it is reported (BLE can flap). */

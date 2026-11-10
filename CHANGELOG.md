@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add the robot mind: a shared body state fed by the real sensors (faces, petting, table edge, connection, sleep), delivered to the Realtime model as one replaceable system note and to Budget mode as context; event-driven proactive speech with cooldowns, an hourly cap and a setting (off / reactions / lively); idle autonomy that looks around, searches for people and, only when chosen, approaches in bounded steps behind an armed local STOP decoder and edge locks (off / look / explore); and an `express` tool so the face and head follow the intent of the words without an extra model round trip.
 - Add a shared robot capability manifest: Realtime and Budget conversations now describe LOOI's body from one source and receive `play_scene`, `perform_gesture`, `move_robot` and `stop_robot` tools. Display scenes are chosen by the model with the local phrase selector as fallback; movement uses only the existing bounded primitives, is tied to the current user turn, limited to three actions, serialized, and blocked by STOP. Budget mode keeps the wheels parked.
 - Add optional Decisions behavior with Off/Observe/Active modes, contextual expression, task continuity, attention policies, requested-image assessment, explicit greeting/style preferences, reference repair, candidate scoring, group face tracks and a bounded number game.
 - Serialize head movement across explicit, social, behavior and ambient owners, with cancellation at each sequence step and owner-scoped cleanup.

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 
 const robotCapabilityModules = loadRobotCapabilityModules();
 const OCCASIONS = ["greet_arrival", "welcome_back_after_quiet", "react_petting", "warn_edge", "gave_up_search", "arrived"];
@@ -21,6 +22,7 @@ const config = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 });
 const prefs = { language: "de", robotName: "Louis", speechGender: "masculine", ttsStyleId: "cute-robot" };
 for (const occasion of OCCASIONS) {
@@ -127,6 +129,7 @@ function commonDependencies() {
     "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
     "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
     "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+    ...robotBodyContextMocks,
     "./realtime-physical-command": { parseRealtimePhysicalCommand: () => null, executeRealtimePhysicalCommand: async () => ({ ok: true }) },
     "./realtime-visual-command": { parseRealtimeVisualCommand: () => null },
   };
