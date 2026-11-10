@@ -8,6 +8,13 @@ export const ROBOT_AUTO_SLEEP_MS = 15 * 60 * 1000;
 let lastInteractionAt = Date.now();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let started = false;
+const interactionListeners = new Set<(source: string) => void>();
+
+/** Observe every marked interaction, including ones that arrive while sleeping. */
+export function subscribeRobotInteractions(listener: (source: string) => void): () => void {
+  interactionListeners.add(listener);
+  return () => { interactionListeners.delete(listener); };
+}
 
 export function startRobotInactivityTimer(): void {
   started = true;
@@ -22,6 +29,9 @@ export function stopRobotInactivityTimer(): void {
 }
 
 export function markRobotInteraction(source: string): void {
+  for (const listener of [...interactionListeners]) {
+    try { listener(source); } catch { /* Observers must not affect the inactivity timer. */ }
+  }
   noteAmbientMotionInteraction(source);
   if (source.startsWith("voice-") || source.startsWith("realtime-pcm-")) {
     noteSocialAttentionInteraction(source);

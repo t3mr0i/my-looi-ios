@@ -27,6 +27,7 @@ import { robotCapabilityToolBridge } from "./robot-capability-tools";
 import { ROBOT_CAPABILITY_TOOL_NAMES } from "./robot-capability-tool-definitions";
 import { ROBOT_APP_SKILL_TOOL_NAMES } from "./robot-app-skill-tool-definitions";
 import { acceptCompanionPersonalityTurn, getCompanionPersonalityContext, noteCompanionPersonalitySpeech, readCompanionInterests } from "../behavior/behavior-events";
+import { readRobotBodyContext } from "../robot-mind/body-context-runtime";
 
 const SAMPLE_RATE = 16_000;
 const MAX_TURN_SAMPLES = SAMPLE_RATE * 20;
@@ -388,6 +389,7 @@ export class BudgetConversationService {
         robotName: preferences.robotName,
         personalityContext,
         memoryContext: memory.facts.map((fact) => fact.memory).join("\n"),
+        bodyContext: readRobotBodyContext(),
         signal,
         runTool: (name, args) => this.runTool(epoch, signal, name, args, transcript),
       });

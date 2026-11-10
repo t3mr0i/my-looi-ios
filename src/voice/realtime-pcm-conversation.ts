@@ -1,4 +1,5 @@
 import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, readCompanionInterests, getBehaviorInteractionRevision, getBehaviorInteractionSnapshot, requiresBehaviorTurnCommit, inspectBehaviorVisual, performBehaviorCompanionAction, publishBehaviorEvent, publishBehaviorListeningFrame, type BehaviorInteractionSnapshot, type BehaviorSignalResponseRequest } from "../behavior/behavior-events";
+import { startRealtimeBodyContextFeed, type RobotBodyContextFeed } from "../robot-mind/body-context-runtime";
 import type { CompanionAction, CompanionActionResult } from "../behavior/behavior-companion";
 import { AppState, Platform } from "react-native";
 import { InputAttentionDetector } from "./input-attention";
@@ -274,6 +275,7 @@ export class RealtimePcmConversationService {
   private sessionTurnTaking: "fixed" | "semantic" = "fixed";
   private playbackGainClippedSamples = 0;
   private playbackGainTotalSamples = 0;
+  private bodyContextFeed: RobotBodyContextFeed | null = null;
 
   get isActive(): boolean {
     return this.active;
@@ -659,6 +661,8 @@ export class RealtimePcmConversationService {
     this.latency.summary();
     this.visualRequestGeneration += 1;
     if (this.sessionId) endBehaviorSession(this.sessionId);
+    this.bodyContextFeed?.stop();
+    this.bodyContextFeed = null;
     this.lifecycleGeneration += 1;
     const captureOwner = this.captureOwner;
     this.captureOwner = null;
@@ -1125,6 +1129,14 @@ export class RealtimePcmConversationService {
     }
     if (type === "session.updated") {
       this.configured = true;
+      if (!this.bodyContextFeed && sessionId) {
+        this.bodyContextFeed = startRealtimeBodyContextFeed({
+          transport: "pcm",
+          sessionId,
+          send: (bodyEvent) => this.send(bodyEvent),
+          canSend: () => this.canSendBodyContext(),
+        });
+      }
       const turnDetection = event.session?.audio?.input?.turn_detection;
       recordDiagnosticEvent("realtime", "pcm-session-configured", {
         effectiveTurnTakingProfile: turnDetection?.type === "semantic_vad" ? "semantic" : turnDetection?.type === "server_vad" ? "fixed" : "unknown",
@@ -1486,6 +1498,7 @@ export class RealtimePcmConversationService {
       if ((completedResponseId && completedResponseId !== this.activeResponseId) || !this.activeResponseId) return;
       const responseId = completedResponseId || this.activeResponseId;
       this.generationActive = false;
+      this.bodyContextFeed?.flush();
       this.endSpeechTrackingInput(responseId);
       this.activeResponseId = null;
       this.responseDone = true;
@@ -2113,6 +2126,13 @@ export class RealtimePcmConversationService {
       if (this.correctionResponseFence) this.requestCompanionTurnResponse(this.correctionResponseFence);
       else this.send({ type: "response.create" });
     }
+  }
+
+  /** Body notes never go out while a response, tool call or local command is running. */
+  private canSendBodyContext(): boolean {
+    return this.active && this.configured && this.webSocket?.readyState === 1 && !this.generationActive &&
+      this.toolCallsInFlight === 0 && this.pendingCompanionToolCalls.size === 0 &&
+      !this.localPhysicalCommandInFlight && !this.localVisualCommandInFlight;
   }
 
   private send(event: Record<string, unknown>): boolean {

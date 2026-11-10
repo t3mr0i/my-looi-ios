@@ -211,6 +211,7 @@ const bootstrap = load("src/core/app-bootstrap.ts", {
   "./legacy-network-credentials-retirement": { async retireLegacyNetworkCredentials() {} },
   "./ambient-motion": { startAmbientMotionController() { bootEvents.push(["ambientStart"]); }, stopAmbientMotionController() {} },
   "./social-attention": { startSocialAttentionController() { bootEvents.push(["cameraStart"]); }, async stopSocialAttentionController() {} },
+  "../robot-mind/body-sensors-runtime": { installRobotBodySensors() { bootEvents.push(["bodySensors"]); return () => {}; } },
   "../voice/kws-audio-feeder": { kwsAudioFeeder: feeder },
 }, { process: { env: {} } });
 const boot = bootstrap.bootstrapApp();

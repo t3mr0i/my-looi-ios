@@ -3,6 +3,7 @@ import { createTypeScriptTreeLoader } from "./helpers/load-typescript-tree.mjs";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { createCompanionLiveRuntime } from "./helpers/companion-live-runtime.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 const robotCapabilityModules = loadRobotCapabilityModules();
 
 const flush = async () => { for (let index = 0; index < 36; index += 1) await Promise.resolve(); };
@@ -79,6 +80,7 @@ const config = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 });
 let pcmEnqueueCount = 0;
 let pcmFinishCount = 0;
@@ -114,6 +116,7 @@ const deps = {
   "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
   "./wakeword": { wakewordService: { isListening: false, async stop() {}, async waitForFallbackIdle() {}, async start() {} } },
   "./realtime-physical-command": { parseRealtimePhysicalCommand: () => null, async executeRealtimePhysicalCommand() {} },
   "./realtime-visual-command": { parseRealtimeVisualCommand: (text) => forceVisualCommand && text.includes("look at this") ? { kind: "look_here", cameraFacing: "rear" } : null },

@@ -54,6 +54,7 @@ function harness() {
     "./social-attention": { startSocialAttentionController() {}, async stopSocialAttentionController() {
       record("cameraStop"); hooks.cameraStarted.resolve(); await hooks.cameraGate?.promise;
     } },
+    "../robot-mind/body-sensors-runtime": { installRobotBodySensors: () => () => {} },
     "../voice/wakeword": { wakewordService: { isListening: false } },
     "../voice/stt": { sttService: { async initialize() { record("sttInitialize"); } } },
   };

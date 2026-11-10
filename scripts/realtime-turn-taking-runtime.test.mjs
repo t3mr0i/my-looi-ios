@@ -3,9 +3,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadTypeScript } from "./helpers/load-typescript.mjs";
 import { loadRobotCapabilityModules, inertRobotCapabilityToolBridge } from "./helpers/robot-capability-modules.mjs";
+import { robotBodyContextMocks } from "./helpers/robot-body-context-modules.mjs";
 const robotCapabilityModules = loadRobotCapabilityModules();
 
-export function createRealtimeHarness(clockGlobals = {}) {
+export function createRealtimeHarness(clockGlobals = {}, dependencyOverrides = {}) {
 const diagnostics = [];
 const configsMinted = [];
 const prefs = {
@@ -36,6 +37,7 @@ const config = loadTypeScript("src/voice/realtime-config.ts", {
   "./hermes-task-tool-definitions": hermesTaskToolDefinitions,
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
 });
 const fakeAudio = {
   addListener: () => ({ remove() {} }), beginPlayback() {}, enqueuePlayback() {}, finishPlayback() {},
@@ -108,6 +110,7 @@ const deps = {
   "./robot-capability-tools": { robotCapabilityToolBridge: inertRobotCapabilityToolBridge },
   "./robot-app-skill-tool-definitions": robotAppSkillToolDefinitions,
   "./robot-capability-tool-definitions": robotCapabilityModules.definitions,
+  ...robotBodyContextMocks,
   "./realtime-physical-command": { parseRealtimePhysicalCommand: () => null, executeRealtimePhysicalCommand: async () => ({}) },
   "./realtime-visual-command": { parseRealtimeVisualCommand: () => null },
   "./realtime-pcm-conversation": { realtimePcmConversationService: { isActive: false } },
@@ -127,6 +130,7 @@ const deps = {
   "../core/robot-inactivity": { markRobotInteraction() {} },
   "../vision/look-here": { captureExplicitLookHereStill: async () => ({}) },
   "../openai/openai-api-status": { classifyOpenAiError: () => null, setOpenAiApiStatus: async () => {} },
+  ...dependencyOverrides,
 };
 const globals = { WebSocket: { OPEN: 1 }, ...clockGlobals };
 const { RealtimeConversationService } = loadTypeScript("src/voice/realtime-conversation.ts", deps, globals);
