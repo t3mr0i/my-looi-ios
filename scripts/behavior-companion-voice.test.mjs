@@ -63,6 +63,16 @@ async function assertRobotExpressionThroughTransport(service, sent, prefix) {
   await flush();
   assert.equal(followUps(), followUpsBefore + 1, `${prefix} never chases a second wordless expression`);
 
+  // That guard belongs to one turn: the next user turn is owed a spoken reply again.
+  const nextTurnResponse = `${prefix}-express-next-turn-response`;
+  await service.handleEvent({ type: "input_audio_buffer.speech_started" });
+  await service.handleEvent({ type: "conversation.item.input_audio_transcription.completed", transcript: "And what else?", item_id: `${prefix}-express-next-turn` });
+  await service.handleEvent({ type: "response.created", response: { id: nextTurnResponse } });
+  await service.handleEvent({ type: "response.output_item.done", response_id: nextTurnResponse, item: expressItem(`${prefix}-express-next`, "thinking") });
+  await service.handleEvent({ type: "response.done", response: { id: nextTurnResponse, status: "completed", output: [expressItem(`${prefix}-express-next`, "thinking")] } });
+  await flush();
+  assert.equal(followUps(), followUpsBefore + 2, `${prefix} a wordless reply to a new turn still gets its words`);
+
   // An expression from a response replaced by new user speech is stale.
   const staleResponse = `${prefix}-express-stale-response`;
   await service.handleEvent({ type: "input_audio_buffer.speech_started" });

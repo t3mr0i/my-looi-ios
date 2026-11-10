@@ -1404,6 +1404,8 @@ export class RealtimePcmConversationService {
       if (transcript && !this.userTranscriptItems.has(itemId)) {
         markRobotInteraction("realtime-pcm-transcript");
         this.userTranscriptItems.add(itemId);
+        // A new user turn is owed its own spoken reply, whatever happened to the previous one.
+        this.expressionFollowupRequested = false;
         this.currentCompanionUserTurn = null;
         this.armedSharedRituals.clear();
         const store = useConversationStore.getState();

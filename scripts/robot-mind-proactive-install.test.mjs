@@ -20,6 +20,7 @@ const world = {
   activeMode: null, behaviorSession: null, motionActive: false, feeding: true,
 };
 const conversation = fakeStore({
+  messages: [{ id: "restored", role: "user", content: "Sei still.", timestamp: new Date(Date.now() - 60 * 60_000).toISOString() }],
   isUserSpeaking: false, isSpeaking: false, isProcessing: false, isListening: false, realtimeReadiness: "idle", overlayVisible: false, heardSpeechText: null,
 });
 const conversationActions = {
@@ -154,7 +155,7 @@ assert.deepEqual(world.diagnostics.filter((d) => d.event === "proactive-speech-s
 
 // A quiet request heard in the conversation silences the next occasion.
 now += 5 * 60_000;
-for (const listener of behaviorEventsListeners) listener({ type: "user-turn", text: "Sei still.", sessionId: "s-1" });
+conversation.setState({ messages: [...conversation.getState().messages, { id: "m-quiet", role: "user", content: "Sei still.", timestamp: new Date().toISOString() }] });
 await publish({ type: "petted" });
 assert.equal(world.signals.length, 1);
 assert.equal(world.diagnostics.filter((d) => d.event === "proactive-speech-silent").at(-1).reason, "quiet_requested");

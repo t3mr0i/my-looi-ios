@@ -8,7 +8,6 @@ import {
   getCompanionPersonalityContext,
   isBehaviorGameActive,
   requestBehaviorSignalResponse,
-  subscribeBehaviorEvents,
 } from "../behavior/behavior-events";
 import { isMainScreenFocused } from "../core/main-screen-presence";
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
@@ -71,6 +70,8 @@ function checkIdle(): string | null {
   return null;
 }
 
+/** A user message older than this when it appears is restored history, not a new turn. */
+const FRESH_USER_MESSAGE_MS = 10_000;
 const phrasePicker = createProactivePhrasePicker();
 
 const idleSpeaker = createIdleProactiveSpeaker({
@@ -145,9 +146,20 @@ export function installProactiveSpeechRuntime(): () => void {
     now: robotBodyState.now,
     getBodyState: robotBodyState.getState,
     subscribeBodyEvents: robotBodyState.subscribeEvents,
-    subscribeUserTurns: (listener) => subscribeBehaviorEvents((event) => {
-      if (event.type === "user-turn") listener(event.text);
-    }),
+    // The conversation store receives the person's words in every voice mode;
+    // behavior events exist only in Realtime, which left Budget deaf to "be quiet".
+    subscribeUserTurns(listener) {
+      const latestUserMessage = () => useConversationStore.getState().messages.findLast((message) => message.role === "user");
+      let lastSeenId = latestUserMessage()?.id;
+      return useConversationStore.subscribe(() => {
+        const latest = latestUserMessage();
+        if (!latest || latest.id === lastSeenId) return;
+        lastSeenId = latest.id;
+        const at = Date.parse(latest.timestamp);
+        // Restored history is not something the person just said.
+        if (!Number.isFinite(at) || Date.now() - at <= FRESH_USER_MESSAGE_MS) listener(latest.content);
+      });
+    },
     getLevel: () => normalizeProactiveSpeech(useUserStore.getState().preferences.proactiveSpeech),
     getEnvironment() {
       const user = useUserStore.getState();
