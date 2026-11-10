@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { BehaviorSettings } from "@/src/ui/BehaviorSettings";
+import { DeviceCheckPanel } from "@/src/ui/DeviceCheckPanel";
 import { DeviceShell } from "@/src/ui/DeviceShell";
 import { looiTheme } from "@/src/ui/looi-theme";
 import { useRobotDebugState } from "@/src/ui/use-robot-debug-state";
@@ -805,6 +806,7 @@ export default function SettingsScreen() {
             <Text style={styles.help}>{t("settings.diagnosticsHelp", { count: getDiagnosticLogEntries().length })}</Text>
             <ButtonRow><Action label={diagnosticBusy ? t("common.wait") : t("settings.shareZip")} onPress={() => void shareDiagnostics()} disabled={diagnosticBusy} /></ButtonRow>
             <ButtonRow><Action label={diagnosticBusy ? t("common.wait") : t("settings.robotSelfCheck")} onPress={() => void runRobotSelfCheck()} disabled={diagnosticBusy} /></ButtonRow>
+            <DeviceCheckPanel disabled={diagnosticBusy} />
             <Text style={styles.help}>{t("settings.localFolder", { folder: diagnosticFolder?.displayName || diagnosticFolder?.providerName || t("common.notSelected") })}</Text>
             <ButtonRow>
               <Action label={t("settings.chooseLocalFolder")} onPress={() => void chooseDiagnosticFolder()} disabled={diagnosticBusy} secondary />
