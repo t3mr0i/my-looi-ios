@@ -251,6 +251,20 @@ assert.equal(runtime.reactionStore.getState().mood, null, "input expression does
 assert.equal(runtime.getState().presentation.id, "input-display-only");
 await runtime.engineDependencies.executeCue({ id: "expired-before-start", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 999, gesture: "curious", mood: "pleased" });
 assert.equal(runtime.getMetrics().movementCalls, 0, "an expired cue cannot start a new head macro");
+// While the model's own expression owns the reply, its physical cue is declined;
+// presentation-only input cues are never gated.
+let cueGateCalls = 0;
+runtime.runtime.configureBehaviorCueGate(() => { cueGateCalls += 1; return false; });
+runtime.runtime.useBehaviorStore.setState({ presentation: null });
+await runtime.engineDependencies.executeCue({ id: "model-owned-reply", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "nod", mood: "pleased" });
+assert.equal(runtime.getMetrics().movementCalls, 0, "a model-owned reply gets no competing Decisions gesture");
+assert.equal(runtime.reactionStore.getState().mood, null, "and no competing Decisions face");
+assert.equal(runtime.getState().presentation, null);
+await runtime.engineDependencies.executeCue({ id: "gated-input-display", generation: runtime.engine.getState().lifecycleGeneration, expiresAt: 2_000, gesture: "curious", mood: "pleased", presentationOnly: true });
+assert.equal(runtime.getState().presentation.id, "gated-input-display");
+assert.equal(cueGateCalls, 1, "only physical cues ask the gate");
+runtime.runtime.configureBehaviorCueGate(null);
+runtime.runtime.useBehaviorStore.setState({ presentation: null });
 runtime.runtime.updateBehaviorSettings({ mode: "shadow" });
 assert.equal(adapter.getContext(), "", "shadow mode excludes adaptive task context when no character preference is saved");
 assert.equal(await adapter.inspectVisual("image", "look", "session-1"), "", "shadow mode does not supply visual advice");

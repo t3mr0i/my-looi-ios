@@ -103,13 +103,36 @@ try {
   assert.equal(parked.status, "requires_realtime");
   assert.deepEqual(trace("drive"), []);
 
+  // The model's expression moves only the head, through the shared writer at
+  // behavior priority, and yields to an explicit head command.
+  const { robotExpressionConductor } = load("src/robot-mind/expression.ts");
+  const { robotBodyState } = load("src/robot-mind/body-state.ts");
+  robotExpressionConductor.configure({ canMoveHead: () => robot.getLooiRobotRuntimeState().connected, runHead: (gesture, isCurrent) => robot.performLooiBehaviorHeadGesture(gesture, isCurrent) });
+  robotExpressionConductor.interrupt("new-reply"); // the earlier movement replies are over
+  connection.clearMockLooiTrace();
+  const expressed = bridge.express({ intent: "agreeing" }, { sessionId: "voice-1", replyId: "resp-x", isCurrent: () => true });
+  assert.deepEqual(expressed, { ok: true, status: "expressed", intent: "agreeing" });
+  assert.equal(robotBodyState.getState().expression.intent, "agreeing");
+  robotExpressionConductor.speechStarted();
+  await waitUntil(() => trace("head").length >= 3);
+  await wait(1_200);
+  assert.deepEqual(trace("drive").filter((payload) => !/^0+$/u.test(payload)), [], "an expression never drives the wheels");
+  robotExpressionConductor.endReply(true, "test");
+  assert.equal(robotBodyState.getState().expression.intent, "neutral");
+  robotExpressionConductor.expressFromModel("playful", { sessionId: "voice-1", replyId: "resp-y", isCurrent: () => true });
+  robotExpressionConductor.speechStarted();
+  const explicitNod = await robot.performLooiHeadGesture("nod", 1);
+  assert.equal(explicitNod.completed, true, "an explicit head command preempts the expression gesture");
+  robotExpressionConductor.interrupt("test");
+  robotExpressionConductor.configure({});
+
   // Display scenes go to the character layer with the voice session.
   const scene = await bridge.execute("play_scene", { scene: "coffee" }, turn("Trink mal einen Kaffee."));
   assert.equal(scene.status, "scene_queued");
   assert.deepEqual(sceneRequests, [["coffee", "voice-1"]]);
 
   assert.equal(nativeImports, 0);
-  console.log("Robot capability tools -> real controller/SDK/mock: nod, step, turns, dance STOP, edge block, parked turn-based wheels, scene PASS (no model, network or hardware)");
+  console.log("Robot capability tools -> real controller/SDK/mock: nod, step, turns, dance STOP, edge block, parked turn-based wheels, expression head, scene PASS (no model, network or hardware)");
 } finally {
   await connection.setLooiConnectionMode("disconnected");
   await robot.disconnectLooiRobot();

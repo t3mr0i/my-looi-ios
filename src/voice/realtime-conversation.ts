@@ -42,7 +42,7 @@ import { HERMES_TASK_TOOL_NAMES } from "./hermes-task-tool-definitions";
 import { robotAppSkillToolBridge } from "./robot-app-skill-tools";
 import { ROBOT_APP_SKILL_TOOL_NAMES } from "./robot-app-skill-tool-definitions";
 import { robotCapabilityToolBridge } from "./robot-capability-tools";
-import { ROBOT_CAPABILITY_TOOL_NAMES } from "./robot-capability-tool-definitions";
+import { ROBOT_CAPABILITY_TOOL_NAMES, ROBOT_EXPRESSION_TOOL_NAME, robotExpressionNeedsSpokenFollowup } from "./robot-capability-tool-definitions";
 
 const DATA_CHANNEL_OPEN_TIMEOUT_MS = 9_000;
 const STARTUP_PREROLL_RECENT_MS = 900;
@@ -1536,6 +1536,10 @@ export class RealtimeConversationService {
         this.replyStaleToolCall(event.item);
         return;
       }
+      if (event.item?.name === ROBOT_EXPRESSION_TOOL_NAME) {
+        this.applyExpressionToolCall(event.item, responseId);
+        return;
+      }
       if (responseId && !context && this.isAwaitingCompanionTranscript(responseId)) {
         const calls = this.pendingCompanionToolCalls.get(responseId) ?? [];
         if (calls.length < 4) this.pendingCompanionToolCalls.set(responseId, [...calls, event.item]);
@@ -1551,7 +1555,18 @@ export class RealtimeConversationService {
       this.generationActive = false;
       if (!this.playbackActive) this.activeResponseId = null;
       const hasFunctionCall = Array.isArray(event.response?.output) &&
-        event.response.output.some((item: any) => item?.type === "function_call");
+        event.response.output.some((item: any) => item?.type === "function_call" && item?.name !== ROBOT_EXPRESSION_TOOL_NAME);
+      if (!hasFunctionCall && !this.expressionFollowupRequested && robotExpressionNeedsSpokenFollowup(event.response)) {
+        // The model chose a face but did not speak yet: the reply is still owed, once.
+        if (completedResponseId) {
+          this.responseCompanionContexts.delete(completedResponseId);
+          this.preTranscriptResponseRevisions.delete(completedResponseId);
+        }
+        this.expressionFollowupRequested = true;
+        this.requestSpokenReplyAfterExpression();
+        return;
+      }
+      this.expressionFollowupRequested = false;
       const awaitingCompanionTranscript = completedResponseId &&
         this.isAwaitingCompanionTranscript(completedResponseId) &&
         (this.pendingCompanionToolCalls.get(completedResponseId)?.length ?? 0) > 0;
@@ -1887,6 +1902,33 @@ export class RealtimeConversationService {
   private rejectResponseId(responseId: string): void {
     this.rejectedResponseIds.add(responseId);
     while (this.rejectedResponseIds.size > 64) this.rejectedResponseIds.delete(this.rejectedResponseIds.values().next().value!);
+  }
+
+  /**
+   * The model's expression for the reply in this response. It is acknowledged
+   * without response.create: the spoken words of the same response carry on,
+   * so choosing a face never adds a model round trip before the audio.
+   */
+  private expressionFollowupRequested = false;
+
+  private applyExpressionToolCall(item: any, responseId: string): void {
+    const callId = String(item?.call_id ?? item?.id ?? "");
+    if (!callId || this.handledToolCalls.has(callId) || !this.active) return;
+    this.handledToolCalls.add(callId);
+    const sessionId = this.sessionId;
+    let args: unknown = null;
+    try { args = JSON.parse(String(item?.arguments ?? "")); } catch { args = null; }
+    const output = robotCapabilityToolBridge.express(args, {
+      sessionId: sessionId ?? "",
+      replyId: responseId,
+      isCurrent: () => this.active && !!sessionId && this.sessionId === sessionId && !this.rejectedResponseIds.has(responseId),
+    });
+    this.send({ type: "conversation.item.create", item: { type: "function_call_output", call_id: callId, output: JSON.stringify(output) } });
+  }
+
+  private requestSpokenReplyAfterExpression(): void {
+    if (this.correctionResponseFence) this.requestCompanionTurnResponse(this.correctionResponseFence);
+    else this.send({ type: "response.create" });
   }
 
   private replyStaleToolCall(item: any): void {

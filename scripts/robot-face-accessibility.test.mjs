@@ -41,6 +41,7 @@ function createRenderer(accessibility, appState) {
       return slots[slot].value;
     },
     useId() { return react.useRef(`id-${hookIndex}`).current; },
+    useSyncExternalStore(_subscribe, getSnapshot) { hookIndex++; return getSnapshot(); },
     useCallback(callback, deps) { return react.useMemo(() => callback, deps); },
     useEffect(effect, deps) {
       const slot = hookIndex++;
@@ -174,6 +175,7 @@ function loadFace(accessibility, appState, overrides = {}) {
     "@/src/character/face-expression": loadCharacterModule("src/character/face-expression.ts"),
     "@/src/character/face-motion": loadTypeScript("src/character/face-motion.ts"),
     "@/src/character/face-stroke": loadTypeScript("src/character/face-stroke.ts"),
+    "@/src/robot-mind/body-state": loadTypeScript("src/robot-mind/body-state.ts"),
   };
   deps.react = react;
   const glassModule = { exports: {} };

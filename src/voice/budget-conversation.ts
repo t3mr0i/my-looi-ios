@@ -394,6 +394,12 @@ export class BudgetConversationService {
       if (!valid()) return;
       this.turnTiming.replyDoneMs = performance.now();
       answer = reply.text;
+      if (reply.expression && this.sessionId) {
+        // The reply's own expression owns face and head before its first clip plays.
+        robotCapabilityToolBridge.express({ intent: reply.expression }, {
+          sessionId: this.sessionId, replyId: `budget-${epoch}-${this.userTurnSerial}`, isCurrent: () => valid(),
+        });
+      }
       recordDiagnosticEvent("cost", "budget-text-usage", { model: reply.model, ...reply.usage });
     }
     if (!valid()) return;

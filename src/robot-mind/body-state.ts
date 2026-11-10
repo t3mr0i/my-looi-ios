@@ -12,7 +12,9 @@ export type RobotActivityMode =
   | "sleeping" | "resting" | "looking_around" | "seeking_person"
   | "approaching" | "attending" | "conversation" | "commanded_motion";
 export type RobotExpressionIntent =
-  | "neutral" | "curious" | "happy" | "thinking" | "surprised" | "sad" | "playful" | "calm";
+  | "neutral" | "curious" | "happy" | "thinking" | "surprised" | "sad" | "playful" | "calm" | "agreeing";
+/** model: chosen by the conversational model for the current reply; speech_text: inferred locally from the heard words; rest: no reply. */
+export type RobotExpressionSource = "model" | "speech_text" | "rest";
 
 export interface RobotBodyState {
   connection: "connected" | "disconnected" | "unknown";
@@ -30,7 +32,7 @@ export interface RobotBodyState {
   activity: { mode: RobotActivityMode; since: number };
   /** Scene currently playing on the face display, by catalog id. */
   displayScene: string | null;
-  expression: { intent: RobotExpressionIntent; since: number };
+  expression: { intent: RobotExpressionIntent; since: number; source?: RobotExpressionSource };
   lastHumanInteractionAt: number | null;
 }
 

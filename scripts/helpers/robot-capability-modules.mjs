@@ -13,4 +13,5 @@ export function loadRobotCapabilityModules() {
 /** Inert bridge for transport tests that do not exercise robot actions. */
 export const inertRobotCapabilityToolBridge = {
   async execute() { return { ok: false, status: "disabled-in-test" }; },
+  express() { return { ok: false, status: "disabled-in-test" }; },
 };
