@@ -402,6 +402,19 @@ export default function SettingsScreen() {
     finally { setDiagnosticBusy(false); }
   }, [diagnosticBusy, t]);
 
+  // Passive: observes sensors, microphone and storage for 30 seconds; nothing moves and no model is called.
+  const runRobotSelfCheck = useCallback(async () => {
+    if (diagnosticBusy) return;
+    setDiagnosticBusy(true); setDiagnosticResult(t("settings.robotSelfCheckRunning"));
+    try {
+      const [{ runRobotMindSelfCheckOnDevice }, { formatSelfCheckReport }] = await Promise.all([
+        import("@/src/robot-mind/self-check-install"), import("@/src/robot-mind/self-check"),
+      ]);
+      setDiagnosticResult(formatSelfCheckReport(await runRobotMindSelfCheckOnDevice()));
+    } catch (error) { setDiagnosticResult(error instanceof Error ? error.message : String(error)); }
+    finally { setDiagnosticBusy(false); }
+  }, [diagnosticBusy, t]);
+
   const chooseDiagnosticFolder = useCallback(async () => {
     if (diagnosticBusy) return;
     setDiagnosticBusy(true); setDiagnosticResult(null);
@@ -767,6 +780,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>{t("settings.diagnostics")}</Text>
             <Text style={styles.help}>{t("settings.diagnosticsHelp", { count: getDiagnosticLogEntries().length })}</Text>
             <ButtonRow><Action label={diagnosticBusy ? t("common.wait") : t("settings.shareZip")} onPress={() => void shareDiagnostics()} disabled={diagnosticBusy} /></ButtonRow>
+            <ButtonRow><Action label={diagnosticBusy ? t("common.wait") : t("settings.robotSelfCheck")} onPress={() => void runRobotSelfCheck()} disabled={diagnosticBusy} /></ButtonRow>
             <Text style={styles.help}>{t("settings.localFolder", { folder: diagnosticFolder?.displayName || diagnosticFolder?.providerName || t("common.notSelected") })}</Text>
             <ButtonRow>
               <Action label={t("settings.chooseLocalFolder")} onPress={() => void chooseDiagnosticFolder()} disabled={diagnosticBusy} secondary />

@@ -22,7 +22,7 @@ import {
   normalizeTtsSpeed,
   type TtsStyleId,
 } from "../voice/tts-voices";
-import { noteSpeechPcm16, noteSpeechWav } from "../robot-mind/speech-level";
+import { noteSpeechOutputLatency, noteSpeechPcm16, noteSpeechWav } from "../robot-mind/speech-level";
 
 export const OPENAI_SPEECH_MODEL = "gpt-4o-mini-tts";
 export const OPENAI_SPEECH_SHUTDOWN_DATE = "2027-01-06";
@@ -284,6 +284,7 @@ async function streamPcmAudio(response: CloudSpeechResponse, session: SpeechSess
               onStart(route) {
                 if (playbackOwner !== session || !isCurrent(session) || session.started) return;
                 session.started = true;
+                noteSpeechOutputLatency(route);
                 const timing = session.streamTiming;
                 if (timing) {
                   const renderNoticeMs = performance.now();

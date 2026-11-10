@@ -12,12 +12,19 @@ function pcm(samples) {
 }
 const tone = (ms, amplitude, rate = 24_000) => Array.from({ length: Math.round(rate * ms / 1000) }, (_, i) => amplitude * Math.sin(i * 2 * Math.PI * 220 / rate));
 {
-  const levels = api.pcm16Levels(pcm([...tone(120, 0.4), ...tone(120, 0), ...tone(120, 0.05)]), 24_000);
+  const levels = api.pcm16Levels(pcm([...tone(120, 0.4), ...tone(120, 0), ...tone(120, 0.012)]), 24_000);
   assert.equal(levels.length, 9, "one level per 40 ms");
   assert.ok(levels.slice(0, 3).every((level) => level > 0.9), "loud speech opens the mouth fully");
   assert.deepEqual(levels.slice(3, 6), [0, 0, 0], "silence closes it");
   assert.ok(levels.slice(6).every((level) => level > 0.2 && level < 0.6), "quiet speech opens it a little");
   assert.deepEqual(api.pcm16Levels(new Uint8Array(0), 24_000), []);
+  assert.ok(api.pcm16Levels(pcm(tone(40, 0.005)), 24_000).every((level) => level === 0), "below the pause level (-45 dBFS) the mouth stays closed");
+  // The mapping is Reachy Mini's speech tapper: 0 at the pause level, rising to 1 at -18 dBFS with +4 dB sensitivity.
+  assert.equal(api.speechLevelFromDb(-45), 0);
+  assert.ok(api.speechLevelFromDb(-35) > 0.5 && api.speechLevelFromDb(-35) < 0.65);
+  assert.equal(api.speechLevelFromDb(-22), 1);
+  assert.equal(api.speechLevelFromDb(0), 1);
+  assert.equal(api.speechLevelFromDb(-Infinity), 0);
 }
 function wav(data, { rate = 24_000, channels = 1, bits = 16, dataLength = data.length, extraChunk = false } = {}) {
   const extra = extraChunk ? 12 : 0;
@@ -83,7 +90,27 @@ function makeTrack() {
   assert.equal(h.track.levelAt(h.now), null);
 }
 {
+  // Movement is timed to when the audio is heard: the route's output latency shifts the timeline.
+  const h = makeTrack();
+  h.track.setPlaybackDelayMs(120);
+  h.track.appendPcm16(pcm(tone(200, 0.4)), 24_000);
+  assert.equal(h.track.levelAt(h.now + 60), null, "nothing is heard yet while the audio is still in the output buffer");
+  assert.ok(h.track.levelAt(h.now + 160) > 0.9);
+  // A latency reported after playback began moves the running timeline, once.
+  const late = makeTrack();
+  late.track.appendPcm16(pcm(tone(200, 0.4)), 24_000);
+  assert.ok(late.track.levelAt(late.now + 20) > 0.9);
+  late.track.setPlaybackDelayMs(80);
+  assert.equal(late.track.levelAt(late.now + 20), null);
+  assert.ok(late.track.levelAt(late.now + 100) > 0.9);
+  late.track.setPlaybackDelayMs(80);
+  assert.ok(late.track.levelAt(late.now + 100) > 0.9, "the same latency is not applied twice");
+  late.track.setPlaybackDelayMs(Number.NaN); late.track.setPlaybackDelayMs(9_999);
+  assert.ok(late.track.levelAt(late.now + 520) > 0.9, "an implausible latency is capped at half a second");
+}
+{
   // The hooks never throw into the audio path.
+  api.noteSpeechOutputLatency(null); api.noteSpeechOutputLatency({ outputLatencyMs: "x" });
   api.noteSpeechPcm16Base64("%%% not base64 %%%", 24_000);
   api.noteSpeechWav(Uint8Array.from([1, 2]));
   api.noteSpeechPcm16(new Uint8Array(0), 24_000);

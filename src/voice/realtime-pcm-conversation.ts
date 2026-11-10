@@ -1,6 +1,6 @@
 import { beginBehaviorSession, endBehaviorSession, getBehaviorConversationContext, readCompanionInterests, getBehaviorInteractionRevision, getBehaviorInteractionSnapshot, requiresBehaviorTurnCommit, inspectBehaviorVisual, performBehaviorCompanionAction, publishBehaviorEvent, publishBehaviorListeningFrame, type BehaviorInteractionSnapshot, type BehaviorSignalResponseRequest } from "../behavior/behavior-events";
 import { startRealtimeBodyContextFeed, type RobotBodyContextFeed } from "../robot-mind/body-context-runtime";
-import { noteSpeechPcm16Base64 } from "../robot-mind/speech-level";
+import { noteSpeechOutputLatency, noteSpeechPcm16Base64 } from "../robot-mind/speech-level";
 import type { CompanionAction, CompanionActionResult } from "../behavior/behavior-companion";
 import { AppState, Platform } from "react-native";
 import { InputAttentionDetector } from "./input-attention";
@@ -760,6 +760,7 @@ export class RealtimePcmConversationService {
       this.playbackStartedSubscription = audio.addListener("onPlaybackStarted", (event) => {
         if (!isCurrent() || event.generation !== this.playbackTimingGeneration || !this.activeResponseId) return;
         this.latency.playbackStarted(this.activeResponseId, event);
+        noteSpeechOutputLatency(event);
       }) as Subscription;
     }
     this.captureAudioSubscription = audio.addListener("onAudioData", (event: RealtimePcmAudioDataEvent) => {

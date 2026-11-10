@@ -8,10 +8,25 @@
  * to back, so each block is placed on a timeline right after the previous one.
  */
 export const SPEECH_LEVEL_FRAME_MS = 40;
-/** Full-scale RMS that already counts as a fully open mouth. */
-const LOUD_RMS = 0.2;
-/** Below this the frame is a pause between words. */
-const SILENT_RMS = 0.008;
+/**
+ * Loudness mapping taken from Reachy Mini's speech tapper (reachy_mini
+ * motion/speech_tapper.py), which drives its head from the same kind of signal:
+ * a frame at or below VAD_DB_OFF is a pause, loudness rises from SWAY_DB_LOW to
+ * SWAY_DB_HIGH with a +4 dB sensitivity offset and a 0.9 gamma.
+ */
+export const SPEECH_PAUSE_DB = -45;
+export const SPEECH_PHRASE_DB = -35;
+const LOUDNESS_LOW_DB = -46;
+const LOUDNESS_HIGH_DB = -18;
+const SENSITIVITY_DB = 4;
+const LOUDNESS_GAMMA = 0.9;
+
+/** 0..1 loudness of one frame from its RMS in dBFS. */
+export function speechLevelFromDb(db: number): number {
+  if (!(db > SPEECH_PAUSE_DB)) return 0;
+  const t = Math.min(1, Math.max(0, (db + SENSITIVITY_DB - LOUDNESS_LOW_DB) / (LOUDNESS_HIGH_DB - LOUDNESS_LOW_DB)));
+  return t ** LOUDNESS_GAMMA;
+}
 /** Frames this far behind the playhead are dropped. */
 const KEEP_BEHIND_MS = 500;
 const TICK_MS = 50;
@@ -32,7 +47,7 @@ export function pcm16Levels(bytes: Uint8Array, sampleRate: number, frameMs = SPE
       sum += sample * sample;
     }
     const rms = Math.sqrt(sum / (end - start));
-    levels.push(rms < SILENT_RMS ? 0 : Math.min(1, Math.sqrt(rms / LOUD_RMS)));
+    levels.push(rms > 0 ? speechLevelFromDb(20 * Math.log10(rms)) : 0);
   }
   return levels;
 }
@@ -75,6 +90,10 @@ export function createSpeechLevelTrack(options: {
   let frames: number[] = [];
   /** Timeline position of frames[0]. */
   let startAt = 0;
+  /** Time between handing audio to the output and hearing it, as reported by the audio route. */
+  let playbackDelayMs = 0;
+  /** Delay already applied to the current timeline. */
+  let appliedDelayMs = 0;
   let timer: unknown = null;
   let live = false;
   let smoothed = 0;
@@ -115,7 +134,7 @@ export function createSpeechLevelTrack(options: {
     appendLevels(levels: readonly number[]): void {
       if (!levels.length) return;
       const time = now();
-      if (!frames.length || endAt() < time) { frames = []; startAt = time; }
+      if (!frames.length || endAt() < time) { frames = []; startAt = time + playbackDelayMs; appliedDelayMs = playbackDelayMs; }
       frames.push(...levels);
       if (timer === null) timer = setTimer(tick, TICK_MS);
     },
@@ -125,6 +144,16 @@ export function createSpeechLevelTrack(options: {
     appendWav(bytes: Uint8Array): void {
       const wav = readWavPcm16(bytes);
       if (wav) this.appendPcm16(wav.data, wav.sampleRate);
+    },
+    /**
+     * The audio route's output latency. Like Reachy's wobbler, movement is
+     * timed to when a sample is heard, not to when it was queued. A value that
+     * arrives after playback began also shifts the timeline already running.
+     */
+    setPlaybackDelayMs(ms: number): void {
+      if (!Number.isFinite(ms)) return;
+      playbackDelayMs = Math.min(500, Math.max(0, ms));
+      if (frames.length) { startAt += playbackDelayMs - appliedDelayMs; appliedDelayMs = playbackDelayMs; }
     },
     /** Playback stopped or was interrupted: forget what was queued. */
     reset(): void { frames = []; startAt = 0; goQuiet(); },
@@ -155,15 +184,22 @@ export function noteSpeechPcm16(bytes: Uint8Array, sampleRate: number): void {
 export function noteSpeechWav(bytes: Uint8Array): void {
   try { speechLevel.appendWav(bytes); } catch { /* ignored */ }
 }
+export function noteSpeechOutputLatency(route: { outputLatencyMs?: number; ioBufferDurationMs?: number } | null | undefined): void {
+  try {
+    const ms = (Number(route?.outputLatencyMs) || 0) + (Number(route?.ioBufferDurationMs) || 0);
+    if (ms > 0) speechLevel.setPlaybackDelayMs(ms);
+  } catch { /* ignored */ }
+}
 
 /**
  * Finds the start of a phrase: the voice rising again after a short pause.
  * These are the natural moments for a small head movement.
  */
 export function createSpeechOnsetDetector(options: { quietMs?: number; low?: number; high?: number } = {}) {
-  const quietMs = options.quietMs ?? 220;
-  const low = options.low ?? 0.12;
-  const high = options.high ?? 0.4;
+  // A pause is 250 ms below the pause level (Reachy's VAD release); a phrase starts at its VAD-on level.
+  const quietMs = options.quietMs ?? 250;
+  const low = options.low ?? speechLevelFromDb(SPEECH_PAUSE_DB + 1);
+  const high = options.high ?? speechLevelFromDb(SPEECH_PHRASE_DB);
   let quietSince: number | null = 0;
   let armed = true;
   return {
