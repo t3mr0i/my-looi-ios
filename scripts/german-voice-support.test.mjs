@@ -104,6 +104,26 @@ const { executeRealtimePhysicalCommand } = createTypeScriptTreeLoader({
 const germanStopAck = await executeRealtimePhysicalCommand({ kind: "emergency-stop" }, "Stopp");
 assert.equal(germanStopAck.acknowledgement, "Ich stehe.");
 
+const liftedMoveError = Object.assign(new Error("Движение заблокировано системой безопасности (cliff-forward-rear-no-ground)."), {
+  name: "LooiMovementBlockedError",
+  blockedReason: "cliff-forward-rear-no-ground",
+  safetyState: "unsafe",
+});
+for (const [rejection, expected] of [
+  [liftedMoveError, /^Ich fahre nicht los, weil mindestens einer meiner vier Kantensensoren keinen Boden meldet\./],
+  [new Error("boom"), /^Das hat nicht geklappt\.$/],
+]) {
+  const { executeRealtimePhysicalCommand: executeBlocked } = createTypeScriptTreeLoader({
+    "../core/sleep-mode": { enterRobotSleepMode: async () => undefined },
+    "../diagnostics/diagnostic-log": { recordDiagnosticEvent() {} },
+    "../device-tools/looi-robot": { moveLooi: async () => { throw rejection; }, stopLooiMotion: async () => undefined },
+    "../store/user": { useUserStore: { getState: () => ({ preferences: { language: "de" } }) } },
+  })("src/voice/realtime-physical-command.ts");
+  const blocked = await executeBlocked({ kind: "explicit", command: { kind: "move", direction: "forward" } }, "LOOI, fahr vor");
+  assert.equal(blocked.ok, false);
+  assert.match(blocked.acknowledgement, expected);
+}
+
 const modelRoot = fs.mkdtempSync(path.join(os.tmpdir(), "german-vosk-stage-"));
 try {
   for (const language of ["ru", "uk", "en", "de"]) {

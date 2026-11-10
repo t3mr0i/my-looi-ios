@@ -243,3 +243,12 @@ function parseRequestedNodCount(command: string): number {
   }
   return 1;
 }
+
+/** German sentence when the motion layer refused an explicit move or turn because an edge sensor sees no ground; null otherwise. */
+export function germanCliffBlockedSentence(error: unknown, kind: "move" | "turn"): string | null {
+  const blocked = error as { blockedReason?: unknown; safetyState?: unknown } | null;
+  if (!blocked || blocked.safetyState !== "unsafe" || typeof blocked.blockedReason !== "string" || !blocked.blockedReason.startsWith("cliff-")) return null;
+  return kind === "turn"
+    ? "Ich drehe mich nicht, weil mindestens einer meiner vier Kantensensoren keinen Boden meldet. Stell mich bitte ganz auf eine ebene Fläche und sag es dann noch einmal."
+    : "Ich fahre nicht los, weil mindestens einer meiner vier Kantensensoren keinen Boden meldet. Stell mich bitte ganz auf eine ebene Fläche und sag es dann noch einmal.";
+}

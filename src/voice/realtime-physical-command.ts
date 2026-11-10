@@ -11,6 +11,7 @@ import { useUserStore, type UserPreferences } from "../store/user";
 import {
   containsEmergencyStopWord,
   parseExplicitRobotCommand,
+  germanCliffBlockedSentence,
   type ExplicitRobotCommand,
 } from "./explicit-robot-command";
 
@@ -134,7 +135,12 @@ export async function executeRealtimePhysicalCommand(
       commandKind,
       ok: false,
       error: error instanceof Error ? error.message : String(error),
+      blockedReason: String((error as { blockedReason?: unknown } | null)?.blockedReason ?? "none"),
     });
-    return { handled: true, ok: false, acknowledgement: acknowledgementFor(parsed, false), commandKind };
+    const blockedSentence =
+      responseLanguage() === "de" && parsed.kind === "explicit" && (parsed.command.kind === "move" || parsed.command.kind === "turn")
+        ? germanCliffBlockedSentence(error, parsed.command.kind === "turn" ? "turn" : "move")
+        : null;
+    return { handled: true, ok: false, acknowledgement: blockedSentence ?? acknowledgementFor(parsed, false), commandKind };
   }
 }

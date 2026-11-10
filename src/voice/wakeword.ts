@@ -363,6 +363,7 @@ export class WakewordService {
         recordDiagnosticEvent("robot", "driving-command-failed", {
           command: command.kind,
           error: error instanceof Error ? error.message : String(error),
+          blockedReason: String((error as { blockedReason?: unknown } | null)?.blockedReason ?? "none"),
         });
       } finally {
         drivingCommandFallback.reset();

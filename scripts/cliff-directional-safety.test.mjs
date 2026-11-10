@@ -113,12 +113,57 @@ await robot.startLooiMotion("forward");
 assert.ok(Date.now() - rearmStartedAt >= 200, "safe re-arm should wait for stable cliff state");
 await robot.stopLooiMotion("test-rearmed");
 
-// Rear edge blocks reverse/turn but forward escape remains allowed.
+// A rear sensor without ground (a lifted robot reports only its rear sensors) blocks forward,
+// reverse and turns. Without a latch from the app's own rear incident there is no forward escape.
 cliff([1, 1, 1, 0, 1]);
+const liftedError = await robot.startLooiMotion("forward").then(() => null, (error) => error);
+assert.ok(liftedError, "forward must be rejected while a rear sensor sees no ground");
+assert.match(String(liftedError.message), /cliff-forward-rear-no-ground/);
+assert.equal(liftedError.name, "LooiMovementBlockedError");
+assert.equal(liftedError.blockedReason, "cliff-forward-rear-no-ground");
+assert.equal(liftedError.safetyState, "unsafe");
+const liftedBlock = [...events].reverse().find((event) => event.event === "movement-blocked");
+assert.equal(liftedBlock.details.unsafeSensors, "rearLeft");
+assert.equal(liftedBlock.details.rawFlags, "11101");
+await expectBlocked(() => robot.startLooiMotion("forward"), /cliff-forward-rear-no-ground/);
 await expectBlocked(() => robot.startLooiMotion("back"), /cliff-rear/);
 await expectBlocked(() => robot.turnLooi("right", 90), /cliff-turn/);
+cliff([1, 1, 1, 1, 0]);
+await expectBlocked(() => robot.startLooiMotion("forward"), /cliff-forward-rear-no-ground/);
+cliff([1, 1, 1, 0, 0]);
+await expectBlocked(() => robot.startLooiMotion("forward"), /cliff-forward-rear-no-ground/);
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 280));
+
+// Lifted during a forward drive: the rear sensor loses ground, the drive stops and rear latches.
+const beforeLiftWrites = writes.length;
+await robot.startLooiMotion("forward");
+cliff([1, 1, 1, 1, 0]);
+await new Promise((resolve) => setTimeout(resolve, 40));
+assert.equal(robot.getLooiRobotRuntimeState().motionActive, false, "a lift during forward must stop the drive");
+assert.equal(robot.getLooiRobotRuntimeState().nearEdge.rear, true);
+assert.ok(writes.slice(beforeLiftWrites).some((write) => write.payload === "0000"), "a lift during forward must emit STOP");
+assert.ok(events.some((event) => event.event === "sensor-safety-stop" && String(event.details.unsafeSensors).includes("rearRight")));
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 150));
+robot.clearLooiNearEdgeAfterManualReposition();
+
+// Rear edge hit by the app itself (latched): forward is the escape and needs only the front pair,
+// even without a safe frame, and further rear no-ground frames do not stop it.
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 280));
+await robot.startLooiMotion("back");
+cliff([1, 1, 1, 0, 1]);
+await new Promise((resolve) => setTimeout(resolve, 40));
+assert.equal(robot.getLooiRobotRuntimeState().nearEdge.rear, true);
 await robot.startLooiMotion("forward");
 assert.equal(robot.getLooiRobotRuntimeState().motionActive, true);
+cliff([1, 1, 1, 0, 1]);
+await new Promise((resolve) => setTimeout(resolve, 40));
+assert.equal(robot.getLooiRobotRuntimeState().motionActive, true, "rear-edge escape must not stop on the rear no-ground frame");
+cliff([1, 1, 1, 1, 1]);
+await new Promise((resolve) => setTimeout(resolve, 170));
+assert.equal(robot.getLooiRobotRuntimeState().nearEdge.rear, false);
 await robot.stopLooiMotion("test-forward-away-rear-edge");
 
 // Active forward motion must stop immediately when a front sensor loses ground,

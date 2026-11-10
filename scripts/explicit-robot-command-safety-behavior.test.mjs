@@ -22,7 +22,7 @@ function loadTsCommonJs(path) {
   return module.exports;
 }
 
-const { containsEmergencyStopWord, parseExplicitRobotCommand } = loadTsCommonJs("src/voice/explicit-robot-command.ts");
+const { containsEmergencyStopWord, germanCliffBlockedSentence, parseExplicitRobotCommand } = loadTsCommonJs("src/voice/explicit-robot-command.ts");
 
 const rejectedCommands = [
   ["Луи, не двигайся вперед", "Russian negation must not move the robot"],
@@ -68,5 +68,13 @@ assert.equal(containsEmergencyStopWord("please don't say stop"), true, "global S
 assert.equal(containsEmergencyStopWord("Луи, не двигайся, стоп"), true, "global STOP remains active with other command text");
 assert.deepEqual(parseExplicitRobotCommand("Луи, не двигайся, стоп"), { kind: "move", direction: "stop" }, "explicit STOP keeps priority over negation");
 assert.deepEqual(parseExplicitRobotCommand("Луи, стоп?"), { kind: "move", direction: "stop" }, "global STOP keeps priority over question punctuation");
+
+const liftedBlock = { blockedReason: "cliff-forward-rear-no-ground", safetyState: "unsafe" };
+assert.match(germanCliffBlockedSentence(liftedBlock, "move"), /^Ich fahre nicht los, weil mindestens einer meiner vier Kantensensoren keinen Boden meldet\./);
+assert.match(germanCliffBlockedSentence(liftedBlock, "turn"), /^Ich drehe mich nicht, weil mindestens einer meiner vier Kantensensoren keinen Boden meldet\./);
+assert.equal(germanCliffBlockedSentence({ blockedReason: "cliff-rearming", safetyState: "unknown" }, "move"), null);
+assert.equal(germanCliffBlockedSentence({ blockedReason: "near-edge-front", safetyState: "unsafe" }, "move"), null);
+assert.equal(germanCliffBlockedSentence(new Error("plain"), "move"), null);
+assert.equal(germanCliffBlockedSentence(undefined, "move"), null);
 
 console.log("Explicit robot command safety behavior tests passed");

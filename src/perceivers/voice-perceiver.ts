@@ -31,7 +31,7 @@ import {
   getListeningLanguageSwitchAcknowledgement,
 } from "../language/listening-language";
 import { getVoiceResponseMessage } from "../language/response-messages";
-import { containsEmergencyStopWord, hasExplicitRobotAddress, parseExplicitRobotCommand, type ExplicitRobotCommand } from "../voice/explicit-robot-command";
+import { containsEmergencyStopWord, germanCliffBlockedSentence, hasExplicitRobotAddress, parseExplicitRobotCommand, type ExplicitRobotCommand } from "../voice/explicit-robot-command";
 import { getLooiRobotRuntimeState, performLooiDance, performLooiHeadGesture, startLooiMotion, stopLooiMotion, turnLooi } from "../device-tools/looi-robot";
 import { enterRobotSleepMode } from "../core/sleep-mode";
 import { isMainScreenFocused } from "../core/main-screen-presence";
@@ -1318,7 +1318,7 @@ export class VoicePerceiver extends BasePerceiver {
 
         const acknowledgement = result.ok ? result.message
           : useUserStore.getState().preferences.language === "de"
-            ? "Das hat nicht geklappt."
+            ? result.blockedSentence ?? "Das hat nicht geklappt."
             : `Не получилось: ${result.message}`;
         conversationStore.addMessage({ role: "assistant", content: acknowledgement });
         conversationStore.setStreamingText(acknowledgement);
@@ -2018,7 +2018,7 @@ export class VoicePerceiver extends BasePerceiver {
   private async executeExplicitRobotCommand(
     command: ExplicitRobotCommand,
     rawTranscript: string
-  ): Promise<{ ok: boolean; message: string }> {
+  ): Promise<{ ok: boolean; message: string; blockedSentence?: string | null }> {
     const german = useUserStore.getState().preferences.language === "de";
     recordDiagnosticEvent("robot", "explicit-voice-command", {
       kind: command.kind,
@@ -2104,8 +2104,16 @@ export class VoicePerceiver extends BasePerceiver {
       recordDiagnosticEvent("robot", "explicit-voice-command-failed", {
         kind: command.kind,
         error: message,
+        blockedReason: String((error as { blockedReason?: unknown } | null)?.blockedReason ?? "none"),
       });
-      return { ok: false, message };
+      return {
+        ok: false,
+        message,
+        blockedSentence:
+          german && (command.kind === "move" || command.kind === "turn")
+            ? germanCliffBlockedSentence(error, command.kind === "turn" ? "turn" : "move")
+            : null,
+      };
     }
   }
 

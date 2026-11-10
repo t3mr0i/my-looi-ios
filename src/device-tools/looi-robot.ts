@@ -461,8 +461,19 @@ function maybeArmNearEdgeEscapeClear(source: string): void {
   }
 }
 
-function requiredCliffSensorKeys(direction?: LooiMoveDirection): Array<keyof Fed9CliffSensors> {
-  if (direction === "forward") return ["frontLeft", "frontRight"];
+const ALL_CLIFF_SENSORS: Array<keyof Fed9CliffSensors> = ["frontLeft", "frontRight", "rearLeft", "rearRight"];
+
+/**
+ * Forward needs ground on all four sensors: fully lifted, a LOOI reported only its rear sensors as
+ * "no ground" (novolei/ulooi m0-5-prototype-findings.md:154-155, measured), so a front-only check let
+ * a lifted robot drive. Exception: escaping a rear edge this motion layer latched itself; then the rear
+ * sensors are expected to see no ground and forward is the only way out.
+ */
+function requiredCliffSensorKeys(
+  direction?: LooiMoveDirection,
+  rearEdgeLatched = state.nearEdge.rear
+): Array<keyof Fed9CliffSensors> {
+  if (direction === "forward") return rearEdgeLatched ? ["frontLeft", "frontRight"] : ALL_CLIFF_SENSORS;
   if (direction === "back") return ["rearLeft", "rearRight"];
   if (direction === "left" || direction === "right" || direction === undefined) {
     return ["frontLeft", "frontRight", "rearLeft", "rearRight"];
@@ -524,7 +535,9 @@ function computeSafety(direction?: LooiMoveDirection) {
     const unsafe = required.filter((key) => !state.sensors.cliffSensors?.[key]);
     if (unsafe.length > 0) {
       safetyState = "unsafe";
-      reason = `cliff-${cliffDirectionLabel(direction)}`;
+      reason = direction === "forward" && unsafe.every((key) => key === "rearLeft" || key === "rearRight")
+        ? "cliff-forward-rear-no-ground"
+        : `cliff-${cliffDirectionLabel(direction)}`;
     } else if (required.length > 0 && !areRequiredCliffSensorsStable(direction, now)) {
       // Unsafe is immediate; re-enabling motion is intentionally debounced so a
       // single transient 11111 cannot immediately drive the robot back at an edge.
@@ -735,6 +748,10 @@ function assertMovementAllowed(direction: LooiMoveDirection, source: string): vo
 
   const reason = safety.reason ?? safety.state;
   state.lastMotionBlockReason = reason;
+  const cliffSensors = state.sensors.cliffSensors;
+  const unsafeSensors = !cliffSensors
+    ? "unknown"
+    : ALL_CLIFF_SENSORS.filter((key) => !cliffSensors[key]).join(",") || "none";
   recordDiagnosticEvent("robot", "movement-blocked", {
     source,
     direction,
@@ -745,12 +762,18 @@ function assertMovementAllowed(direction: LooiMoveDirection, source: string): vo
     obstacleNear: state.sensors.obstacleNear ?? "unknown",
     nearEdgeFront: state.nearEdge.front,
     nearEdgeRear: state.nearEdge.rear,
+    unsafeSensors,
+    rawFlags: state.sensors.cliffGroundFlags?.map((v) => (v ? "1" : "0")).join("") ?? "unknown",
   });
-  throw new Error(
+  const error = new Error(
     safety.state === "unknown"
       ? `Движение заблокировано: состояние датчиков неизвестно (${reason}).`
       : `Движение заблокировано системой безопасности (${reason}).`
-  );
+  ) as Error & { blockedReason: string; safetyState: LooiSafetyState };
+  error.name = "LooiMovementBlockedError";
+  error.blockedReason = reason;
+  error.safetyState = safety.state;
+  throw error;
 }
 
 /**
@@ -1781,6 +1804,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
       });
     }
 
+    const rearEdgeLatchedBeforeFrame = state.nearEdge.rear;
     const direction = state.activeDirection;
     if (state.motionActive && direction && direction !== "stop") {
       const frontUnsafe = !decoded.sensors.frontLeft || !decoded.sensors.frontRight;
@@ -1806,7 +1830,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
         });
       }
 
-      const required = requiredCliffSensorKeys(direction);
+      const required = requiredCliffSensorKeys(direction, rearEdgeLatchedBeforeFrame);
       const unsafeSensors = required.filter((key) => !decoded.sensors[key]);
       if (unsafeSensors.length > 0) {
         triggerSensorSafetyStop("cliff", {
