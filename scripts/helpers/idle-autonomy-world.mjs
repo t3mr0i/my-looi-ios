@@ -94,7 +94,16 @@ export function createIdleAutonomyWorld() {
         getState: robot.getLooiRobotRuntimeState,
         subscribe: robot.subscribeLooiRobotRuntimeState,
         async drive(direction, durationMs, options) {
-          const record = { at: clock.now, direction, durationMs, linkLossConfirmedAtStart: h.linkLossConfirmed, armedAtStart: h.armed > 0, yieldAtStart: h.yieldReason, levelAtStart: h.level, micLiveAtStart: h.micLive, connectedAtStart: robot.getLooiRobotRuntimeState().connected };
+          const state = robot.getLooiRobotRuntimeState();
+          const sinceSafe = Object.values(state.sensors.cliffSafeSince);
+          const record = {
+            at: clock.now, direction, durationMs, linkLossConfirmedAtStart: h.linkLossConfirmed, armedAtStart: h.armed > 0, yieldAtStart: h.yieldReason, levelAtStart: h.level, micLiveAtStart: h.micLive, connectedAtStart: state.connected,
+            surfaceAtStart: idle.assessIdleSurface(state, clock.now),
+            cliffFrameAgeAtStart: state.sensors.lastCliffFrameAt === null ? null : clock.now - state.sensors.lastCliffFrameAt,
+            sensorAgeAtStart: state.sensors.lastFed9At === null ? null : clock.now - state.sensors.lastFed9At,
+            lastCliffFrameAtStart: state.sensors.lastCliffFrameAt,
+            cliffStableForAtStart: sinceSafe.some((since) => since === null) ? null : Math.min(...sinceSafe.map((since) => clock.now - since)),
+          };
           h.drives.push(record);
           record.result = await robot.driveLooiForDuration(direction, durationMs, options);
           return record.result;
@@ -105,9 +114,10 @@ export function createIdleAutonomyWorld() {
       stopListener: {
         isLive: () => h.micLive,
         async arm(reason, durationMs) {
-          h.arms.push({ reason, durationMs });
+          h.arms.push({ reason, durationMs, accepted: h.armReady });
           if (!h.armReady) return false;
           h.armed += 1;
+          h.onArm?.();
           return true;
         },
         async disarm() { h.armed = Math.max(0, h.armed - 1); h.disarms += 1; },

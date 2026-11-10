@@ -86,8 +86,9 @@ const DRIVE_DIRECTIONS: Readonly<Record<string, MockLooiDirection>> = {
 const SENSOR_INTERVAL_MS = 250;
 const NOTIFY_LATENCY_MS = 20;
 const BOOT_FRAME = "110100";
-// Frames published in andrey-tut/LOOI-Robot docs/FED9_TELEMETRY.md, sent while the body moves.
-// Their meaning is not established; replaying them shows what the app makes of real values.
+// Values published in andrey-tut/LOOI-Robot docs/FED9_TELEMETRY.md, which lists 02 and 0e samples separately.
+// Pairing one 02 and one 0e frame and sending them on every drive write is this mock's own choice. Their
+// meaning is not established; replaying them shows what the app makes of real values.
 const MOTION_FRAMES: readonly (readonly string[])[] = [
   ["02ffb2", "0e7501"],
   ["02dc9e", "0effff"],

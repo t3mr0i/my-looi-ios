@@ -233,7 +233,7 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
             // Re-read the motion layer right before the wheels move; nothing from before the await is trusted.
             const surface = assessIdleSurface(deps.motion.getState(), deps.now());
             if (!isCurrent()) outcome = "interrupted";
-            else if (!(action.kind === "step" ? surface.forward && deps.linkLossSelfStopConfirmed() : surface.turn)) outcome = "blocked";
+            else if (!(action.kind === "step" ? surface.forward && deps.linkLossSelfStopConfirmed() && deps.getLevel() === "explore" : surface.turn)) outcome = "blocked";
             else outcome = settle(await deps.motion.drive(action.direction, action.durationMs, { isCurrent }), isCurrent);
           } finally {
             await deps.stopListener.disarm(`idle-autonomy-${action.kind}-finished`).catch(() => undefined);

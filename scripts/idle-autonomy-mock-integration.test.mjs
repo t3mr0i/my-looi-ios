@@ -240,6 +240,22 @@ try {
     assert.ok(!driveDirections(from).includes("forward"));
   }
 
+  // 8b. The level drops to "look" while the STOP decoder is being armed: the pre-drive recheck refuses the step.
+  {
+    await resetRobot();
+    await connectMock("clear");
+    const h = harness({ level: "explore", seed: 3 });
+    h.person = { bearing: "center", distance: "far" };
+    h.onArm = () => { if (h.logs.some((entry) => entry.event === "action" && entry.detail === "forward")) h.level = "look"; };
+    const from = clock.now;
+    h.runtime.start();
+    await clock.until(() => h.logs.some((entry) => entry.event === "action-finished" && entry.kind === "step"), 4 * MINUTE);
+    h.runtime.stop();
+    assert.equal(h.logs.find((entry) => entry.event === "action-finished" && entry.kind === "step").outcome, "blocked");
+    assert.equal(h.drives.filter((drive) => drive.direction === "forward").length, 0, "no step once the level is no longer explore");
+    assert.ok(!driveDirections(from).includes("forward"));
+  }
+
   // 9. A robot that reports only on change (as community captures describe): after the frames
   // that came with connecting, nothing is fresh any more, so idle life keeps the wheels still.
   {
@@ -254,6 +270,7 @@ try {
       h.runtime.stop();
       const late = h.drives.filter((drive) => drive.at - from > idle.SURFACE_SENSOR_FRESH_MS);
       assert.deepEqual(late, [], "no wheel action once the last frame is older than the freshness limit");
+      assert.ok(h.drives.every((drive) => drive.cliffFrameAgeAtStart !== null && drive.cliffFrameAgeAtStart <= idle.SURFACE_SENSOR_FRESH_MS), "no drive starts more than the freshness limit after the last edge frame");
       assert.ok(h.logs.some((entry) => entry.event === "action" && (entry.kind === "head" || entry.kind === "head_gesture")), "head-only life continues");
     } finally {
       connection.setMockLooiSensorCadence({ cadence: "periodic" });

@@ -30,7 +30,7 @@ export type Fed9DecodedFrame =
  *     [marker, front-left, front-right, rear-left, rear-right]
  * - 0e XX XX: read here as a front TOF distance, uint16 little-endian, with
  *   0x1fff = no target. This reading is NOT established. Community captures
- *   (andrey-tut/LOOI-Robot, docs/FED9_TELEMETRY.md) see 0e only while the body
+ *   (andrey-tut/LOOI-Robot, docs/FED9_TELEMETRY.md) see 0e while the body
  *   is turned, slid or tilted and call it a motion/attitude scalar; nobody has
  *   published a test with an object in front of the robot. Values above
  *   0x1fff (such as the ffff those captures report) still read as "nothing

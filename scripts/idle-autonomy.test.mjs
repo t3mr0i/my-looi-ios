@@ -326,6 +326,7 @@ test("surface assessment trusts only fresh, stable, complete sensor data", () =>
     nearEdge: { front: false, rear: false },
     sensors: {
       lastFed9At: now - 200,
+      lastCliffFrameAt: now - 200,
       cliffSensors: { frontLeft: true, frontRight: true, rearLeft: true, rearRight: true },
       cliffSafeSince: { frontLeft: now - 5_000, frontRight: now - 5_000, rearLeft: now - 5_000, rearRight: now - 5_000 },
       obstacleNear: false,
@@ -335,8 +336,11 @@ test("surface assessment trusts only fresh, stable, complete sensor data", () =>
   assert.deepEqual(idle.assessIdleSurface(good(), now), { turn: true, forward: true });
   const cases = [
     (s) => { s.sensors.cliffSensors = null; },
-    (s) => { s.sensors.lastFed9At = null; },
-    (s) => { s.sensors.lastFed9At = now - idle.SURFACE_SENSOR_FRESH_MS - 1; },
+    (s) => { s.sensors.lastCliffFrameAt = null; },
+    (s) => { delete s.sensors.lastCliffFrameAt; },
+    // A fresh motion frame alone is not enough: only edge-sensor frames open the window.
+    (s) => { s.sensors.lastCliffFrameAt = now - idle.SURFACE_SENSOR_FRESH_MS - 1; s.sensors.lastFed9At = now - 200; },
+    (s) => { s.sensors.lastCliffFrameAt = now - idle.SURFACE_SENSOR_FRESH_MS - 1; },
     (s) => { s.sensors.cliffSensors.frontLeft = false; },
     (s) => { s.sensors.cliffSafeSince.rearRight = now - 100; },
     (s) => { s.nearEdge.front = true; },
@@ -346,6 +350,11 @@ test("surface assessment trusts only fresh, stable, complete sensor data", () =>
   for (const mutate of cases) {
     const snapshot = good(); mutate(snapshot);
     assert.deepEqual(idle.assessIdleSurface(snapshot, now), { turn: false, forward: false }, mutate.toString());
+  }
+  // 0e above 0x1fff is not a known distance: it can drive a turn, not a step. 0x1fff (null) and a real distance are fine.
+  for (const [tofDistanceMm, expected] of [[65_535, { turn: true, forward: false }], [null, { turn: true, forward: true }], [373, { turn: true, forward: true }]]) {
+    const snapshot = good(); snapshot.sensors.tofDistanceMm = tofDistanceMm;
+    assert.deepEqual(idle.assessIdleSurface(snapshot, now), expected, `tof ${tofDistanceMm}`);
   }
   for (const obstacleNear of [null, true]) {
     const snapshot = good(); snapshot.sensors.obstacleNear = obstacleNear;

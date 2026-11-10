@@ -19,7 +19,7 @@ const { clock, connection, robot, idle, harness, settle, advance, connectMock, r
 const SCENARIOS = ["clear", "clear", "clear", "clear", "clear", "front-edge", "rear-edge", "obstacle", "unknown"];
 
 async function soak({ seeds, cadence, confirmation }) {
-const totals = { drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, refusedForStop: 0, faults: 0, unconfirmedExploreChecks: 0, events: {} };
+const totals = { drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, scenarioChanges: 0, headActions: 0, staleEdgeDrives: 0, refusedForStop: 0, faults: 0, unconfirmedExploreChecks: 0, events: {} };
 const violations = [];
 /** Moments the BLE link dropped. The app cannot send a stop then; what the robot does is a hardware question. */
 const linkLosses = [];
@@ -31,10 +31,12 @@ for (let seed = 1; seed <= seeds; seed += 1) {
   const between = (low, high) => low + random() * (high - low);
   await resetRobot();
   connection.setMockLooiSensorCadence(cadence);
+  const connectStartedAt = clock.now;
   await connectMock("clear");
   const h = harness({ level: pick(["look", "explore", "explore", "explore"]), seed, linkLossConfirmed: confirmation === "random" ? random() < 0.5 : true });
   const startedAt = clock.now;
-  const world = { scenario: "clear", unsafeSince: null, connected: true, stopLockedAt: null, levelChangedAt: startedAt };
+  /** Start of every connection of this run; a drive is judged against the latest one at or before it. */
+  const world = { connectionStarts: [connectStartedAt], scenario: "clear", unsafeSince: null, connected: true, stopLockedAt: null, levelChangedAt: startedAt };
   const fail = (rule, detail) => violations.push({ seed, rule, at: Math.round((clock.now - startedAt) / 1000), ...detail });
   h.runtime.start();
   h.interact("touch");
@@ -49,6 +51,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     else if (fault === "gone") h.person = null;
     else if (fault === "scenario") {
       world.scenario = pick(SCENARIOS);
+      totals.scenarioChanges += 1;
       world.unsafeSince = world.scenario === "clear" ? null : clock.now;
       await settle(connection.setMockLooiScenario(world.scenario));
     } else if (fault === "mic") h.micLive = random() < 0.7;
@@ -67,6 +70,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
       // Someone lifts LOOI away from the edge and puts it down on clear table: the motion layer's
       // own edge latch is released, so only idle autonomy's memory of the edge still holds it back.
       world.scenario = "clear"; world.unsafeSince = null;
+      totals.scenarioChanges += 1;
       await settle(connection.setMockLooiScenario("clear"));
       await advance(1_500);
       robot.clearLooiNearEdgeAfterManualReposition();
@@ -89,6 +93,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
           if (robot.getLooiRobotRuntimeState().motionActive) fail("stop-halts-motion", {});
         } else if (strike === "edge") {
           world.scenario = pick(["front-edge", "rear-edge"]);
+          totals.scenarioChanges += 1;
           world.unsafeSince = clock.now;
           await settle(connection.setMockLooiScenario(world.scenario));
         } else if (strike === "yield") {
@@ -105,6 +110,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
           await settle(connection.setMockLooiConnected(false));
           await advance(between(2_000, 10_000));
           world.connected = true;
+          world.connectionStarts.push(clock.now);
           await settle(connection.setMockLooiConnected(true));
         }
       }
@@ -116,6 +122,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     } else if (fault === "link") {
       world.connected = !world.connected;
       if (!world.connected) linkLosses.push(clock.now);
+      else world.connectionStarts.push(clock.now);
       await settle(connection.setMockLooiConnected(world.connected));
       if (world.connected) { world.unsafeSince = world.scenario === "clear" ? null : clock.now; }
     } else if (fault === "voice") {
@@ -124,7 +131,9 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     }
     if (clock.now >= nextInteraction) { h.interact("touch"); nextInteraction = clock.now + between(1, 4) * MINUTE; }
     if (confirmation === "random") {
-      // The owner changes the link-loss confirmation now and then, also in the middle of a movement.
+      // Between faults the owner sometimes flips the link-loss confirmation, occasionally while a movement runs.
+      // The window between arming the STOP decoder and the pre-drive check is covered by scenario 8 of
+      // idle-autonomy-mock-integration, not by this soak.
       if (random() < 0.08) h.linkLossConfirmed = !h.linkLossConfirmed;
       if (!h.linkLossConfirmed && h.level === "explore") totals.unconfirmedExploreChecks += 1;
     }
@@ -138,6 +147,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
   h.runtime.stop();
   await advance(2_000);
   if (!world.connected) await settle(connection.setMockLooiConnected(true));
+  totals.headActions += h.logs.filter((entry) => entry.event === "action" && (entry.kind === "head" || entry.kind === "head_gesture")).length;
 
   // --- Rules over the whole run -------------------------------------------------
   const drives = h.drives;
@@ -150,6 +160,10 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     if (drive.yieldAtStart) fail("no-wheels-while-yielding", { ...where, reason: drive.yieldAtStart });
     if (drive.levelAtStart === "off") fail("off-never-moves", where);
     if (!drive.connectedAtStart) fail("no-wheels-while-disconnected", where);
+    if (!drive.surfaceAtStart.turn || (drive.direction === "forward" && !drive.surfaceAtStart.forward)) fail("surface-safe-at-drive-start", where);
+    const connectionStart = world.connectionStarts.filter((at) => at <= drive.at).at(-1);
+    if (drive.lastCliffFrameAtStart === null || drive.lastCliffFrameAtStart < connectionStart) fail("wheels-need-cliff-frame-this-connection", where);
+    if (drive.cliffFrameAgeAtStart === null || drive.cliffFrameAgeAtStart > idle.SURFACE_SENSOR_FRESH_MS) totals.staleEdgeDrives += 1;
     if (drive.direction === "forward") {
       totals.forward += 1;
       if (drive.levelAtStart !== "explore") fail("only-explore-drives-forward", where);
@@ -181,7 +195,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
   }
   totals.refusedForStop += h.logs.filter((entry) => entry.event === "stop-listener-unavailable").length;
   if (h.armed !== 0) fail("decoder-disarmed-at-the-end", { armed: h.armed });
-  if (h.arms.length !== h.disarms + h.arms.filter(() => false).length && h.arms.length < h.disarms) fail("disarm-without-arm", {});
+  if (h.disarms !== h.arms.filter((arm) => arm.accepted).length) fail("disarms-match-accepted-arms", { disarms: h.disarms, accepted: h.arms.filter((arm) => arm.accepted).length });
 }
 
 // --- Rules on the wire, over every seed: what the mock robot actually received -----
@@ -234,5 +248,11 @@ const summary = (label, seeds, totals) => `${label}: ${seeds} seeds x ${MINUTES_
   const { totals, violations } = await soak({ seeds: SIDE_SEEDS, cadence, confirmation: "confirmed" });
   if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
   assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
-  console.log(`Idle autonomy soak, ${summary(`on-change sensor frames${REST_FRAME_MS ? `, edge frame every ${REST_FRAME_MS} ms at rest` : ", none at rest"}`, SIDE_SEEDS, totals)} PASS`);
+  assert.equal(totals.staleEdgeDrives, 0, "no wheel action started without a fresh edge-sensor frame");
+  // This pass shows that idle life stays still on an event-only robot; it does not exercise the wheel rules.
+  // What it does exercise (observed with the default 30 seeds: 1444 head actions, 446 scenario changes, 2100 faults):
+  assert.ok(totals.headActions >= 700, `head-only life continued: ${totals.headActions}`);
+  assert.ok(totals.scenarioChanges >= 220, `the surface changed under it: ${totals.scenarioChanges}`);
+  assert.ok(totals.linkLossDuringMotion + totals.faults >= 1_000, `faults were thrown at it: ${totals.faults}`);
+  console.log(`Idle autonomy soak, ${summary(`on-change sensor frames${REST_FRAME_MS ? `, edge frame every ${REST_FRAME_MS} ms at rest` : ", none at rest"}`, SIDE_SEEDS, totals)}; ${totals.headActions} head actions and ${totals.scenarioChanges} scenario changes show that idle life stays still on an event-only robot, the wheel rules are barely exercised here PASS`);
 }

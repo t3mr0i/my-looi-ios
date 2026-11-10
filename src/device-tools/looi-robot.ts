@@ -91,6 +91,8 @@ let activeDriveStartReservation: DriveStartReservation | null = null;
 type LooiSensorSnapshot = {
   lastFed9Hex: string | null;
   lastFed9At: number | null;
+  /** Time of the last edge-sensor frame on this connection; reset with the other sensors on every disconnect. */
+  lastCliffFrameAt: number | null;
   /** FED9 notifications since this connection began, by first byte ("01", "0e", ...). Diagnostics only. */
   fed9FrameCounts: Record<string, number>;
   docked: boolean | null;
@@ -141,6 +143,7 @@ function emptySensors(): LooiSensorSnapshot {
   return {
     lastFed9Hex: null,
     lastFed9At: null,
+    lastCliffFrameAt: null,
     fed9FrameCounts: {},
     docked: null,
     cliffGroundFlags: null,
@@ -211,8 +214,8 @@ const state: LooiRuntimeState = {
   nearEdge: emptyNearEdgeLatch(),
   lastSafetyStopReason: null,
   lastMotionBlockReason: null,
-  driveControlRevalidationRequired: false,
-  driveControlRevalidationReason: null,
+  driveControlRevalidationRequired: true,
+  driveControlRevalidationReason: "initial-connect",
 };
 
 /** Bind the platform-specific LOOI BLE transport. */
@@ -1741,6 +1744,7 @@ function rememberRawNotification(event: LooiRawNotification): void {
   }
 
   if (decoded.kind === "cliff") {
+    state.sensors.lastCliffFrameAt = now;
     const previousRaw = state.sensors.cliffGroundFlags?.join("") ?? null;
     const nextRaw = decoded.rawFlags.map((value) => (value ? "1" : "0")).join("");
     const previousSensors = state.sensors.cliffSensors;

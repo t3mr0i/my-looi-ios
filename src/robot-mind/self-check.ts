@@ -52,18 +52,26 @@ export async function runRobotMindSelfCheck(deps: SelfCheckDeps, observeMs = SEL
   // Frames are counted exactly; gaps are seen at the sampling resolution.
   let arrivals = 0, maxGapMs = 0, lastFrameAt = first.lastSensorFrameAt, lastChangeAt = startedAt;
   let lastCounts = first.frameCounts;
+  // Idle autonomy counts only edge-sensor frames ("01"), so their gaps are measured the same way.
+  let edgeMaxGapMs = 0, edgeArrivals = 0, edgeLastChangeAt = startedAt, lastEdgeCount = first.frameCounts["01"] ?? 0;
   if (first.connected) {
     while (deps.now() - startedAt < observeMs) {
       await deps.wait(SAMPLE_MS);
       const state = deps.robot();
       if (!state.connected) break;
       lastCounts = state.frameCounts;
+      const edgeCount = state.frameCounts["01"] ?? 0;
+      if (edgeCount > lastEdgeCount) {
+        if (edgeArrivals > 0 || (first.frameCounts["01"] ?? 0) > 0) edgeMaxGapMs = Math.max(edgeMaxGapMs, deps.now() - edgeLastChangeAt);
+        edgeArrivals += 1; lastEdgeCount = edgeCount; edgeLastChangeAt = deps.now();
+      }
       if (state.lastSensorFrameAt !== null && state.lastSensorFrameAt !== lastFrameAt) {
         if (arrivals > 0 || lastFrameAt !== null) maxGapMs = Math.max(maxGapMs, deps.now() - lastChangeAt);
         arrivals += 1; lastFrameAt = state.lastSensorFrameAt; lastChangeAt = deps.now();
       }
     }
     maxGapMs = Math.max(maxGapMs, deps.now() - lastChangeAt);
+    edgeMaxGapMs = Math.max(edgeMaxGapMs, deps.now() - edgeLastChangeAt);
   }
   const observedMs = deps.now() - startedAt;
   const byType: Record<string, number> = {};
@@ -75,7 +83,8 @@ export async function runRobotMindSelfCheck(deps: SelfCheckDeps, observeMs = SEL
   const edgeFrames = byType["01"] ?? 0;
   const types = Object.keys(byType).sort().map((type) => `${type}:${byType[type]}`).join(",") || "none";
   const seconds = Math.round(observedMs / 1000);
-  const cadenceValues = { frames, edgeFrames, types, maxGapMs: frames ? Math.round(maxGapMs) : null, limitMs: deps.sensorFreshMs, sampleMs: SAMPLE_MS };
+  const cadenceValues = { frames, edgeFrames, types, maxGapMs: frames ? Math.round(maxGapMs) : null,
+    edgeMaxGapMs: edgeFrames ? Math.round(edgeMaxGapMs) : null, edgeFramesBeforeCheck: first.frameCounts["01"] ?? 0, limitMs: deps.sensorFreshMs, sampleMs: SAMPLE_MS };
   if (!first.connected) {
     lines.push({ id: "sensor_cadence", status: "unknown", detail: "not measured without the wheel base",
       values: { frames: 0, edgeFrames: 0, types: "none", maxGapMs: null, limitMs: deps.sensorFreshMs, sampleMs: SAMPLE_MS } });
@@ -84,9 +93,13 @@ export async function runRobotMindSelfCheck(deps: SelfCheckDeps, observeMs = SEL
       detail: `with the wheels parked, the robot sent no sensor frame in ${seconds} s; idle autonomy needs one within ${deps.sensorFreshMs} ms, so it will not move the wheels`,
       values: cadenceValues });
   } else {
-    const fits = maxGapMs <= deps.sensorFreshMs;
+    const fits = edgeFrames > 0 && edgeMaxGapMs <= deps.sensorFreshMs;
+    const summary = `with the wheels parked, the robot sent ${frames} sensor frames in ${seconds} s (${edgeFrames} from the edge sensors; by type ${types}), longest gap ${Math.round(maxGapMs)} ms (autonomy limit ${deps.sensorFreshMs} ms)`;
+    const earlier = `; edge frames earlier on this connection: ${cadenceValues.edgeFramesBeforeCheck}`;
     lines.push({ id: "sensor_cadence", status: fits ? "ok" : "problem",
-      detail: `with the wheels parked, the robot sent ${frames} sensor frames in ${seconds} s (${edgeFrames} from the edge sensors; by type ${types}), longest gap ${Math.round(maxGapMs)} ms (autonomy limit ${deps.sensorFreshMs} ms)${fits ? "" : "; idle autonomy will often refuse to move the wheels"}`,
+      detail: edgeFrames === 0
+        ? `${summary}${earlier}; idle autonomy needs an edge-sensor frame within ${deps.sensorFreshMs} ms, so it will not move the wheels`
+        : `${summary}${fits ? "" : "; idle autonomy will often refuse to move the wheels"}${earlier}`,
       values: cadenceValues });
   }
 

@@ -93,7 +93,11 @@ function sendFed9(bytes) {
 }
 
 robot.configureLooiRobotTransport(transport);
-await robot.connectLooiRobot();
+// The first connect of a process writes STOP and waits for the drive channel to settle (fake clock).
+const firstConnect = robot.connectLooiRobot();
+await flushMicrotasks();
+await advanceClock(200);
+await firstConnect;
 
 // An explicit position takes ownership during an ambient gesture's wait; the
 // old gesture must never restore center after the explicit write.

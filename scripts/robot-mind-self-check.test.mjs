@@ -93,6 +93,18 @@ const every = (ms, until = 30_000) => Array.from({ length: Math.floor(until / ms
   assert.equal(cadence.values.edgeFrames, 0);
   assert.equal(cadence.values.types, "02:30,0e:30");
   assert.match(cadence.detail, /0 from the edge sensors/u);
+  // Motion frames alone do not satisfy idle autonomy, which needs edge-sensor frames.
+  assert.equal(cadence.status, "problem");
+  assert.match(cadence.detail, /needs an edge-sensor frame/u);
+  assert.equal(cadence.values.edgeFramesBeforeCheck, 3);
+}
+{
+  // An edge frame every 10 s with motion frames every second: the stream is alive, the edge gap is too long.
+  const entries = [...every(1_000).map((time) => ({ time, type: "02" })), ...every(10_000).map((time) => ({ time, type: "01" }))].sort((x, y) => x.time - y.time);
+  const report = await api.runRobotMindSelfCheck(device({ frameTimes: entries.map((entry) => entry.time), frameType: (index) => entries[index].type }).deps);
+  const cadence = line(report, "sensor_cadence");
+  assert.equal(cadence.status, "problem");
+  assert.ok(cadence.values.edgeMaxGapMs >= 9_900, JSON.stringify(cadence.values));
 }
 {
   // Without the base nothing is measured, and it takes no 30 seconds.

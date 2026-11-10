@@ -85,6 +85,7 @@ async function expectBlocked(fn, reasonPattern) {
 robot.configureLooiRobotTransport(transport);
 await robot.connectLooiRobot();
 assert.ok(notifyFed9, "FED9 callback should be registered");
+assert.equal(writes.find((write) => write.key === "drive")?.payload, "0000", "the first drive-key write of a process is STOP");
 
 tofClear();
 cliff([1, 1, 1, 1, 1]);

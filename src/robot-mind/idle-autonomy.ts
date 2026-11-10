@@ -98,7 +98,7 @@ export interface IdleAutonomyFacts {
   robotReady: boolean;
   /** Another controller is moving the wheels or is mid-gesture. */
   otherMotionBusy: boolean;
-  /** All four cliff sensors report ground, stable and fresh, and no near-edge latch. */
+  /** All four cliff sensors report ground, an edge-sensor frame is fresh, the reading is stable, and no near-edge latch. */
   turnSurfaceSafe: boolean;
   /** turnSurfaceSafe plus a 0e reading the app decodes as clear (an unverified signal that can only add caution). */
   forwardSurfaceSafe: boolean;
@@ -513,6 +513,8 @@ export interface IdleMotionLayerSnapshot {
   nearEdge: { front: boolean; rear: boolean };
   sensors: {
     lastFed9At: number | null;
+    lastCliffFrameAt?: number | null;
+    tofDistanceMm?: number | null;
     cliffSensors: { frontLeft: boolean; frontRight: boolean; rearLeft: boolean; rearRight: boolean } | null;
     cliffSafeSince: { frontLeft: number | null; frontRight: number | null; rearLeft: number | null; rearRight: number | null };
     obstacleNear: boolean | null;
@@ -521,12 +523,14 @@ export interface IdleMotionLayerSnapshot {
 }
 
 /**
- * Sensor frames older than this make the surface unknown for autonomy, even if the motion layer still trusts them.
- * Any FED9 frame counts: it shows the notification stream is alive. Whether the robot sends frames while it
- * stands still is not established (community notes describe change-driven frames), so on such a robot this
- * keeps the wheels still; the self-check measures it. Loosening it needs a measurement on the robot.
+ * Edge-sensor frames older than this make the surface unknown for autonomy. Only edge-sensor (cliff) frames
+ * count: the robot's own motion frames (02/0e) show that the stream is alive, not where the edges are, and
+ * used to let one wheel action open the window for the next. Whether the robot repeats edge frames at rest
+ * is not established; the self-check measures it.
  */
 export const SURFACE_SENSOR_FRESH_MS = 6_000;
+/** Mirrors TOF_NO_TARGET in device-tools/fed9-sensors.ts; larger raw values are not a known distance. */
+const TOF_RAW_LIMIT = 0x1fff;
 /** All four cliff sensors must have reported ground continuously for this long. */
 export const SURFACE_STABLE_MS = 1_000;
 
@@ -536,9 +540,9 @@ export function assessIdleSurface(robot: IdleMotionLayerSnapshot, now: number): 
   const turn = robot.connected &&
     robot.driveControlReady &&
     !robot.nearEdge.front && !robot.nearEdge.rear &&
-    sensors.lastFed9At !== null && now - sensors.lastFed9At <= SURFACE_SENSOR_FRESH_MS &&
+    sensors.lastCliffFrameAt != null && now - sensors.lastCliffFrameAt <= SURFACE_SENSOR_FRESH_MS &&
     !!cliff && cliff.frontLeft && cliff.frontRight && cliff.rearLeft && cliff.rearRight &&
     (Object.values(sensors.cliffSafeSince) as Array<number | null>)
       .every((since) => since !== null && now - since >= SURFACE_STABLE_MS);
-  return { turn, forward: turn && sensors.obstacleNear === false };
+  return { turn, forward: turn && sensors.obstacleNear === false && (sensors.tofDistanceMm == null || sensors.tofDistanceMm < TOF_RAW_LIMIT) };
 }
