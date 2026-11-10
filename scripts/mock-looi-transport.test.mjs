@@ -257,4 +257,28 @@ assert.equal(delayedWriteRobot.driveTimer, null, "a cancelled first frame must n
   quiet.dispose();
 }
 
+// Quiet-sensor options: a connection without an edge frame, and a stream that goes silent while the link stays up.
+{
+  const frames = [];
+  const quiet = new MockLooiTransport({ initialScenario: "clear", sensorCadence: { cadence: "on-change", cliffFrameOnSubscribe: false } });
+  const quietRobot = new sdk.LooiRobot(quiet);
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  await quietRobot.connect({ onRawNotify: (event) => { if (event.characteristic === "fed9") frames.push(event.hex); } });
+  await wait(60);
+  assert.deepEqual(frames, ["110100"], "subscribing without cliffFrameOnSubscribe brings only the boot frame");
+  quiet.setSensorCadence({ cadence: "on-change", muted: true });
+  quiet.setScenario("front-edge");
+  await quietRobot.move("forward");
+  await wait(100);
+  assert.deepEqual(frames, ["110100"], "while muted, neither a scenario change nor a drive write emits a frame");
+  await quietRobot.stop();
+  assert.equal(quiet.getSnapshot().connected, true, "muting keeps the link up");
+  quiet.setSensorCadence({ cadence: "on-change" });
+  quiet.setScenario("clear");
+  await wait(60);
+  assert.deepEqual(frames.slice(1), ["0101010101"], "after unmuting, the next change emits again");
+  await quietRobot.disconnect();
+  quiet.dispose();
+}
+
 console.log("Mock LOOI transport behavioral tests passed");

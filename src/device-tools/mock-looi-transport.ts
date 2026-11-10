@@ -20,7 +20,14 @@ export type MockLooiHeadPosition = "up" | "center" | "down" | { raw: string };
  * the real robot also repeats frames at rest; restFrameIntervalMs models that if it does.
  */
 export type MockLooiSensorCadence = "periodic" | "on-change";
-export type MockLooiSensorCadenceOptions = { cadence: MockLooiSensorCadence; restFrameIntervalMs?: number | null };
+export type MockLooiSensorCadenceOptions = {
+  cadence: MockLooiSensorCadence;
+  restFrameIntervalMs?: number | null;
+  /** On-change only, default true: false models a robot that sends no edge frame when notifications are switched on. */
+  cliffFrameOnSubscribe?: boolean;
+  /** Default false: true swallows every sensor frame while the link stays up, like a dead notification stream. */
+  muted?: boolean;
+};
 
 export type MockLooiTraceEntry = {
   id: number;
@@ -229,7 +236,7 @@ export class MockLooiTransport implements LooiTransport {
     if (characteristicKey === "dockNotify") {
       this.stopSensorStream();
       if (this.cadence.cadence === "on-change") {
-        if (onValue) this.emitFrames([BOOT_FRAME, ...this.changeFramesForScenario()]);
+        if (onValue) this.emitFrames([BOOT_FRAME, ...(this.cadence.cliffFrameOnSubscribe === false ? [] : this.changeFramesForScenario())]);
       } else {
         this.emitScenarioFrames();
       }
@@ -377,7 +384,7 @@ export class MockLooiTransport implements LooiTransport {
   /** Deliver frames after a short delay, as BLE notifications arrive after the event that caused them. */
   private emitFrames(frames: readonly string[]): void {
     const handler = this.notificationHandlers.get("dockNotify");
-    if (!this.connected || !handler || frames.length === 0) return;
+    if (this.cadence.muted === true || !this.connected || !handler || frames.length === 0) return;
     const timer = setTimeout(() => {
       this.pendingNotifications.delete(timer);
       for (const hex of frames) {
@@ -394,7 +401,7 @@ export class MockLooiTransport implements LooiTransport {
 
   private emitScenarioFrames(): void {
     const handler = this.notificationHandlers.get("dockNotify");
-    if (!this.connected || !handler) return;
+    if (this.cadence.muted === true || !this.connected || !handler) return;
     for (const hex of framesForScenario(this.scenario)) {
       if (!this.connected || this.notificationHandlers.get("dockNotify") !== handler) return;
       const bytes = bytesFromHex(hex);

@@ -10,6 +10,7 @@ import {
   assessIdleSurface,
   createIdleAutonomy,
   IDLE_AUTONOMY_MODES,
+  QUIET_ECHO_WINDOW_MS,
   isWheelAction,
   type IdleAutonomyAction,
   type IdleAutonomyFacts,
@@ -77,6 +78,8 @@ export interface IdleAutonomyRuntimeDeps {
   getLevel(): IdleAutonomyLevel;
   /** The owner confirmed on the robot that it stops by itself when the link drops mid-movement. */
   linkLossSelfStopConfirmed(): boolean;
+  /** Owner confirmed with the self-check that the robot reports edge sensors only on change; enables the quiet basis for turns. */
+  quietSensorBasisEnabled?: () => boolean;
   /** App-level reasons to stay still (conversation, background, sleep, driving session, robot app...). */
   getYieldReason(): string | null;
   /** Human interactions such as touch, speech or a robot-bridge command. */
@@ -104,6 +107,40 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
   let unsubscribeSamples: (() => void) | null = null;
   let subscriptions: Array<() => void> = [];
   let lastWaitReason = "";
+  // Quiet basis bookkeeping: liveness echo of the robot's own wheel actions (any FED9 frame, not only edge frames).
+  let echo: { driveStartedAt: number; endedAt: number | null } | null = null;
+  let echoFailedAt: number | null = null;
+  let quietEnabledSeen = false;
+
+  const quietEnabled = () => deps.quietSensorBasisEnabled?.() === true;
+
+  const quietEchoOk = (robot: IdleMotionLayerSnapshot, now: number): boolean => {
+    const enabled = quietEnabled();
+    const sensors = robot.sensors;
+    if (echoFailedAt !== null) {
+      if (sensors.lastCliffFrameAt != null && sensors.lastCliffFrameAt > echoFailedAt) {
+        echoFailedAt = null;
+        if (enabled) deps.log("quiet-basis-restored", { reason: "cliff-frame" });
+      } else {
+        return false;
+      }
+    }
+    if (echo) {
+      if (sensors.lastFed9At != null && sensors.lastFed9At >= echo.driveStartedAt) {
+        echo = null;
+        return true;
+      }
+      if (echo.endedAt === null || now < echo.endedAt + QUIET_ECHO_WINDOW_MS) return false;
+      echoFailedAt = now;
+      echo = null;
+      if (enabled) deps.log("quiet-basis-suspended", { reason: "no-sensor-echo" });
+      return false;
+    }
+    return true;
+  };
+
+  const surfaceNow = (robot: IdleMotionLayerSnapshot, now: number) =>
+    assessIdleSurface(robot, now, quietEnabled() ? { echoOk: quietEchoOk(robot, now) } : undefined);
 
   const bodyYieldReason = (body: RobotBodyState): string | null =>
     FOREIGN_ACTIVITY_MODES.includes(body.activity.mode) ? `body-${body.activity.mode}` : null;
@@ -231,10 +268,23 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
         } else {
           try {
             // Re-read the motion layer right before the wheels move; nothing from before the await is trusted.
-            const surface = assessIdleSurface(deps.motion.getState(), deps.now());
+            const robotNow = deps.motion.getState();
+            const surface = surfaceNow(robotNow, deps.now());
             if (!isCurrent()) outcome = "interrupted";
             else if (!(action.kind === "step" ? surface.forward && deps.linkLossSelfStopConfirmed() && deps.getLevel() === "explore" : surface.turn)) outcome = "blocked";
-            else outcome = settle(await deps.motion.drive(action.direction, action.durationMs, { isCurrent }), isCurrent);
+            else {
+              if (surface.basis === "quiet") {
+                const at = deps.now();
+                deps.log("quiet-basis-used", {
+                  kind: action.kind,
+                  direction: action.direction,
+                  cliffFrameAgeMs: robotNow.sensors.lastCliffFrameAt != null ? at - robotNow.sensors.lastCliffFrameAt : null,
+                  sensorAgeMs: robotNow.sensors.lastFed9At != null ? at - robotNow.sensors.lastFed9At : null,
+                });
+              }
+              echo = { driveStartedAt: deps.now(), endedAt: null };
+              outcome = settle(await deps.motion.drive(action.direction, action.durationMs, { isCurrent }), isCurrent);
+            }
           } finally {
             await deps.stopListener.disarm(`idle-autonomy-${action.kind}-finished`).catch(() => undefined);
           }
@@ -251,6 +301,7 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
       deps.log("action-error", { kind: action.kind, error: error instanceof Error ? error.message : String(error) });
     } finally {
       if (wheel) lastWheelEndedAt = deps.now();
+      if (echo && echo.endedAt === null) echo.endedAt = deps.now();
       observeMotionLayer();
       if (inFlight?.token === myToken) inFlight = null;
       machine.observe(outcome, deps.now());
@@ -264,7 +315,7 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
     const now = deps.now();
     const level = deps.getLevel();
     const body = deps.bodyState.getState();
-    const surface = assessIdleSurface(robot, now);
+    const surface = surfaceNow(robot, now);
     const facts: IdleAutonomyFacts = {
       now,
       level,
@@ -310,6 +361,12 @@ export function createIdleAutonomyRuntime(deps: IdleAutonomyRuntimeDeps) {
     if (!running) return;
     try {
       observeMotionLayer();
+      const enabled = quietEnabled();
+      if (enabled !== quietEnabledSeen) {
+        quietEnabledSeen = enabled;
+        deps.log("quiet-basis-setting", { enabled });
+      }
+      quietEchoOk(deps.motion.getState(), deps.now());
       if (!inFlight) step();
     } catch (error) {
       deps.log("tick-error", { error: error instanceof Error ? error.message : String(error) });

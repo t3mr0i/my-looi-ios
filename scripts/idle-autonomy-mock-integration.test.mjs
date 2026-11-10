@@ -277,7 +277,94 @@ try {
     }
   }
 
-  console.log("Idle autonomy -> real controller/SDK/mock: silent while disconnected, STOP-armed search turns, bounded approach with arrival, front-edge stop without retry, STOP lock, yield on touch, no wheels without STOP decoder, voice guard, no step without the link-loss check, still wheels on an on-change robot PASS (no model, network or hardware)");
+  // 10. Opt-in quiet basis on a robot that reports only on change: in-place turns continue on the last reported
+  // edge state long after the freshness limit, never a step. The same seed with the switch off stays still.
+  {
+    const late = (h) => h.drives.filter((drive) => drive.cliffFrameAgeAtStart > idle.SURFACE_SENSOR_FRESH_MS);
+    try {
+      await resetRobot();
+      connection.setMockLooiSensorCadence({ cadence: "on-change" });
+      await connectMock("clear");
+      const quiet = harness({ level: "look", seed: 2, quietBasis: true });
+      quiet.runtime.start();
+      await advance(10 * MINUTE);
+      quiet.runtime.stop();
+      assert.ok(late(quiet).length >= 3, `turns later than the freshness limit after the last edge frame: ${late(quiet).length}`);
+      assert.ok(quiet.drives.every((drive) => drive.direction !== "forward"), "no step on the quiet basis");
+      assert.ok(quiet.logs.some((entry) => entry.event === "quiet-basis-used"), "the quiet basis is logged when used");
+      assert.ok(quiet.logs.some((entry) => entry.event === "quiet-basis-setting" && entry.enabled === true), "switching on is logged");
+
+      await resetRobot();
+      connection.setMockLooiSensorCadence({ cadence: "on-change" });
+      await connectMock("clear");
+      const off = harness({ level: "look", seed: 2 });
+      off.runtime.start();
+      await advance(10 * MINUTE);
+      off.runtime.stop();
+      assert.deepEqual(late(off), [], "the same run with the switch off has no late drive");
+      assert.ok(!off.logs.some((entry) => entry.event.startsWith("quiet-basis")), "nothing about the quiet basis is logged while off");
+    } finally {
+      connection.setMockLooiSensorCadence({ cadence: "periodic" });
+    }
+  }
+
+  // 11. A connection that brings no edge frame: no wheels at all, however long the robot is quiet. The first edge
+  // frame (here from a scenario change) enables turns only after the ground has been settled for ten seconds.
+  {
+    try {
+      await resetRobot();
+      connection.setMockLooiSensorCadence({ cadence: "on-change", cliffFrameOnSubscribe: false });
+      await connectMock("clear");
+      const h = harness({ level: "look", seed: 2, quietBasis: true });
+      h.runtime.start();
+      await advance(5 * MINUTE);
+      assert.equal(robot.getLooiRobotRuntimeState().sensors.lastCliffFrameAt, null, "this connection brought no edge frame");
+      assert.deepEqual(h.drives, [], "no drive without an edge frame on this connection");
+      await settle(connection.setMockLooiScenario("obstacle"));
+      await advance(500);
+      const firstEdgeFrameAt = robot.getLooiRobotRuntimeState().sensors.lastCliffFrameAt;
+      assert.notEqual(firstEdgeFrameAt, null, "the scenario change delivered an edge frame");
+      await settle(connection.setMockLooiScenario("clear"));
+      await advance(5 * MINUTE);
+      h.runtime.stop();
+      assert.ok(h.drives.length > 0, "turns resumed");
+      assert.ok(h.drives[0].at - firstEdgeFrameAt >= idle.QUIET_SURFACE_SETTLED_MS, "the first drive waited for the settled ground");
+    } finally {
+      connection.setMockLooiSensorCadence({ cadence: "periodic" });
+    }
+  }
+
+  // 12. The stream goes silent while the link stays up: the missing echo of the next turn suspends the quiet basis
+  // until an edge frame arrives after the failure.
+  {
+    try {
+      await resetRobot();
+      connection.setMockLooiSensorCadence({ cadence: "on-change" });
+      await connectMock("clear");
+      const h = harness({ level: "look", seed: 2, quietBasis: true });
+      h.runtime.start();
+      await clock.until(() => h.drives.some((drive) => drive.cliffFrameAgeAtStart > idle.SURFACE_SENSOR_FRESH_MS), 10 * MINUTE);
+      await clock.until(() => robot.getLooiRobotRuntimeState().motionActive === false && h.logs.some((entry) => entry.event === "action-finished" && entry.kind === "turn"), MINUTE);
+      const mutedAt = clock.now;
+      connection.setMockLooiSensorCadence({ cadence: "on-change", muted: true });
+      await advance(5 * MINUTE);
+      assert.ok(h.drives.filter((drive) => drive.at > mutedAt).length <= 1, "at most one drive on a silent stream");
+      assert.ok(h.logs.some((entry) => entry.event === "quiet-basis-suspended"), "the silent stream suspended the quiet basis");
+      connection.setMockLooiSensorCadence({ cadence: "on-change" });
+      const unmutedAt = clock.now;
+      await settle(connection.setMockLooiScenario("obstacle"));
+      await advance(1_000);
+      await settle(connection.setMockLooiScenario("clear"));
+      await advance(5 * MINUTE);
+      h.runtime.stop();
+      assert.ok(h.logs.some((entry) => entry.event === "quiet-basis-restored" && entry.at > unmutedAt), "an edge frame restored the quiet basis");
+      assert.ok(h.drives.some((drive) => drive.at > unmutedAt), "turns resumed after the settle time");
+    } finally {
+      connection.setMockLooiSensorCadence({ cadence: "periodic" });
+    }
+  }
+
+  console.log("Idle autonomy -> real controller/SDK/mock: silent while disconnected, STOP-armed search turns, bounded approach with arrival, front-edge stop without retry, STOP lock, yield on touch, no wheels without STOP decoder, voice guard, no step without the link-loss check, still wheels on an on-change robot, opt-in quiet-sensor turns with settle time, no wheels without an edge frame on the connection, suspension on a silent stream PASS (no model, network or hardware)");
 } finally {
   await settle(connection.setLooiConnectionMode("disconnected")).catch(() => undefined);
   await settle(robot.disconnectLooiRobot()).catch(() => undefined);

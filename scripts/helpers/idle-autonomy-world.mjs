@@ -64,12 +64,12 @@ export function createIdleAutonomyWorld() {
     .map((write) => DRIVE_PAYLOAD[write.detail]);
 
   /** One runtime with fake microphone, camera and app-state ports around the real motion layer. */
-  function harness({ level = "look", seed = 1, micLive = true, armReady = true, linkLossConfirmed = true } = {}) {
+  function harness({ level = "look", seed = 1, micLive = true, armReady = true, linkLossConfirmed = true, quietBasis = false } = {}) {
     const store = createRobotBodyStateStore(() => clock.now);
     const interactionListeners = new Set();
     const sampleListeners = new Set();
     const h = {
-      store, level, micLive, armReady, linkLossConfirmed, yieldReason: null, armed: 0, arms: [], disarms: 0, drives: [], events: [], logs: [],
+      store, level, micLive, armReady, linkLossConfirmed, quietBasis, yieldReason: null, armed: 0, arms: [], disarms: 0, drives: [], events: [], logs: [],
       person: null,
       interact(source) { for (const listener of [...interactionListeners]) listener(source); },
       samples(values) { for (const listener of [...sampleListeners]) listener(values); },
@@ -88,6 +88,7 @@ export function createIdleAutonomyWorld() {
       clearTimeout: (handle) => clock.clearTimeout(handle),
       getLevel: () => h.level,
       linkLossSelfStopConfirmed: () => h.linkLossConfirmed,
+      quietSensorBasisEnabled: () => h.quietBasis,
       getYieldReason: () => h.yieldReason,
       subscribeInteractions(listener) { interactionListeners.add(listener); return () => interactionListeners.delete(listener); },
       motion: {
@@ -98,7 +99,8 @@ export function createIdleAutonomyWorld() {
           const sinceSafe = Object.values(state.sensors.cliffSafeSince);
           const record = {
             at: clock.now, direction, durationMs, linkLossConfirmedAtStart: h.linkLossConfirmed, armedAtStart: h.armed > 0, yieldAtStart: h.yieldReason, levelAtStart: h.level, micLiveAtStart: h.micLive, connectedAtStart: state.connected,
-            surfaceAtStart: idle.assessIdleSurface(state, clock.now),
+            // With the quiet basis on, the echo is assumed fine: an upper bound for everything except the echo itself.
+            surfaceAtStart: idle.assessIdleSurface(state, clock.now, h.quietBasis ? { echoOk: true } : undefined),
             cliffFrameAgeAtStart: state.sensors.lastCliffFrameAt === null ? null : clock.now - state.sensors.lastCliffFrameAt,
             sensorAgeAtStart: state.sensors.lastFed9At === null ? null : clock.now - state.sensors.lastFed9At,
             lastCliffFrameAtStart: state.sensors.lastCliffFrameAt,

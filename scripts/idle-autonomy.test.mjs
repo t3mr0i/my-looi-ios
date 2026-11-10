@@ -333,7 +333,7 @@ test("surface assessment trusts only fresh, stable, complete sensor data", () =>
     },
     safety: { lastSafetyStopReason: null },
   });
-  assert.deepEqual(idle.assessIdleSurface(good(), now), { turn: true, forward: true });
+  assert.deepEqual(idle.assessIdleSurface(good(), now), { turn: true, forward: true, basis: "fresh" });
   const cases = [
     (s) => { s.sensors.cliffSensors = null; },
     (s) => { s.sensors.lastCliffFrameAt = null; },
@@ -349,15 +349,50 @@ test("surface assessment trusts only fresh, stable, complete sensor data", () =>
   ];
   for (const mutate of cases) {
     const snapshot = good(); mutate(snapshot);
-    assert.deepEqual(idle.assessIdleSurface(snapshot, now), { turn: false, forward: false }, mutate.toString());
+    assert.deepEqual(idle.assessIdleSurface(snapshot, now), { turn: false, forward: false, basis: null }, mutate.toString());
   }
   // 0e above 0x1fff is not a known distance: it can drive a turn, not a step. 0x1fff (null) and a real distance are fine.
-  for (const [tofDistanceMm, expected] of [[65_535, { turn: true, forward: false }], [null, { turn: true, forward: true }], [373, { turn: true, forward: true }]]) {
+  for (const [tofDistanceMm, expected] of [[65_535, { turn: true, forward: false, basis: "fresh" }], [null, { turn: true, forward: true, basis: "fresh" }], [373, { turn: true, forward: true, basis: "fresh" }]]) {
     const snapshot = good(); snapshot.sensors.tofDistanceMm = tofDistanceMm;
     assert.deepEqual(idle.assessIdleSurface(snapshot, now), expected, `tof ${tofDistanceMm}`);
   }
   for (const obstacleNear of [null, true]) {
     const snapshot = good(); snapshot.sensors.obstacleNear = obstacleNear;
-    assert.deepEqual(idle.assessIdleSurface(snapshot, now), { turn: true, forward: false }, `obstacle ${obstacleNear}`);
+    assert.deepEqual(idle.assessIdleSurface(snapshot, now), { turn: true, forward: false, basis: "fresh" }, `obstacle ${obstacleNear}`);
   }
+});
+
+test("quiet basis is opt-in, turns only, needs an edge frame on this connection, settled ground and an echo", () => {
+  const now = 100_000;
+  const base = () => ({
+    connected: true, driveControlReady: true, motionActive: false, stopGeneration: 0,
+    nearEdge: { front: false, rear: false },
+    sensors: {
+      lastFed9At: now - 60_000,
+      lastCliffFrameAt: now - 60_000,
+      tofDistanceMm: null,
+      cliffSensors: { frontLeft: true, frontRight: true, rearLeft: true, rearRight: true },
+      cliffSafeSince: { frontLeft: now - 20_000, frontRight: now - 20_000, rearLeft: now - 20_000, rearRight: now - 20_000 },
+      obstacleNear: false,
+    },
+    safety: { lastSafetyStopReason: null },
+  });
+  assert.deepEqual(idle.assessIdleSurface(base(), now), { turn: false, forward: false, basis: null }, "off by default");
+  assert.deepEqual(idle.assessIdleSurface(base(), now, { echoOk: true }), { turn: true, forward: false, basis: "quiet" });
+  const blocked = [
+    [{ echoOk: false }, () => {}],
+    [{ echoOk: true }, (s) => { s.sensors.lastCliffFrameAt = null; }],
+    [{ echoOk: true }, (s) => { delete s.sensors.lastCliffFrameAt; }],
+    [{ echoOk: true }, (s) => { s.sensors.cliffSensors.rearRight = false; }],
+    [{ echoOk: true }, (s) => { s.sensors.cliffSafeSince.rearLeft = now - 5_000; }],
+    [{ echoOk: true }, (s) => { s.nearEdge.rear = true; }],
+    [{ echoOk: true }, (s) => { s.connected = false; }],
+    [{ echoOk: true }, (s) => { s.driveControlReady = false; }],
+  ];
+  for (const [quiet, mutate] of blocked) {
+    const snapshot = base(); mutate(snapshot);
+    assert.deepEqual(idle.assessIdleSurface(snapshot, now, quiet), { turn: false, forward: false, basis: null }, mutate.toString());
+  }
+  const fresh = base(); fresh.sensors.lastCliffFrameAt = now - 200;
+  assert.deepEqual(idle.assessIdleSurface(fresh, now, { echoOk: false }), { turn: true, forward: true, basis: "fresh" }, "the switch never weakens the fresh basis");
 });

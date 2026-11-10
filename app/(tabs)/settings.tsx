@@ -643,6 +643,18 @@ export default function SettingsScreen() {
             onChange={(id) => updatePreferences({ linkLossSelfStopConfirmed: id === "checked" })}
           />
         </View> : null}
+        {preferences.idleAutonomyLevel !== "off" ? <View style={styles.subCard}>
+          <Text style={styles.label}>{t("settings.idleAutonomyQuietSensors")}</Text>
+          <Text style={styles.help}>{t("settings.idleAutonomyQuietSensorsHelp")}</Text>
+          <Segmented
+            options={[
+              { id: "unchecked" as const, label: t("settings.idleAutonomyQuietSensorsUnchecked") },
+              { id: "checked" as const, label: t("settings.idleAutonomyQuietSensorsChecked") },
+            ]}
+            value={preferences.edgeFramesOnlyOnChangeConfirmed ? "checked" : "unchecked"}
+            onChange={(id) => updatePreferences({ edgeFramesOnlyOnChangeConfirmed: id === "checked" })}
+          />
+        </View> : null}
         <BehaviorSettings />
       </Section>
 

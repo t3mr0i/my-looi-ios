@@ -82,6 +82,14 @@ for (const value of ["true", 1, "checked", null]) {
 user.preferences.linkLossSelfStopConfirmed = true;
 assert.equal(captured.linkLossSelfStopConfirmed(), true);
 user.preferences.linkLossSelfStopConfirmed = false;
+assert.equal(captured.quietSensorBasisEnabled(), false, "a store without the field never enables the quiet sensor basis");
+for (const value of ["true", 1, "checked", null]) {
+  user.preferences.edgeFramesOnlyOnChangeConfirmed = value;
+  assert.equal(captured.quietSensorBasisEnabled(), false, `only true enables it: ${JSON.stringify(value)}`);
+}
+user.preferences.edgeFramesOnlyOnChangeConfirmed = true;
+assert.equal(captured.quietSensorBasisEnabled(), true);
+user.preferences.edgeFramesOnlyOnChangeConfirmed = false;
 
 // The STOP listener is not live until the voice modules have loaded, and never on web.
 assert.equal(captured.stopListener.isLive(), false);

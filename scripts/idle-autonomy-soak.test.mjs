@@ -6,20 +6,23 @@ import { createIdleAutonomyWorld } from "./helpers/idle-autonomy-world.mjs";
 // shows that each safety rule holds in the case written for it; this shows
 // that no ordering of events found by chance breaks one.
 //
-// Three passes:
+// Four passes:
 // 1. the app's original sensor model (frames every 250 ms) with the link-loss check confirmed;
 // 2. the same model while the owner's link-loss confirmation is on or off and flips at random;
-// 3. a robot that reports only on change, as community captures describe (no frames at rest).
+// 3. a robot that reports only on change, as community captures describe (no frames at rest);
+// 4. the same event-only robot with the owner's opt-in quiet-sensor basis on, with silent streams and
+//    connections that bring no edge frame.
 const SEEDS = Number(process.env.IDLE_SOAK_SEEDS ?? 60);
 const SIDE_SEEDS = Number(process.env.IDLE_SOAK_SIDE_SEEDS ?? 30);
 const MINUTES_PER_SEED = Number(process.env.IDLE_SOAK_MINUTES ?? 40);
 const REST_FRAME_MS = process.env.IDLE_SOAK_REST_FRAME_MS ? Number(process.env.IDLE_SOAK_REST_FRAME_MS) : null;
 
 const { clock, connection, robot, idle, harness, settle, advance, connectMock, resetRobot, writes, seeded, MINUTE, DRIVE_PAYLOAD } = createIdleAutonomyWorld();
+const BASE_FAULTS = ["person", "person", "person", "gone", "scenario", "scenario", "mic", "arm", "yield", "touch", "ambush", "ambush", "ambush", "level", "link", "voice", "reposition", "reposition"];
 const SCENARIOS = ["clear", "clear", "clear", "clear", "clear", "front-edge", "rear-edge", "obstacle", "unknown"];
 
-async function soak({ seeds, cadence, confirmation }) {
-const totals = { drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, scenarioChanges: 0, headActions: 0, staleEdgeDrives: 0, refusedForStop: 0, faults: 0, unconfirmedExploreChecks: 0, events: {} };
+async function soak({ seeds, cadence, confirmation, quiet = false }) {
+const totals = { quietDrives: 0, freshSteps: 0, lures: 0, stepEligibleStale: 0, mutes: 0, connectsWithoutCliffFrame: 0, drives: 0, forward: 0, edgeStops: 0, stopLocks: 0, yieldsDuringMotion: 0, linkLossDuringMotion: 0, repositions: 0, scenarioChanges: 0, headActions: 0, staleEdgeDrives: 0, refusedForStop: 0, faults: 0, unconfirmedExploreChecks: 0, events: {} };
 const violations = [];
 /** Moments the BLE link dropped. The app cannot send a stop then; what the robot does is a hardware question. */
 const linkLosses = [];
@@ -30,13 +33,23 @@ for (let seed = 1; seed <= seeds; seed += 1) {
   const pick = (items) => items[Math.floor(random() * items.length)];
   const between = (low, high) => low + random() * (high - low);
   await resetRobot();
-  connection.setMockLooiSensorCadence(cadence);
+  // Quiet mode only (guarded, so passes 1-3 keep their random sequence): whether the next connection brings an edge frame, and a mute switch.
+  const sensorLink = { cliffFrameOnSubscribe: true, muted: false };
+  const applyCadence = () => connection.setMockLooiSensorCadence({ ...cadence, ...sensorLink });
+  const beforeReconnect = () => {
+    if (!quiet) return;
+    sensorLink.cliffFrameOnSubscribe = random() < 0.5;
+    if (!sensorLink.cliffFrameOnSubscribe) totals.connectsWithoutCliffFrame += 1;
+    applyCadence();
+  };
+  if (quiet) beforeReconnect();
+  else connection.setMockLooiSensorCadence(cadence);
   const connectStartedAt = clock.now;
   await connectMock("clear");
-  const h = harness({ level: pick(["look", "explore", "explore", "explore"]), seed, linkLossConfirmed: confirmation === "random" ? random() < 0.5 : true });
+  const h = harness({ level: pick(["look", "explore", "explore", "explore"]), seed, linkLossConfirmed: confirmation === "random" ? random() < 0.5 : true, quietBasis: quiet });
   const startedAt = clock.now;
   /** Start of every connection of this run; a drive is judged against the latest one at or before it. */
-  const world = { connectionStarts: [connectStartedAt], scenario: "clear", unsafeSince: null, connected: true, stopLockedAt: null, levelChangedAt: startedAt };
+  const world = { connectionStarts: [connectStartedAt], scenario: "clear", unsafeSince: null, connected: true, stopLockedAt: null, levelChangedAt: startedAt, mutedIntervals: [] };
   const fail = (rule, detail) => violations.push({ seed, rule, at: Math.round((clock.now - startedAt) / 1000), ...detail });
   h.runtime.start();
   h.interact("touch");
@@ -46,8 +59,35 @@ for (let seed = 1; seed <= seeds; seed += 1) {
   while (clock.now < end) {
     await advance(between(3_000, 35_000));
     totals.faults += 1;
-    const fault = pick(["person", "person", "person", "gone", "scenario", "scenario", "mic", "arm", "yield", "touch", "ambush", "ambush", "ambush", "level", "link", "voice", "reposition", "reposition"]);
-    if (fault === "person") h.person = { bearing: pick(["left", "center", "center", "center", "right"]), distance: pick(["far", "far", "far", "near", "unknown"]) };
+    const fault = pick(quiet ? [...BASE_FAULTS, "mute", "mute", "lure", "lure", "lure"] : BASE_FAULTS);
+    if (fault === "lure") {
+      // Offer a step: explore, link-loss check confirmed, STOP decoder armable, a far person in front. On an event-only
+      // robot no edge frame is fresh then, and a 0e reading comes only with the robot's own turns. Count the moments
+      // where a step would be eligible if the quiet basis were allowed to carry it.
+      totals.lures += 1;
+      h.level = "explore"; h.micLive = true; h.armReady = true; h.linkLossConfirmed = true; h.yieldReason = null;
+      world.levelChangedAt = clock.now; world.stopLockedAt = null;
+      h.person = { bearing: pick(["left", "right", "center"]), distance: "far" };
+      h.interact("touch");
+      const until = clock.now + between(60, 150) * 1000;
+      while (clock.now < until) {
+        await advance(500);
+        const state = robot.getLooiRobotRuntimeState();
+        const quietSurface = idle.assessIdleSurface(state, clock.now, { echoOk: true });
+        const clearReading = state.sensors.obstacleNear === false && (state.sensors.tofDistanceMm == null || state.sensors.tofDistanceMm < 0x1fff);
+        if (world.connected && quietSurface.basis === "quiet" && clearReading && h.level === "explore" && h.linkLossConfirmed && h.person && !h.yieldReason && !state.motionActive) totals.stepEligibleStale += 1;
+      }
+    } else if (fault === "mute") {
+      // The notification stream goes silent while the link stays up: the quiet basis must notice through the missing echo.
+      const from = clock.now;
+      sensorLink.muted = true;
+      applyCadence();
+      await advance(between(2, 6) * MINUTE);
+      sensorLink.muted = false;
+      applyCadence();
+      world.mutedIntervals.push({ from, to: clock.now });
+      totals.mutes += 1;
+    } else if (fault === "person") h.person = { bearing: pick(["left", "center", "center", "center", "right"]), distance: pick(["far", "far", "far", "near", "unknown"]) };
     else if (fault === "gone") h.person = null;
     else if (fault === "scenario") {
       world.scenario = pick(SCENARIOS);
@@ -111,6 +151,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
           await advance(between(2_000, 10_000));
           world.connected = true;
           world.connectionStarts.push(clock.now);
+          beforeReconnect();
           await settle(connection.setMockLooiConnected(true));
         }
       }
@@ -122,7 +163,7 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     } else if (fault === "link") {
       world.connected = !world.connected;
       if (!world.connected) linkLosses.push(clock.now);
-      else world.connectionStarts.push(clock.now);
+      else { world.connectionStarts.push(clock.now); beforeReconnect(); }
       await settle(connection.setMockLooiConnected(world.connected));
       if (world.connected) { world.unsafeSince = world.scenario === "clear" ? null : clock.now; }
     } else if (fault === "voice") {
@@ -163,9 +204,15 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     if (!drive.surfaceAtStart.turn || (drive.direction === "forward" && !drive.surfaceAtStart.forward)) fail("surface-safe-at-drive-start", where);
     const connectionStart = world.connectionStarts.filter((at) => at <= drive.at).at(-1);
     if (drive.lastCliffFrameAtStart === null || drive.lastCliffFrameAtStart < connectionStart) fail("wheels-need-cliff-frame-this-connection", where);
-    if (drive.cliffFrameAgeAtStart === null || drive.cliffFrameAgeAtStart > idle.SURFACE_SENSOR_FRESH_MS) totals.staleEdgeDrives += 1;
+    const staleEdge = drive.cliffFrameAgeAtStart === null || drive.cliffFrameAgeAtStart > idle.SURFACE_SENSOR_FRESH_MS;
+    if (staleEdge) totals.staleEdgeDrives += 1;
+    if (!quiet && staleEdge) fail("no-drive-on-stale-edge-frame", where);
+    if (staleEdge && (drive.cliffStableForAtStart === null || drive.cliffStableForAtStart < idle.QUIET_SURFACE_SETTLED_MS)) fail("quiet-turns-on-settled-ground", where);
+    if (staleEdge) totals.quietDrives += 1;
     if (drive.direction === "forward") {
       totals.forward += 1;
+      if (!staleEdge) totals.freshSteps += 1;
+      if (staleEdge) fail("forward-only-on-fresh-edge-frame", where);
       if (drive.levelAtStart !== "explore") fail("only-explore-drives-forward", where);
       if (!drive.linkLossConfirmedAtStart) fail("no-step-without-link-loss-check", where);
       if (drive.durationMs > idle.MAX_AUTONOMOUS_STEP_MS) fail("step-length-capped", { ...where, ms: drive.durationMs });
@@ -194,6 +241,11 @@ for (let seed = 1; seed <= seeds; seed += 1) {
     }
   }
   totals.refusedForStop += h.logs.filter((entry) => entry.event === "stop-listener-unavailable").length;
+  // A silent stream: after the first quiet turn the missing echo must stop further turns.
+  for (const muted of world.mutedIntervals) {
+    const inside = drives.filter((drive) => drive.at > muted.from + idle.SURFACE_SENSOR_FRESH_MS && drive.at < muted.to).length;
+    if (inside > 1) fail("silent-stream-stops-quiet-turns", { drives: inside, mutedForS: Math.round((muted.to - muted.from) / 1000) });
+  }
   if (h.armed !== 0) fail("decoder-disarmed-at-the-end", { armed: h.armed });
   if (h.disarms !== h.arms.filter((arm) => arm.accepted).length) fail("disarms-match-accepted-arms", { disarms: h.disarms, accepted: h.arms.filter((arm) => arm.accepted).length });
 }
@@ -255,4 +307,23 @@ const summary = (label, seeds, totals) => `${label}: ${seeds} seeds x ${MINUTES_
   assert.ok(totals.scenarioChanges >= 220, `the surface changed under it: ${totals.scenarioChanges}`);
   assert.ok(totals.linkLossDuringMotion + totals.faults >= 1_000, `faults were thrown at it: ${totals.faults}`);
   console.log(`Idle autonomy soak, ${summary(`on-change sensor frames${REST_FRAME_MS ? `, edge frame every ${REST_FRAME_MS} ms at rest` : ", none at rest"}`, SIDE_SEEDS, totals)}; ${totals.headActions} head actions and ${totals.scenarioChanges} scenario changes show that idle life stays still on an event-only robot, the wheel rules are barely exercised here PASS`);
+}
+{
+  const cadence = { cadence: "on-change", restFrameIntervalMs: null };
+  const { totals, violations } = await soak({ seeds: SIDE_SEEDS, cadence, confirmation: "confirmed", quiet: true });
+  if (process.env.IDLE_SOAK_VERBOSE) console.log(JSON.stringify(totals));
+  assert.deepEqual(violations.slice(0, 12), [], `${violations.length} safety rule violations`);
+  assert.ok(totals.mutes >= 5, `the stream went silent: ${totals.mutes}`);
+  assert.ok(totals.connectsWithoutCliffFrame >= 3, `connections without an edge frame: ${totals.connectsWithoutCliffFrame}`);
+  // Observed with the default 30 seeds: 115 wheel actions (all on the quiet basis, 0 steps), 107 mutes, 29 connections without
+  // an edge frame, 139 lures, 4130 half-second moments in which a step was eligible except for edge freshness. Pass 3 (same
+  // robot, quiet basis off) has 3 wheel actions; the floors are about half of the observed numbers.
+  assert.ok(totals.drives >= 57, `wheel actions happened: ${totals.drives}`);
+  assert.ok(totals.quietDrives >= 57, `quiet turns happened: ${totals.quietDrives}`);
+  assert.ok(totals.drives >= 10 * 3, `at least ten times the wheel actions of pass 3 with the switch off: ${totals.drives}`);
+  assert.ok(totals.lures >= 70, `steps were offered: ${totals.lures}`);
+  assert.ok(totals.stepEligibleStale >= 2_000, `moments where only edge freshness stood between the robot and a step: ${totals.stepEligibleStale}`);
+  // Steps on a genuinely fresh edge frame would be fine (counted in freshSteps); none may rest on the quiet basis.
+  assert.equal(totals.forward, totals.freshSteps, "no step on the quiet basis");
+  console.log(`Idle autonomy soak, ${summary("on-change sensor frames, quiet-sensor basis on, silent streams and connections without edge frame", SIDE_SEEDS, totals)}; ${totals.quietDrives} quiet turns, ${totals.freshSteps} steps on a fresh edge frame, ${totals.stepEligibleStale} half-second moments with a step eligible except for edge freshness, ${totals.mutes} silent streams, ${totals.connectsWithoutCliffFrame} connections without edge frame PASS`);
 }

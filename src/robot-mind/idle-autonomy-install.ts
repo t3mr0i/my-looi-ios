@@ -108,6 +108,7 @@ export function installIdleAutonomyRuntime(): () => void {
     clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
     getLevel: () => useUserStore.getState().preferences.idleAutonomyLevel ?? "look",
     linkLossSelfStopConfirmed: () => useUserStore.getState().preferences.linkLossSelfStopConfirmed === true,
+    quietSensorBasisEnabled: () => useUserStore.getState().preferences.edgeFramesOnlyOnChangeConfirmed === true,
     getYieldReason: appYieldReason,
     subscribeInteractions: subscribeAmbientMotionInteractions,
     motion: {

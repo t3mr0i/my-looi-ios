@@ -534,15 +534,34 @@ const TOF_RAW_LIMIT = 0x1fff;
 /** All four cliff sensors must have reported ground continuously for this long. */
 export const SURFACE_STABLE_MS = 1_000;
 
-export function assessIdleSurface(robot: IdleMotionLayerSnapshot, now: number): { turn: boolean; forward: boolean } {
+/** Opt-in only (owner's self-check showed no edge frames at rest): how long all four sensors must have seen ground since their last change. */
+export const QUIET_SURFACE_SETTLED_MS = 10_000;
+/** After an autonomous wheel action, a FED9 frame of any type must arrive within this long after it ended, or the quiet basis is suspended. */
+export const QUIET_ECHO_WINDOW_MS = 1_000;
+export type IdleSurfaceBasis = "fresh" | "quiet" | null;
+
+export function assessIdleSurface(
+  robot: IdleMotionLayerSnapshot,
+  now: number,
+  quiet?: { echoOk: boolean },
+): { turn: boolean; forward: boolean; basis: IdleSurfaceBasis } {
   const sensors = robot.sensors;
   const cliff = sensors.cliffSensors;
-  const turn = robot.connected &&
+  const ground = robot.connected &&
     robot.driveControlReady &&
     !robot.nearEdge.front && !robot.nearEdge.rear &&
+    !!cliff && cliff.frontLeft && cliff.frontRight && cliff.rearLeft && cliff.rearRight;
+  const stableFor = (ms: number) => (Object.values(sensors.cliffSafeSince) as Array<number | null>)
+    .every((since) => since !== null && now - since >= ms);
+  const freshTurn = ground &&
     sensors.lastCliffFrameAt != null && now - sensors.lastCliffFrameAt <= SURFACE_SENSOR_FRESH_MS &&
-    !!cliff && cliff.frontLeft && cliff.frontRight && cliff.rearLeft && cliff.rearRight &&
-    (Object.values(sensors.cliffSafeSince) as Array<number | null>)
-      .every((since) => since !== null && now - since >= SURFACE_STABLE_MS);
-  return { turn, forward: turn && sensors.obstacleNear === false && (sensors.tofDistanceMm == null || sensors.tofDistanceMm < TOF_RAW_LIMIT) };
+    stableFor(SURFACE_STABLE_MS);
+  // The quiet basis trusts the last reported edge state, so it still needs an edge frame on this connection.
+  const quietTurn = !!quiet && quiet.echoOk && ground && sensors.lastCliffFrameAt != null && stableFor(QUIET_SURFACE_SETTLED_MS);
+  return {
+    turn: freshTurn || quietTurn,
+    // Steps never use the quiet basis.
+    forward: freshTurn && sensors.obstacleNear === false && (sensors.tofDistanceMm == null || sensors.tofDistanceMm < TOF_RAW_LIMIT),
+    basis: freshTurn ? "fresh" : quietTurn ? "quiet" : null,
+  };
 }

@@ -222,6 +222,11 @@ export type UserPreferences = {
    * Until then "explore" takes no forward steps. Never set by the app itself.
    */
   linkLossSelfStopConfirmed: boolean;
+  /**
+   * The owner's self-check showed no edge-sensor frames at rest. Enables turns in place on the last reported
+   * edge state. Never set by the app itself.
+   */
+  edgeFramesOnlyOnChangeConfirmed: boolean;
   /** Legacy combined visual preset kept only so older installs migrate predictably. */
   faceSkin: FaceSkinId;
   /** Independent facial geometry/decor style. Pure presentation only. */
@@ -294,6 +299,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   cameraAttentionEnabled: false,
   idleAutonomyLevel: "look",
   linkLossSelfStopConfirmed: false,
+  edgeFramesOnlyOnChangeConfirmed: false,
   faceSkin: "classic",
   faceStyle: "classic",
   facePalette: "cyan",
@@ -357,6 +363,7 @@ function loadPreferences(): UserPreferences {
       cameraAttentionEnabled: (preferences as Partial<UserPreferences>).cameraAttentionEnabled === true,
       idleAutonomyLevel: normalizeIdleAutonomyLevel((preferences as Partial<UserPreferences>).idleAutonomyLevel),
       linkLossSelfStopConfirmed: (preferences as Partial<UserPreferences>).linkLossSelfStopConfirmed === true,
+      edgeFramesOnlyOnChangeConfirmed: (preferences as Partial<UserPreferences>).edgeFramesOnlyOnChangeConfirmed === true,
       faceSkin: normalizeFaceSkinId((preferences as Partial<UserPreferences>).faceSkin),
       faceStyle: normalizeFaceStyleId(
         (preferences as Partial<UserPreferences>).faceStyle,
@@ -391,6 +398,7 @@ function loadPreferences(): UserPreferences {
       (preferences as Partial<UserPreferences>).cameraAttentionEnabled !== normalized.cameraAttentionEnabled ||
       (preferences as Partial<UserPreferences>).idleAutonomyLevel !== normalized.idleAutonomyLevel ||
       (preferences as Partial<UserPreferences>).linkLossSelfStopConfirmed !== normalized.linkLossSelfStopConfirmed ||
+      (preferences as Partial<UserPreferences>).edgeFramesOnlyOnChangeConfirmed !== normalized.edgeFramesOnlyOnChangeConfirmed ||
       (preferences as Partial<UserPreferences>).faceSkin !== normalized.faceSkin ||
       (preferences as Partial<UserPreferences>).faceStyle !== normalized.faceStyle ||
       (preferences as Partial<UserPreferences>).facePalette !== normalized.facePalette ||
